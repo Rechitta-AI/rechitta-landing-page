@@ -1,0 +1,1826 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Rechitta — Your private property curator</title>
+<meta name="description" content="Talk to Rechitta about any Dubai property. Your AI-powered private property curator, available in your language, right now." />
+<meta property="og:title" content="Rechitta — Your private property curator" />
+<meta property="og:description" content="The AI property curator. Private briefings on any Dubai property." />
+<meta property="og:type" content="website" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;1,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+/* ─────────────────────────────────────────────────
+   DESIGN TOKENS
+───────────────────────────────────────────────── */
+:root {
+  --bg:           #0A0A09;
+  --hud-blue:     #3D6FF5;
+  --gold:         #C5A572;
+  --text-primary:   #FAFAF9;
+  --text-secondary: #A8A8A1;
+  --text-dim:       #535350;
+  --ease-expo:  cubic-bezier(0.16,1,0.3,1);
+  --ease-quart: cubic-bezier(0.25,1,0.5,1);
+}
+
+/* ─────────────────────────────────────────────────
+   RESET
+───────────────────────────────────────────────── */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: auto; }
+body {
+  background: var(--bg);
+  color: var(--text-primary);
+  cursor: none;
+  overflow-x: hidden;
+  font-family: 'Inter', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+a { text-decoration: none; color: inherit; }
+::selection { background: rgba(61,111,245,0.3); color: #FAFAF9; }
+
+/* ─────────────────────────────────────────────────
+   CUSTOM CURSOR
+───────────────────────────────────────────────── */
+#cursor-cross {
+  position: fixed;
+  pointer-events: none;
+  z-index: 9000;
+  width: 0; height: 0;
+  transition: opacity 200ms;
+}
+.cursor-arm { position: absolute; background: rgba(255,255,255,0.65); transition: opacity 180ms; }
+.cursor-h   { height: 0.5px; width: 20px; top: 0; transform: translateY(-50%); }
+.cursor-h-l { right: 4px; }
+.cursor-h-r { left: 4px; }
+.cursor-v   { width: 0.5px; height: 20px; left: 0; transform: translateX(-50%); }
+.cursor-v-t { bottom: 4px; }
+.cursor-v-b { top: 4px; }
+
+/* Orb-hover audio waveform */
+#cursor-wave {
+  position: fixed;
+  pointer-events: none;
+  z-index: 9000;
+  display: flex;
+  align-items: center;
+  gap: 3.5px;
+  height: 32px;
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  transition: opacity 240ms var(--ease-expo);
+}
+#cursor-wave.active { opacity: 1; }
+.wave-bar {
+  width: 2.5px;
+  border-radius: 2px;
+  background: var(--hud-blue);
+  box-shadow: 0 0 6px rgba(61,111,245,0.7);
+  transform-origin: center bottom;
+  animation-fill-mode: both;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+}
+.wave-bar:nth-child(1) { height: 6px;  animation: waveBar 0.72s infinite ease-in-out 0.00s; }
+.wave-bar:nth-child(2) { height: 14px; animation: waveBar 0.58s infinite ease-in-out 0.12s; }
+.wave-bar:nth-child(3) { height: 24px; animation: waveBar 0.84s infinite ease-in-out 0.06s; }
+.wave-bar:nth-child(4) { height: 32px; animation: waveBar 0.66s infinite ease-in-out 0.20s; }
+.wave-bar:nth-child(5) { height: 20px; animation: waveBar 0.76s infinite ease-in-out 0.08s; }
+.wave-bar:nth-child(6) { height: 28px; animation: waveBar 0.54s infinite ease-in-out 0.16s; }
+.wave-bar:nth-child(7) { height: 14px; animation: waveBar 0.90s infinite ease-in-out 0.04s; }
+.wave-bar:nth-child(8) { height: 8px;  animation: waveBar 0.62s infinite ease-in-out 0.22s; }
+@keyframes waveBar {
+  0%, 100% { transform: scaleY(0.18); opacity: 0.5; }
+  50%       { transform: scaleY(1);   opacity: 1;   }
+}
+
+#cursor-label {
+  position: fixed;
+  pointer-events: none;
+  z-index: 9000;
+  font-family: 'Courier New', monospace;
+  font-size: 9px;
+  color: rgba(255,255,255,0.4);
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  transition: opacity 200ms, color 180ms, letter-spacing 180ms, font-size 180ms;
+}
+#cursor-label.orb-hover {
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  color: rgba(255,255,255,0.9);
+}
+@media (max-width: 768px) {
+  #cursor-cross, #cursor-label, #cursor-wave { display: none; }
+  body { cursor: auto; }
+}
+
+/* ─────────────────────────────────────────────────
+   FIXED ORB
+───────────────────────────────────────────────── */
+#orb-container {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 5;
+}
+#orb-wrapper {
+  position: relative;
+  width: clamp(260px, 32vw, 420px);
+  height: clamp(260px, 32vw, 420px);
+  will-change: transform, opacity;
+  transform: translateX(0px) translateY(0vh) scale(1);
+  pointer-events: all;
+  cursor: none;
+}
+/* Glass disc removed — orb renders directly without container circle */
+#orb-inner {
+  position: absolute;
+  inset: 0;
+  mix-blend-mode: screen;
+  animation: orbDrift 7s ease-in-out infinite;
+  will-change: transform;
+  z-index: 1;
+}
+#orb-iframe {
+  position: absolute;
+  top: -25%; left: -25%;
+  width: 150%; height: 150%;
+  border: none;
+  pointer-events: none;
+}
+#orb-brand-icon {
+  position: absolute;
+  top: 50%; left: 50%;
+  /* translate(-50%,-50%) is baked into the animation below */
+  width: clamp(36px, 5vw, 64px);
+  height: auto;
+  pointer-events: none;
+  user-select: none;
+  z-index: 2;
+  animation: orbDriftIcon 7s ease-in-out infinite;
+}
+
+/* ─────────────────────────────────────────────────
+   HEADER
+───────────────────────────────────────────────── */
+#site-header {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  z-index: 50;
+  height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 clamp(20px, 4vw, 56px);
+}
+.nav-link {
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 14px;
+  color: var(--text-secondary);
+  position: relative;
+  padding-bottom: 2px;
+  transition: color 120ms;
+}
+.nav-link::after {
+  content: '';
+  position: absolute;
+  bottom: -2px; left: 0;
+  height: 1px; width: 0;
+  background: var(--text-secondary);
+  transition: width 80ms;
+}
+.nav-link:hover { color: var(--text-primary); }
+.nav-link:hover::after { width: 100%; }
+.nav-links { display: flex; align-items: center; gap: 32px; }
+.nav-ctas  { display: flex; align-items: center; gap: 12px; }
+.nav-ctas .btn-primary { height: 40px; padding: 0 20px; font-size: 14px; }
+@media (max-width: 767px) { .nav-links { display: none; } }
+@media (max-width: 767px) {
+  .nav-ctas .btn-primary { height: 34px; padding: 0 14px; font-size: 13px; }
+}
+
+
+/* ─────────────────────────────────────────────────
+   TOWER SPINE
+───────────────────────────────────────────────── */
+#spine {
+  position: fixed;
+  right: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 60vh;
+  width: 24px;
+  z-index: 40;
+  pointer-events: none;
+  transition: opacity 200ms ease;
+}
+#spine-track {
+  position: absolute;
+  left: 50%;
+  top: 0; bottom: 0;
+  width: 1.5px;
+  background: rgba(255,255,255,0.06);
+  transform: translateX(-50%);
+}
+#spine-fill-bar {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: 1.5px;
+  height: 0%;
+  background: rgba(61,111,245,0.7);
+  transform: translateX(-50%);
+}
+#spine-dot {
+  position: absolute;
+  left: 50%;
+  width: 6px; height: 6px;
+  background: var(--hud-blue);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  top: 0%;
+  box-shadow: 0 0 8px rgba(61,111,245,0.8);
+}
+.spine-tick {
+  position: absolute;
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transform: translateY(-50%);
+}
+.spine-tick-line {
+  width: 6px; height: 0.5px;
+  background: rgba(255,255,255,0.14);
+}
+.spine-tick-label {
+  font-family: 'Courier New', monospace;
+  font-size: 7px;
+  color: var(--text-dim);
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  position: absolute;
+  right: 14px;
+}
+@media (max-width: 640px) { #spine { display: none; } }
+
+/* ─────────────────────────────────────────────────
+   BUTTONS
+───────────────────────────────────────────────── */
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 40px;
+  padding: 0 20px;
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid rgba(255,255,255,0.16);
+  border-radius: 9999px;
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: none;
+  transition: color 150ms, border-color 150ms, background 150ms;
+}
+.btn-ghost:hover { color: var(--text-primary); border-color: rgba(255,255,255,0.36); background: rgba(255,255,255,0.05); }
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 56px;
+  padding: 0 48px;
+  background: var(--text-primary);
+  color: var(--bg);
+  border: none;
+  border-radius: 9999px;
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: none;
+  transition: background 150ms, transform 150ms var(--ease-quart);
+}
+.btn-primary:hover { background: #FFFFFF; transform: scale(1.02); }
+.btn-primary:active { transform: scale(0.98); }
+
+/* ─────────────────────────────────────────────────
+   SECTION TALK CTA
+───────────────────────────────────────────────── */
+.talk-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 28px;
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(255,255,255,0.55);
+  text-decoration: none;
+  letter-spacing: 0.02em;
+  transition: color 150ms;
+  cursor: none;
+}
+.talk-cta::after {
+  content: '→';
+  transition: transform 150ms var(--ease-expo);
+}
+.talk-cta:hover { color: #FAFAF9; }
+.talk-cta:hover::after { transform: translateX(4px); }
+
+/* ─────────────────────────────────────────────────
+   SCROLL SECTIONS — STICKY FRAME + SCENE SYSTEM
+───────────────────────────────────────────────── */
+.scroll-section { position: relative; }
+.sticky-frame {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* ── Scene backgrounds ── */
+.scene-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+}
+.scene-bg-img {
+  position: absolute;
+  left: 0; right: 0;
+  top: -10%;
+  width: 100%;
+  height: 120%;
+  object-fit: cover;
+  object-position: center;
+  will-change: transform;
+}
+
+/* ── Scene overlays (gradient darkness panels) ── */
+.scene-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+/* Hero: light sky top, dark bottom for text */
+.scene-overlay--hero {
+  background:
+    linear-gradient(to bottom,
+      rgba(10,10,9,0.55) 0%,
+      rgba(10,10,9,0.1)  18%,
+      rgba(10,10,9,0)    38%,
+      rgba(10,10,9,0.45) 56%,
+      rgba(10,10,9,0.82) 70%,
+      rgba(10,10,9,0.97) 84%,
+      rgba(10,10,9,1)    100%);
+}
+/* Left content panel: dark left, clear right */
+.scene-overlay--left {
+  background:
+    linear-gradient(105deg,
+      rgba(10,10,9,0.92) 0%,
+      rgba(10,10,9,0.78) 28%,
+      rgba(10,10,9,0.35) 50%,
+      rgba(10,10,9,0)    65%),
+    linear-gradient(to bottom,
+      rgba(10,10,9,0.5) 0%,
+      rgba(10,10,9,0)   20%,
+      rgba(10,10,9,0)   65%,
+      rgba(10,10,9,0.6) 100%);
+}
+/* Right content panel: clear left, dark right */
+.scene-overlay--right {
+  background:
+    linear-gradient(255deg,
+      rgba(10,10,9,0.92) 0%,
+      rgba(10,10,9,0.78) 28%,
+      rgba(10,10,9,0.35) 50%,
+      rgba(10,10,9,0)    65%),
+    linear-gradient(to bottom,
+      rgba(10,10,9,0.5) 0%,
+      rgba(10,10,9,0)   20%,
+      rgba(10,10,9,0)   65%,
+      rgba(10,10,9,0.6) 100%);
+}
+/* Center panel for investor */
+.scene-overlay--center {
+  background:
+    radial-gradient(ellipse 70% 80% at 50% 60%,
+      rgba(10,10,9,0) 0%,
+      rgba(10,10,9,0.5) 60%,
+      rgba(10,10,9,0.9) 100%),
+    linear-gradient(to bottom,
+      rgba(10,10,9,0.6) 0%,
+      rgba(10,10,9,0)   25%,
+      rgba(10,10,9,0)   60%,
+      rgba(10,10,9,0.95) 100%);
+}
+
+/* ── Floor label ── */
+
+/* ── Scene content panels ── */
+.scene-content {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 8;
+  max-width: clamp(300px, 38vw, 520px);
+}
+.scene-content--left  { left: clamp(24px, 5vw, 80px); }
+.scene-content--right { right: clamp(24px, 5vw, 80px); }
+.scene-content--center {
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  max-width: clamp(300px, 52vw, 660px);
+}
+@media (max-width: 768px) {
+  .scene-content {
+    left: 20px !important;
+    right: 20px !important;
+    max-width: 100%;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+  .scene-content--center { transform: translate(-50%, -50%); }
+}
+
+/* ─────────────────────────────────────────────────
+   HERO SPECIFIC
+───────────────────────────────────────────────── */
+#hero-content {
+  position: absolute;
+  bottom: clamp(32px, 4vh, 60px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 64vw;
+  text-align: center;
+  z-index: 8;
+}
+@media (max-width: 768px) {
+  #hero-content { max-width: 90%; left: 50%; }
+}
+
+/* ─────────────────────────────────────────────────
+   TYPOGRAPHY
+───────────────────────────────────────────────── */
+.eyebrow {
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.36);
+  margin-bottom: 14px;
+}
+.headline {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: clamp(26px, 4vw, 56px);
+  font-weight: 400;
+  letter-spacing: -0.025em;
+  color: var(--text-primary);
+  line-height: 1.08;
+  margin-bottom: 18px;
+}
+.body-text {
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 15px;
+  line-height: 25px;
+  color: rgba(255,255,255,0.55);
+  max-width: 360px;
+  margin-bottom: 28px;
+}
+
+/* ─────────────────────────────────────────────────
+   REVEAL ANIMATIONS
+───────────────────────────────────────────────── */
+.reveal {
+  opacity: 0;
+  transform: translateY(22px);
+  transition: opacity 700ms var(--ease-expo), transform 700ms var(--ease-expo);
+}
+.reveal.in { opacity: 1; transform: translateY(0); }
+.reveal-x {
+  opacity: 0;
+  transform: translateX(-18px);
+  transition: opacity 600ms var(--ease-expo), transform 600ms var(--ease-expo);
+}
+.reveal-x.in { opacity: 1; transform: translateX(0); }
+
+/* Hero word */
+.hero-word {
+  opacity: 0;
+  transform: translateY(20px);
+  display: inline;
+  transition: opacity 700ms var(--ease-expo), transform 700ms var(--ease-expo);
+}
+.hero-word.in { opacity: 1; transform: translateY(0); }
+
+/* Language chips */
+.lang-chip {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 15px;
+  color: rgba(255,255,255,0.75);
+  padding: 5px 13px;
+  background: rgba(255,255,255,0.06);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 6px;
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 500ms var(--ease-expo), transform 500ms var(--ease-expo);
+}
+.lang-chip.in { opacity: 1; transform: translateY(0); }
+
+/* Cycling language word in headline */
+#lang-cycling-wrap {
+  display: block;
+  position: relative;
+  overflow: hidden;
+  max-width: 100%;
+}
+#lang-cycling-word {
+  display: inline-block;
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 300ms var(--ease-expo), transform 300ms var(--ease-expo);
+  font-size: clamp(20px, 3.6vw, 46px);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: clip;
+  white-space: nowrap;
+}
+#lang-cycling-word.exit {
+  opacity: 0;
+  transform: translateY(-18px);
+}
+#lang-cycling-word.enter {
+  opacity: 0;
+  transform: translateY(18px);
+  transition: none;
+}
+#lang-cycling-word.enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 380ms var(--ease-expo), transform 380ms var(--ease-expo);
+}
+
+/* Step / bullet rows */
+.step-row {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  opacity: 0;
+  transform: translateX(-18px);
+  transition: opacity 500ms var(--ease-expo), transform 500ms var(--ease-expo);
+}
+.step-row.in { opacity: 1; transform: translateX(0); }
+.step-num {
+  font-family: 'Courier New', monospace;
+  font-size: 10px;
+  color: var(--hud-blue);
+  letter-spacing: 0.08em;
+  font-weight: 600;
+  flex-shrink: 0;
+  padding-top: 2px;
+  min-width: 22px;
+}
+.step-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.88);
+  margin-bottom: 2px;
+}
+.step-sub {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  color: rgba(255,255,255,0.38);
+  line-height: 19px;
+}
+.bullet-row {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  opacity: 0;
+  transform: translateX(-18px);
+  transition: opacity 500ms var(--ease-expo), transform 500ms var(--ease-expo);
+}
+.bullet-row.in { opacity: 1; transform: translateX(0); }
+.bullet-dot {
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: var(--hud-blue);
+  flex-shrink: 0;
+  margin-top: 7px;
+}
+
+/* ─────────────────────────────────────────────────
+   PHONE FRAME
+───────────────────────────────────────────────── */
+.phone-frame {
+  width: clamp(260px, 85%, 340px);
+  background: #0A0A09;
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 32px 100px rgba(0,0,0,0.75), 0 0 0 0.5px rgba(255,255,255,0.04);
+  margin: 0 auto;
+}
+
+/* ─────────────────────────────────────────────────
+   ANIMATIONS
+───────────────────────────────────────────────── */
+@keyframes orbMorph {
+  0%   { border-radius: 62% 38% 54% 46% / 48% 58% 42% 52%; }
+  20%  { border-radius: 44% 56% 38% 62% / 62% 36% 64% 38%; }
+  40%  { border-radius: 56% 44% 66% 34% / 38% 62% 38% 62%; }
+  60%  { border-radius: 38% 62% 46% 54% / 54% 44% 56% 46%; }
+  80%  { border-radius: 52% 48% 36% 64% / 44% 66% 34% 56%; }
+  100% { border-radius: 62% 38% 54% 46% / 48% 58% 42% 52%; }
+}
+@keyframes orbDrift {
+  0%,100% { transform: translate(0, 0); }
+  30%     { transform: translate(5px, -8px); }
+  60%     { transform: translate(-4px, 6px); }
+}
+/* Icon variant: identical drift but with the -50%/-50% centering baked in */
+@keyframes orbDriftIcon {
+  0%,100% { transform: translate(-50%, -50%) translate(0px, 0px); }
+  30%     { transform: translate(-50%, -50%) translate(5px, -8px); }
+  60%     { transform: translate(-50%, -50%) translate(-4px, 6px); }
+}
+@keyframes waveBar {
+  0%, 100% { transform: scaleY(0.4); opacity: 0.5; }
+  50%       { transform: scaleY(1.0); opacity: 1.0; }
+}
+.wave-bar {
+  width: 3px;
+  border-radius: 2px;
+  background: var(--text-primary);
+  animation: waveBar 1s ease-in-out infinite;
+  transform-origin: center;
+}
+@keyframes livePulse {
+  0%, 100% { opacity: 0.5; transform: scale(0.9); }
+  50%       { opacity: 1.0; transform: scale(1.1); }
+}
+.live-dot { animation: livePulse 2s ease-in-out infinite; }
+@keyframes hintPulse {
+  0%, 100% { opacity: 0.3; }
+  50%       { opacity: 0.8; }
+}
+#scroll-hint { animation: hintPulse 2.5s ease-in-out infinite; }
+
+.gold-rule { height: 1px; background: rgba(197,165,114,0.2); border: none; margin: 8px 0; }
+.live-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 20px;
+  padding: 0 8px;
+  font-family: 'Inter';
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  color: var(--text-secondary);
+  background: rgba(10,10,9,0.7);
+  backdrop-filter: blur(8px);
+  border-radius: 9999px;
+  text-transform: uppercase;
+}
+
+/* ─────────────────────────────────────────────────
+   FOOTER
+───────────────────────────────────────────────── */
+#site-footer {
+  background: #080806;
+  position: relative;
+  z-index: 10;
+  overflow: hidden;
+  padding: clamp(64px,10vw,120px) clamp(24px,6vw,96px) clamp(36px,5vw,56px);
+}
+#footer-wordmark-bg {
+  position: absolute;
+  bottom: -4%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 110%;
+  pointer-events: none;
+  user-select: none;
+  opacity: 0.04;
+  white-space: nowrap;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: clamp(120px, 16vw, 220px);
+  font-weight: 400;
+  letter-spacing: -0.03em;
+  color: #FAFAF9;
+  text-align: center;
+  line-height: 1;
+}
+.footer-social-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(255,255,255,0.4);
+  text-decoration: none;
+  transition: color 150ms;
+  cursor: none;
+}
+.footer-social-link:hover { color: rgba(255,255,255,0.9); }
+
+/* ─────────────────────────────────────────────────
+   REDUCED MOTION
+───────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+  .reveal, .reveal-x, .hero-word, .lang-chip, .step-row, .bullet-row {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+
+/* ─────────────────────────────────────────────────
+   STAT ROW / STAT DIVIDER helpers
+───────────────────────────────────────────────── */
+.stat-divider {
+  width: 1px;
+  background: rgba(255,255,255,0.08);
+  align-self: stretch;
+}
+
+/* ─────────────────────────────────────────────────
+   MOBILE — RESPONSIVE OVERRIDES
+───────────────────────────────────────────────── */
+@media (max-width: 768px) {
+
+  /* Orb: keep natural desktop wrapper size so Spline renders at full quality with proper glow.
+     JS transform:scale() shrinks it visually; the fixed-position visual pixels stay in viewport. */
+
+  /* Restore default cursor on all interactive elements */
+  .btn-ghost, .btn-primary, .talk-cta, .footer-social-link { cursor: auto; }
+
+  /* Body text: lift the 360 px cap so it fills the column */
+  .body-text { max-width: 100%; }
+
+  /* Stat rows: tighter gap, allow wrap, hide separators */
+  .stat-row { gap: 16px !important; flex-wrap: wrap; }
+  .stat-divider { display: none; }
+
+  /* Investor section: stack phone above copy */
+  .investor-layout {
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 24px !important;
+    overflow-y: auto;
+    max-height: 88vh;
+    padding: 12px 0;
+  }
+  #investor-phone { width: clamp(130px, 38vw, 200px) !important; }
+
+  /* Hero: ensure it doesn't run edge-to-edge on very small screens */
+  #hero-content { padding: 0 16px; }
+
+  /* Scene content: slightly higher on mobile so it clears the bottom safe area */
+  .scene-content { bottom: env(safe-area-inset-bottom, 0px); }
+}
+
+@media (max-width: 480px) {
+  /* Very small phones: compress the stat numbers slightly */
+  .stat-row [style*="font-family:'Playfair"] {
+    font-size: clamp(22px, 7vw, 36px);
+  }
+  /* Reduce headline scale on tiny screens */
+  .headline { font-size: clamp(22px, 5.5vw, 56px); }
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════ -->
+<!--  CUSTOM CURSOR                             -->
+<!-- ═══════════════════════════════════════════ -->
+<div id="cursor-cross" aria-hidden="true">
+  <div class="cursor-arm cursor-h cursor-h-l"></div>
+  <div class="cursor-arm cursor-h cursor-h-r"></div>
+  <div class="cursor-arm cursor-v cursor-v-t"></div>
+  <div class="cursor-arm cursor-v cursor-v-b"></div>
+</div>
+<div id="cursor-wave" aria-hidden="true">
+  <div class="wave-bar"></div>
+  <div class="wave-bar"></div>
+  <div class="wave-bar"></div>
+  <div class="wave-bar"></div>
+  <div class="wave-bar"></div>
+  <div class="wave-bar"></div>
+  <div class="wave-bar"></div>
+  <div class="wave-bar"></div>
+</div>
+<div id="cursor-label" aria-hidden="true">E 000m &middot; OVERVIEW</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!--  FIXED ORB                                 -->
+<!-- ═══════════════════════════════════════════ -->
+<div id="orb-container" aria-hidden="true">
+  <div id="orb-wrapper">
+    <div id="orb-inner">
+      <iframe
+        id="orb-iframe"
+        src="https://my.spline.design/meeet-K190VICHbClCgQyBKYguhj6F/"
+        title="Rechitta orb"
+        allow="autoplay"
+      ></iframe>
+    </div>
+    <div id="orb-brand-icon">
+      <svg viewBox="0 0 25 22" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;">
+        <path d="M14.9762 12.3117H14.9397C18.3385 12.3117 21.0924 9.55618 21.0924 6.15905C21.094 2.76027 18.3385 0.00476074 14.9397 0.00476074H0.0331589L12.1876 12.3117H0L9.24967 21.5232H24.2126L14.9762 12.3117Z" fill="white"/>
+      </svg>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════ -->
+<!--  TOWER SPINE                               -->
+<!-- ═══════════════════════════════════════════ -->
+<div id="spine" aria-hidden="true">
+  <div id="spine-track"></div>
+  <div id="spine-fill-bar"></div>
+  <div id="spine-dot"></div>
+  <div class="spine-tick" style="top:5%;">
+    <div class="spine-tick-line"></div>
+    <span class="spine-tick-label">ROOF</span>
+  </div>
+  <div class="spine-tick" style="top:25%;">
+    <div class="spine-tick-line"></div>
+    <span class="spine-tick-label">82F</span>
+  </div>
+  <div class="spine-tick" style="top:45%;">
+    <div class="spine-tick-line"></div>
+    <span class="spine-tick-label">62F</span>
+  </div>
+  <div class="spine-tick" style="top:65%;">
+    <div class="spine-tick-line"></div>
+    <span class="spine-tick-label">42F</span>
+  </div>
+  <div class="spine-tick" style="top:88%;">
+    <div class="spine-tick-line"></div>
+    <span class="spine-tick-label">G</span>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!--  HEADER                                    -->
+<!-- ═══════════════════════════════════════════ -->
+<header id="site-header" role="navigation" aria-label="Main navigation">
+  <a href="/" style="display:inline-flex;align-items:center;" aria-label="Rechitta home">
+    <svg width="114" height="22" viewBox="0 0 114 22" fill="none" xmlns="http://www.w3.org/2000/svg" style="height:18px;width:auto;" aria-hidden="true">
+      <path d="M25.3867 5.87036C21.1407 5.87036 18.3188 8.63084 18.3188 13.4836C18.3188 17.8822 20.6847 21.5214 25.569 21.5214C30.1798 21.5214 32.0002 18.6399 32.6369 15.9706H30.4218C29.8764 18.2154 28.2682 19.6711 25.5077 19.6711C22.1703 19.6711 20.5637 17.2439 20.4725 14.0905H32.7828V13.1802C32.7828 8.5695 29.694 5.87036 25.3867 5.87036ZM20.5024 12.3314C20.7444 9.42002 22.7174 7.72063 25.3552 7.72063C28.177 7.72063 30.3555 9.38852 30.5677 12.3314H20.5024Z" fill="white"/>
+      <path d="M43.4946 7.78197C45.7096 7.78197 47.6809 8.78337 48.1352 11.8158H50.4099C50.0153 7.44707 46.2849 5.87036 43.4946 5.87036C38.6103 5.87036 35.8813 9.42002 35.8813 13.6959C35.8813 17.9717 38.612 21.5214 43.4946 21.5214C46.2849 21.5214 50.017 19.9447 50.4099 15.576H48.1352C47.6809 18.61 45.708 19.6097 43.4946 19.6097C39.8239 19.6097 38.1262 16.8791 38.1262 13.6942C38.1262 10.5093 39.8256 7.77866 43.4946 7.77866V7.78197Z" fill="white"/>
+      <path d="M61.5395 6.17427C58.2336 6.17427 56.1098 7.87201 55.2908 10.664V0.157593H53.0459V21.5219H55.2908V14.9697C55.2908 10.9359 57.3831 8.08423 60.7819 8.08423C63.4512 8.08423 64.6648 9.35753 64.6648 12.4828V21.5219H66.9395V12.3004C66.9395 8.35779 64.9383 6.17262 61.5395 6.17262V6.17427Z" fill="white"/>
+      <path d="M72.9386 0C71.846 0 70.9673 0.880369 70.9673 1.94145C70.9673 3.00254 71.8477 3.91275 72.9386 3.91275C74.0295 3.91275 74.9397 3.03404 74.9397 1.94145C74.9397 0.848868 74.0295 0 72.9386 0Z" fill="white"/>
+      <path d="M72.7257 6.47729H69.5093V8.3889H72.2101V21.5231H74.2725V8.11534C74.2725 6.96307 73.7569 6.47729 72.7257 6.47729Z" fill="white"/>
+      <path d="M82.6176 0.183716H80.3728V6.47064H77.0967V8.38225H80.3728V18.0962C80.3728 19.9928 81.913 21.5298 83.8097 21.5248L85.8341 21.5181V19.6065L84.0833 19.6264C83.2758 19.6331 82.6176 18.9798 82.6176 18.1724V8.38391H85.8341V6.4723H82.6176V0.183716Z" fill="white"/>
+      <path d="M92.9858 0.183716H90.7409V6.47064H87.4648V8.38225H90.7409V18.0962C90.7409 19.9928 92.2812 21.5298 94.1779 21.5248L96.2022 21.5181V19.6065L94.4514 19.6264C93.644 19.6331 92.9858 18.9798 92.9858 18.1724V8.38391H96.2022V6.4723H92.9858V0.183716Z" fill="white"/>
+      <path d="M111.574 19.308V12.6348C111.574 8.75187 109.481 5.87036 105.051 5.87036C101.168 5.87036 99.0759 8.17656 98.6813 11.4825H100.956C101.259 8.75187 102.897 7.75047 105.051 7.75047C107.903 7.75047 109.146 9.1763 109.329 12.1192L103.201 12.6961C99.7739 12.9995 98.3779 14.6674 98.3779 17.0333C98.3779 18.61 99.0146 21.523 103.353 21.523C106.963 21.523 108.753 19.6114 109.45 17.4892V19.4904C109.45 20.583 110.056 21.2196 111.179 21.2196H113.787V19.308H111.572H111.574ZM103.627 19.6413C101.747 19.6413 100.624 18.6399 100.624 16.7896C100.624 15.2427 101.594 14.6359 103.567 14.4535L109.33 13.8766C109.33 17.1527 107.085 19.6396 103.627 19.6396V19.6413Z" fill="white"/>
+      <path d="M11.6321 11.8322L12.1643 11.7559C14.4689 11.1789 15.7737 9.20763 15.7737 6.02272C15.7737 1.29094 12.68 0.138672 7.64478 0.138672H0V21.5245H2.24486V12.9032H9.98414C11.9389 12.9032 13.5288 14.7021 13.5288 16.6551V21.5245H15.7969V16.6551C15.7969 13.825 14.2102 12.2433 11.6321 11.8338V11.8322ZM2.24652 2.07847H7.64644C11.2856 2.07847 13.5305 2.41171 13.5305 6.47699C13.5305 10.5423 11.2856 10.9054 7.64644 10.9054H2.24652V2.07847Z" fill="white"/>
+    </svg>
+  </a>
+
+  <div class="nav-ctas">
+    <a href="mailto:aryaman@rechitta.com" class="btn-primary nav-contact" aria-label="Email Rechitta at aryaman@rechitta.com">Contact us</a>
+  </div>
+</header>
+
+<!-- ═══════════════════════════════════════════ -->
+<!--  MAIN                                       -->
+<!-- ═══════════════════════════════════════════ -->
+<main role="main">
+
+<!-- ─────────────────────────────────────────── -->
+<!--  SECTION 1 — HERO / ROOF (250vh)           -->
+<!-- ─────────────────────────────────────────── -->
+<div class="scroll-section" style="height:320vh;" id="section-hero">
+  <div class="sticky-frame">
+
+    <!-- Background: aerial Dubai rooftop view -->
+    <div class="scene-bg" id="scene-hero">
+      <img class="scene-bg-img" src="assets/background.png" alt="Aerial view of Dubai skyscrapers" style="object-position:center 78%;" />
+    </div>
+    <div class="scene-overlay scene-overlay--hero" id="hero-overlay"></div>
+
+
+
+    <!-- Hero content: centered bottom — orb floats above in sky -->
+    <div id="hero-content">
+
+      <!-- Hero copy -->
+      <p id="hero-eyebrow" style="font-family:'Inter',system-ui,sans-serif;font-size:12px;font-style:italic;letter-spacing:0.04em;color:rgba(255,255,255,0.38);margin-bottom:14px;opacity:0;transition:opacity 600ms var(--ease-expo);">Introducing Rechitta</p>
+      <div style="font-family:'Playfair Display',Georgia,serif;font-size:clamp(22px,2.6vw,40px);font-weight:400;letter-spacing:-0.022em;line-height:1.15;color:#FAFAF9;margin-bottom:16px;">
+        <span class="hero-word" id="hw0" style="display:block;">Not a portal. <em>Not a chatbot.</em></span>
+        <span class="hero-word" id="hw1" style="display:block;">The source of truth.</span>
+        <span class="hero-word" id="hw2" style="display:none;"></span>
+        <span class="hero-word" id="hw3" style="display:none;"></span>
+      </div>
+      <p id="hero-sub" style="font-family:'Inter',system-ui,sans-serif;font-size:14px;color:rgba(255,255,255,0.38);margin-top:8px;max-width:600px;margin-left:auto;margin-right:auto;line-height:1.6;opacity:0;transition:opacity 700ms var(--ease-expo);">
+        Every developer. Every broker. Every buyer. One unbreakable information chain.
+      </p>
+
+      <!-- Descend hint -->
+      <div id="scroll-hint" style="margin-top:28px;display:flex;flex-direction:column;align-items:center;gap:8px;opacity:0;transition:opacity 600ms var(--ease-expo);" aria-hidden="true">
+        <span style="font-family:'Courier New',monospace;font-size:9px;letter-spacing:0.15em;color:rgba(255,255,255,0.28);">&#8595;&nbsp;&nbsp;DESCEND</span>
+        <div style="width:1px;height:28px;background:rgba(255,255,255,0.14);border-radius:1px;"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ─────────────────────────────────────────── -->
+<!--  SECTION 2 — 82F / MULTILINGUAL (180vh)    -->
+<!--  Orb: upper-RIGHT  |  Content: bottom-LEFT -->
+<!-- ─────────────────────────────────────────── -->
+<div class="scroll-section" style="height:280vh;" id="section-languages">
+  <div class="sticky-frame">
+
+    <!-- Background: glass curtain wall -->
+    <div class="scene-bg" id="scene-languages">
+      <img class="scene-bg-img" src="assets/scene-curtainwall.png" alt="Glass curtain wall facade" />
+    </div>
+    <div class="scene-overlay scene-overlay--left"></div>
+
+
+
+    <div class="scene-content scene-content--left">
+      <div class="reveal">
+        <p class="eyebrow">40+ LANGUAGES</p>
+        <div class="headline">
+          She speaks<br/><span id="lang-cycling-wrap"><em id="lang-cycling-word">English</em></span>
+        </div>
+        <p class="body-text">
+          The intelligence layer sits between raw property data and every human in the deal. It reads, reasons, and responds — in the language your buyer, broker, or investor actually thinks in.
+        </p>
+      </div>
+
+      <a href="https://beta.rechitta.com/login" target="_blank" rel="noopener" class="talk-cta">Talk to Rechitta</a>
+    </div>
+
+  </div>
+</div>
+
+<!-- ─────────────────────────────────────────── -->
+<!--  SECTION 3 — 62F / DEVELOPER (180vh)       -->
+<!--  Orb: upper-RIGHT  |  Content: bottom-LEFT -->
+<!-- ─────────────────────────────────────────── -->
+<div class="scroll-section" style="height:280vh;" id="section-developer">
+  <div class="sticky-frame">
+
+    <!-- Background: glass canyon from above -->
+    <div class="scene-bg" id="scene-developer">
+      <img class="scene-bg-img" src="assets/scene-canyon.png" alt="Glass canyon between towers" />
+    </div>
+    <div class="scene-overlay scene-overlay--right"></div>
+
+
+
+    <div class="scene-content scene-content--right">
+      <div class="reveal">
+        <p class="eyebrow">FOR DEVELOPERS</p>
+        <div class="headline">
+          One upload.<br/><em>Every broker briefed.</em>
+        </div>
+        <p class="body-text">
+          You brief Rechitta once. She reaches everyone — at any hour, in any language, without you in the room.
+        </p>
+      </div>
+
+      <!-- Visual stat row -->
+      <div class="reveal stat-row" style="display:flex;gap:clamp(20px,3vw,40px);margin-bottom:0;margin-top:4px;">
+        <div style="display:flex;flex-direction:column;gap:12px;">
+          <div style="font-family:'Playfair Display',Georgia,serif;font-size:clamp(28px,3.8vw,52px);font-weight:400;letter-spacing:-0.03em;color:#FAFAF9;line-height:1;">39,700</div>
+          <div style="font-family:'Inter',system-ui,sans-serif;font-size:10px;font-weight:500;letter-spacing:0.10em;text-transform:uppercase;color:rgba(255,255,255,0.35);">Brokers in Dubai</div>
+        </div>
+        <div class="stat-divider"></div>
+        <div style="display:flex;flex-direction:column;gap:12px;">
+          <div style="font-family:'Playfair Display',Georgia,serif;font-size:clamp(28px,3.8vw,52px);font-weight:400;letter-spacing:-0.03em;color:#FAFAF9;line-height:1;">40+</div>
+          <div style="font-family:'Inter',system-ui,sans-serif;font-size:10px;font-weight:500;letter-spacing:0.10em;text-transform:uppercase;color:rgba(255,255,255,0.35);">Languages</div>
+        </div>
+        <div class="stat-divider"></div>
+        <div style="display:flex;flex-direction:column;gap:12px;">
+          <div style="font-family:'Playfair Display',Georgia,serif;font-size:clamp(28px,3.8vw,52px);font-weight:400;letter-spacing:-0.03em;color:#FAFAF9;line-height:1;">0</div>
+          <div style="font-family:'Inter',system-ui,sans-serif;font-size:10px;font-weight:500;letter-spacing:0.10em;text-transform:uppercase;color:rgba(255,255,255,0.35);">Distortion</div>
+        </div>
+      </div>
+
+      <a href="https://beta.rechitta.com/login" target="_blank" rel="noopener" class="talk-cta" style="margin-top:28px;">Talk to Rechitta</a>
+    </div>
+
+  </div>
+</div>
+
+<!-- ─────────────────────────────────────────── -->
+<!--  SECTION 4 — 42F / BROKER (180vh)          -->
+<!--  Orb: upper-LEFT  |  Content: bottom-RIGHT -->
+<!-- ─────────────────────────────────────────── -->
+<div class="scroll-section" style="height:280vh;" id="section-broker">
+  <div class="sticky-frame">
+
+    <!-- Background: canyon, flipped perspective -->
+    <div class="scene-bg" id="scene-broker">
+      <img class="scene-bg-img" src="assets/scene-canyon.png" alt="Glass tower canyon" style="transform:scaleX(-1) translateY(-10%);" />
+    </div>
+    <div class="scene-overlay scene-overlay--left"></div>
+
+
+
+    <div class="scene-content scene-content--left">
+      <div class="reveal">
+        <p class="eyebrow">FOR BROKERS</p>
+        <div class="headline">
+          Walk in knowing<br/><em>exactly what to say.</em>
+        </div>
+        <p class="body-text">
+          Send one link. Rechitta handles the briefing. You follow up to a buyer who already knows which unit they want.
+        </p>
+      </div>
+
+      <!-- Visual stat row -->
+      <div class="reveal stat-row" style="display:flex;gap:clamp(20px,3vw,40px);margin-bottom:0;margin-top:4px;">
+        <div style="display:flex;flex-direction:column;gap:12px;">
+          <div style="font-family:'Playfair Display',Georgia,serif;font-size:clamp(28px,3.8vw,52px);font-weight:400;letter-spacing:-0.03em;color:#FAFAF9;line-height:1;">2</div>
+          <div style="font-family:'Inter',system-ui,sans-serif;font-size:10px;font-weight:500;letter-spacing:0.10em;text-transform:uppercase;color:rgba(255,255,255,0.35);">Taps to share</div>
+        </div>
+        <div class="stat-divider"></div>
+        <div style="display:flex;flex-direction:column;gap:12px;">
+          <div style="font-family:'Playfair Display',Georgia,serif;font-size:clamp(28px,3.8vw,52px);font-weight:400;letter-spacing:-0.03em;color:#FAFAF9;line-height:1;">24/7</div>
+          <div style="font-family:'Inter',system-ui,sans-serif;font-size:10px;font-weight:500;letter-spacing:0.10em;text-transform:uppercase;color:rgba(255,255,255,0.35);">Buyer is briefed</div>
+        </div>
+        <div class="stat-divider"></div>
+        <div style="display:flex;flex-direction:column;gap:12px;">
+          <div style="font-family:'Playfair Display',Georgia,serif;font-size:clamp(28px,3.8vw,52px);font-weight:400;letter-spacing:-0.03em;color:#FAFAF9;line-height:1;">0</div>
+          <div style="font-family:'Inter',system-ui,sans-serif;font-size:10px;font-weight:500;letter-spacing:0.10em;text-transform:uppercase;color:rgba(255,255,255,0.35);">Cold calls</div>
+        </div>
+      </div>
+
+      <a href="https://beta.rechitta.com/login" target="_blank" rel="noopener" class="talk-cta" style="margin-top:28px;">Talk to Rechitta</a>
+    </div>
+
+  </div>
+</div>
+
+<!-- ─────────────────────────────────────────── -->
+<!--  SECTION 5 — LOBBY / INVESTOR (280vh)      -->
+<!--  Phone: LEFT (orb glows behind)  |  Text: RIGHT  -->
+<!-- ─────────────────────────────────────────── -->
+<div class="scroll-section" style="height:480vh;" id="section-investor">
+  <div class="sticky-frame" style="z-index:6;">
+
+    <!-- Background: glass lobby looking up -->
+    <div class="scene-bg" id="scene-investor">
+      <img class="scene-bg-img" src="assets/scene-lobby.png" alt="Glass lobby interior" />
+    </div>
+    <!-- Full-width dark overlay so both columns read cleanly -->
+    <div style="position:absolute;inset:0;background:rgba(10,10,9,0.55);z-index:2;pointer-events:none;"></div>
+
+
+
+    <!-- Centred layout: large phone + text side by side -->
+    <div class="investor-layout" style="
+      position:absolute;
+      top:50%;
+      left:50%;
+      transform:translate(-50%,-50%);
+      display:flex;
+      align-items:center;
+      gap:clamp(32px,4vw,64px);
+      z-index:8;
+      width:90%;
+      max-width:960px;
+    ">
+
+      <!-- phone — larger, centred anchor -->
+      <div class="reveal" style="flex-shrink:0;">
+        <div id="investor-phone" style="
+          width:clamp(200px,22vw,320px);
+          background:#0A0A09;
+          border:1px solid rgba(255,255,255,0.10);
+          border-radius:24px;
+          overflow:hidden;
+          box-shadow:0 32px 100px rgba(0,0,0,0.85),0 0 0 0.5px rgba(255,255,255,0.06);
+        ">
+          <video
+            src="assets/prototype.mov"
+            autoplay loop muted playsinline
+            style="display:block;width:100%;height:auto;border-radius:0;"
+          ></video>
+        </div>
+      </div>
+
+      <!-- text + stats -->
+      <div style="flex:1;">
+        <div class="reveal">
+          <p class="eyebrow">FOR INVESTORS</p>
+          <div class="headline">
+            Your <em>private</em><br/>property curator.
+          </div>
+          <p class="body-text">
+            Not a listing. Not an agent. The source of truth — in your language, at any hour, without a broker call.
+          </p>
+        </div>
+
+        <!-- Visual stat row -->
+        <div class="reveal stat-row" style="display:flex;gap:clamp(20px,3vw,40px);margin-top:4px;">
+          <div style="display:flex;flex-direction:column;gap:12px;">
+            <div style="font-family:'Playfair Display',Georgia,serif;font-size:clamp(28px,3.8vw,52px);font-weight:400;letter-spacing:-0.03em;color:#FAFAF9;line-height:1;">150+</div>
+            <div style="font-family:'Inter',system-ui,sans-serif;font-size:10px;font-weight:500;letter-spacing:0.10em;text-transform:uppercase;color:rgba(255,255,255,0.35);">Countries of buyers</div>
+          </div>
+          <div class="stat-divider"></div>
+          <div style="display:flex;flex-direction:column;gap:12px;">
+            <div style="font-family:'Playfair Display',Georgia,serif;font-size:clamp(28px,3.8vw,52px);font-weight:400;letter-spacing:-0.03em;color:#FAFAF9;line-height:1;">&lt;2s</div>
+            <div style="font-family:'Inter',system-ui,sans-serif;font-size:10px;font-weight:500;letter-spacing:0.10em;text-transform:uppercase;color:rgba(255,255,255,0.35);">Response time</div>
+          </div>
+          <div class="stat-divider"></div>
+          <div style="display:flex;flex-direction:column;gap:12px;">
+            <div style="font-family:'Playfair Display',Georgia,serif;font-size:clamp(28px,3.8vw,52px);font-weight:400;letter-spacing:-0.03em;color:#FAFAF9;line-height:1;">0</div>
+            <div style="font-family:'Inter',system-ui,sans-serif;font-size:10px;font-weight:500;letter-spacing:0.10em;text-transform:uppercase;color:rgba(255,255,255,0.35);">Forms to fill</div>
+          </div>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:16px;margin-top:28px;flex-wrap:wrap;">
+          <a href="https://beta.rechitta.com/login" target="_blank" rel="noopener" class="btn-primary" style="height:48px;padding:0 32px;font-size:14px;font-weight:600;cursor:none;">Talk to Rechitta &rarr;</a>
+          <span style="font-family:'Inter',system-ui,sans-serif;font-size:10px;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;color:rgba(255,255,255,0.45);display:flex;align-items:center;gap:6px;"><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#22c55e;box-shadow:0 0 6px rgba(34,197,94,0.7);flex-shrink:0;"></span>Live now</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+</main>
+
+<!-- ═══════════════════════════════════════════ -->
+<!--  FOOTER                                    -->
+<!-- ═══════════════════════════════════════════ -->
+<footer id="site-footer">
+
+  <!-- Giant wordmark watermark in background -->
+  <div id="footer-wordmark-bg" aria-hidden="true">Rech<span style="position:relative;display:inline-block;">i<span id="i-dot-marker" style="position:absolute;top:0.09em;left:50%;transform:translateX(-50%);width:0;height:0;pointer-events:none;"></span></span>tta</div>
+
+  <!-- Top content row -->
+  <div style="position:relative;z-index:2;display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:40px;margin-bottom:clamp(60px,10vw,120px);">
+
+    <!-- Left: logo + tagline -->
+    <div style="max-width:320px;">
+      <!-- Rechitta wordmark SVG -->
+      <svg width="114" height="22" viewBox="0 0 114 22" fill="none" xmlns="http://www.w3.org/2000/svg" style="height:20px;width:auto;margin-bottom:20px;opacity:0.9;" aria-label="Rechitta">
+        <path d="M25.3867 5.87036C21.1407 5.87036 18.3188 8.63084 18.3188 13.4836C18.3188 17.8822 20.6847 21.5214 25.569 21.5214C30.1798 21.5214 32.0002 18.6399 32.6369 15.9706H30.4218C29.8764 18.2154 28.2682 19.6711 25.5077 19.6711C22.1703 19.6711 20.5637 17.2439 20.4725 14.0905H32.7828V13.1802C32.7828 8.5695 29.694 5.87036 25.3867 5.87036ZM20.5024 12.3314C20.7444 9.42002 22.7174 7.72063 25.3552 7.72063C28.177 7.72063 30.3555 9.38852 30.5677 12.3314H20.5024Z" fill="white"/><path d="M43.4946 7.78197C45.7096 7.78197 47.6809 8.78337 48.1352 11.8158H50.4099C50.0153 7.44707 46.2849 5.87036 43.4946 5.87036C38.6103 5.87036 35.8813 9.42002 35.8813 13.6959C35.8813 17.9717 38.612 21.5214 43.4946 21.5214C46.2849 21.5214 50.017 19.9447 50.4099 15.576H48.1352C47.6809 18.61 45.708 19.6097 43.4946 19.6097C39.8239 19.6097 38.1262 16.8791 38.1262 13.6942C38.1262 10.5093 39.8256 7.77866 43.4946 7.77866V7.78197Z" fill="white"/><path d="M61.5395 6.17427C58.2336 6.17427 56.1098 7.87201 55.2908 10.664V0.157593H53.0459V21.5219H55.2908V14.9697C55.2908 10.9359 57.3831 8.08423 60.7819 8.08423C63.4512 8.08423 64.6648 9.35753 64.6648 12.4828V21.5219H66.9395V12.3004C66.9395 8.35779 64.9383 6.17262 61.5395 6.17262V6.17427Z" fill="white"/><path d="M72.9386 0C71.846 0 70.9673 0.880369 70.9673 1.94145C70.9673 3.00254 71.8477 3.91275 72.9386 3.91275C74.0295 3.91275 74.9397 3.03404 74.9397 1.94145C74.9397 0.848868 74.0295 0 72.9386 0Z" fill="white"/><path d="M72.7257 6.47729H69.5093V8.3889H72.2101V21.5231H74.2725V8.11534C74.2725 6.96307 73.7569 6.47729 72.7257 6.47729Z" fill="white"/><path d="M82.6176 0.183716H80.3728V6.47064H77.0967V8.38225H80.3728V18.0962C80.3728 19.9928 81.913 21.5298 83.8097 21.5248L85.8341 21.5181V19.6065L84.0833 19.6264C83.2758 19.6331 82.6176 18.9798 82.6176 18.1724V8.38391H85.8341V6.4723H82.6176V0.183716Z" fill="white"/><path d="M92.9858 0.183716H90.7409V6.47064H87.4648V8.38225H90.7409V18.0962C90.7409 19.9928 92.2812 21.5298 94.1779 21.5248L96.2022 21.5181V19.6065L94.4514 19.6264C93.644 19.6331 92.9858 18.9798 92.9858 18.1724V8.38391H96.2022V6.4723H92.9858V0.183716Z" fill="white"/><path d="M111.574 19.308V12.6348C111.574 8.75187 109.481 5.87036 105.051 5.87036C101.168 5.87036 99.0759 8.17656 98.6813 11.4825H100.956C101.259 8.75187 102.897 7.75047 105.051 7.75047C107.903 7.75047 109.146 9.1763 109.329 12.1192L103.201 12.6961C99.7739 12.9995 98.3779 14.6674 98.3779 17.0333C98.3779 18.61 99.0146 21.523 103.353 21.523C106.963 21.523 108.753 19.6114 109.45 17.4892V19.4904C109.45 20.583 110.056 21.2196 111.179 21.2196H113.787V19.308H111.572H111.574ZM103.627 19.6413C101.747 19.6413 100.624 18.6399 100.624 16.7896C100.624 15.2427 101.594 14.6359 103.567 14.4535L109.33 13.8766C109.33 17.1527 107.085 19.6396 103.627 19.6396V19.6413Z" fill="white"/><path d="M11.6321 11.8322L12.1643 11.7559C14.4689 11.1789 15.7737 9.20763 15.7737 6.02272C15.7737 1.29094 12.68 0.138672 7.64478 0.138672H0V21.5245H2.24486V12.9032H9.98414C11.9389 12.9032 13.5288 14.7021 13.5288 16.6551V21.5245H15.7969V16.6551C15.7969 13.825 14.2102 12.2433 11.6321 11.8338V11.8322ZM2.24652 2.07847H7.64644C11.2856 2.07847 13.5305 2.41171 13.5305 6.47699C13.5305 10.5423 11.2856 10.9054 7.64644 10.9054H2.24652V2.07847Z" fill="white"/>
+      </svg>
+      <p style="font-family:'Playfair Display',Georgia,serif;font-style:italic;font-size:15px;color:rgba(255,255,255,0.28);line-height:1.6;max-width:240px;">
+        The AI property curator for Dubai real estate.
+      </p>
+    </div>
+
+    <!-- Right: contact + social links -->
+    <div style="display:flex;flex-direction:column;gap:20px;padding-top:4px;">
+      <!-- Contact -->
+      <p style="font-family:'Inter',system-ui,sans-serif;font-size:10px;font-weight:500;letter-spacing:0.10em;text-transform:uppercase;color:rgba(255,255,255,0.20);margin-bottom:4px;">Contact</p>
+      <a href="mailto:aryaman@rechitta.com" class="footer-social-link" aria-label="Email Rechitta at aryaman@rechitta.com">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="2.5" y="4.5" width="19" height="15" rx="2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 6l9 7 9-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Contact us
+      </a>
+
+      <!-- Follow -->
+      <p style="font-family:'Inter',system-ui,sans-serif;font-size:10px;font-weight:500;letter-spacing:0.10em;text-transform:uppercase;color:rgba(255,255,255,0.20);margin-top:12px;margin-bottom:4px;">Follow</p>
+      <!-- LinkedIn -->
+      <a href="https://linkedin.com/company/rechitta" target="_blank" rel="noopener" class="footer-social-link">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><rect x="2" y="9" width="4" height="12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="4" cy="4" r="2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        LinkedIn
+      </a>
+      <!-- Instagram -->
+      <a href="https://instagram.com/rechitta.ai" target="_blank" rel="noopener" class="footer-social-link">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="2" y="2" width="20" height="20" rx="5" ry="5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Instagram
+      </a>
+    </div>
+  </div>
+
+  <!-- Bottom bar -->
+  <div style="position:relative;z-index:2;padding-top:24px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+    <p style="font-family:'Inter';font-size:11px;color:rgba(255,255,255,0.18);">&copy; 2026 Rechitta. All rights reserved.</p>
+    <p style="font-family:'Inter';font-size:11px;color:rgba(255,255,255,0.18);">Dubai, UAE &nbsp;·&nbsp; Built on verified developer data</p>
+  </div>
+
+</footer>
+
+<!-- ═══════════════════════════════════════════ -->
+<!--  JAVASCRIPT ENGINE                         -->
+<!-- ═══════════════════════════════════════════ -->
+<script>
+'use strict';
+
+/* ─────────────────────────────────────────────
+   PIECEWISE LINEAR INTERPOLATION
+───────────────────────────────────────────── */
+function multiMap(t, inputRange, outputRange) {
+  var n = inputRange.length - 1;
+  if (t <= inputRange[0]) return outputRange[0];
+  if (t >= inputRange[n]) return outputRange[n];
+  for (var i = 0; i < n; i++) {
+    if (t >= inputRange[i] && t <= inputRange[i + 1]) {
+      var pct = (t - inputRange[i]) / (inputRange[i + 1] - inputRange[i]);
+      var a = outputRange[i], b = outputRange[i + 1];
+      return a + (b - a) * pct;
+    }
+  }
+  return outputRange[n];
+}
+
+/* ─────────────────────────────────────────────
+   DOM REFS
+───────────────────────────────────────────── */
+var header      = document.getElementById('site-header');
+var orbWrapper  = document.getElementById('orb-wrapper');
+var orbInner    = document.getElementById('orb-inner');
+var spineFill   = document.getElementById('spine-fill-bar');
+var spineDot    = document.getElementById('spine-dot');
+var scrollHint  = document.getElementById('scroll-hint');
+var cursorCross = document.getElementById('cursor-cross');
+var cursorWave  = document.getElementById('cursor-wave');
+var cursorLabel = document.getElementById('cursor-label');
+var cursorArms  = cursorCross.querySelectorAll('.cursor-arm');
+
+/* Orb is hidden until the Spline iframe has loaded and rendered its first frame.
+   This prevents the R icon from appearing alone before the sphere catches up. */
+var orbHasLoaded = false;
+(function() {
+  var iframe = document.getElementById('orb-iframe');
+  function onOrbReady() {
+    /* Small delay so Spline completes its first render before we reveal */
+    setTimeout(function() {
+      orbHasLoaded = true;
+      orbWrapper.style.transition = 'opacity 1s ease';
+      update(); /* repaint with correct opacity */
+      setTimeout(function() {
+        orbWrapper.style.transition = ''; /* remove transition so scroll is instant */
+      }, 1000);
+    }, 150);
+  }
+  iframe.addEventListener('load', onOrbReady);
+  /* Fallback: if iframe somehow already loaded (cached), fire immediately */
+  if (iframe.contentDocument && iframe.contentDocument.readyState === 'complete') {
+    onOrbReady();
+  }
+})();
+
+/* Scene bg image refs */
+var sceneBgs = {
+  hero:      document.querySelector('#scene-hero .scene-bg-img'),
+  languages: document.querySelector('#scene-languages .scene-bg-img'),
+  developer: document.querySelector('#scene-developer .scene-bg-img'),
+  broker:    document.querySelector('#scene-broker .scene-bg-img'),
+  investor:  document.querySelector('#scene-investor .scene-bg-img'),
+};
+var heroOverlay = document.getElementById('hero-overlay');
+
+/* Section refs for parallax progress */
+var sections = {
+  hero:      document.getElementById('section-hero'),
+  languages: document.getElementById('section-languages'),
+  developer: document.getElementById('section-developer'),
+  broker:    document.getElementById('section-broker'),
+  investor:  document.getElementById('section-investor'),
+};
+
+var ticking     = false;
+var mouseX      = 0;
+var mouseY      = 0;
+var currentFloor = 'OVERVIEW';
+
+/* Maps scroll progress to the current journey stage */
+function updateCursorFloor(t) {
+  var label;
+  if      (t < 0.143) label = 'OVERVIEW';
+  else if (t < 0.208) label = 'OVERVIEW → LANGUAGES';
+  else if (t < 0.325) label = 'EVERY LANGUAGE';
+  else if (t < 0.390) label = 'LANGUAGES → DEVELOPERS';
+  else if (t < 0.506) label = 'EVERY DEVELOPER';
+  else if (t < 0.571) label = 'DEVELOPERS → BROKERS';
+  else if (t < 0.688) label = 'EVERY BROKER';
+  else if (t < 0.753) label = 'BROKERS → INVESTORS';
+  else                label = 'EVERY INVESTOR';
+  currentFloor = label;
+}
+
+/* ─────────────────────────────────────────────
+   CURSOR
+───────────────────────────────────────────── */
+var orbHovered = false;
+
+document.addEventListener('mousemove', function(e) {
+  mouseX = e.clientX;
+  mouseY = e.clientY;
+  cursorCross.style.left    = mouseX + 'px';
+  cursorCross.style.top     = mouseY + 'px';
+  cursorWave.style.left     = mouseX + 'px';
+  cursorWave.style.top      = mouseY + 'px';
+  cursorLabel.style.opacity = '1';
+
+  if (orbHovered) {
+    /* Hide crosshair, show waveform */
+    cursorCross.style.opacity = '0';
+    cursorWave.classList.add('active');
+    /* Upgrade label — offset right of waveform */
+    cursorLabel.textContent = 'Talk to Rechitta →';
+    cursorLabel.classList.add('orb-hover');
+    cursorLabel.style.left = (mouseX + 44) + 'px';
+    cursorLabel.style.top  = (mouseY - 6) + 'px';
+  } else {
+    cursorCross.style.opacity = '1';
+    cursorWave.classList.remove('active');
+    var east = String(Math.round(mouseX / window.innerWidth * 999)).padStart(3, '0');
+    cursorLabel.textContent = 'E ' + east + 'm  ·  ' + currentFloor;
+    cursorLabel.classList.remove('orb-hover');
+    cursorLabel.style.left = (mouseX + 14) + 'px';
+    cursorLabel.style.top  = (mouseY + 10) + 'px';
+  }
+});
+document.addEventListener('mouseleave', function() {
+  cursorCross.style.opacity = '0';
+  cursorWave.classList.remove('active');
+  cursorLabel.style.opacity = '0';
+});
+
+orbWrapper.addEventListener('mouseenter', function() {
+  /* Only activate hover effect once past the hero section */
+  var maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+  var t = maxScroll > 0 ? window.scrollY / maxScroll : 0;
+  if (t >= 0.208) orbHovered = true;
+});
+orbWrapper.addEventListener('mouseleave', function() {
+  orbHovered = false;
+});
+orbWrapper.addEventListener('click', function() {
+  window.open('https://beta.rechitta.com/login', '_blank', 'noopener');
+});
+
+/* ─────────────────────────────────────────────
+   SCENE PARALLAX
+   Each scene bg image translates at ~0.4× scroll
+   speed, creating depth as the user descends.
+───────────────────────────────────────────── */
+function getSectionProgress(el) {
+  if (!el) return 0;
+  var rect = el.getBoundingClientRect();
+  var sh   = el.offsetHeight - window.innerHeight;
+  if (sh <= 0) return 0;
+  var p = -rect.top / sh;
+  return Math.max(0, Math.min(1, p));
+}
+
+function updateSceneBgs(t) {
+  /* Each scene image travels from -10% (top start) to +10% (bottom end)
+     giving 20% of element height as parallax travel. */
+  var keys = ['hero', 'languages', 'developer', 'broker', 'investor'];
+  for (var i = 0; i < keys.length; i++) {
+    var k   = keys[i];
+    var img = sceneBgs[k];
+    var sec = sections[k];
+    if (!img || !sec) continue;
+    var p = getSectionProgress(sec);
+    /* broker image has scaleX(-1) — add it back alongside translateY */
+    var ty = -10 + p * 20;
+    if (k === 'broker') {
+      img.style.transform = 'scaleX(-1) translateY(' + ty + '%)';
+    } else {
+      img.style.transform = 'translateY(' + ty + '%)';
+    }
+  }
+
+  /* ── Dawn → grey transfer on the hero ──────────────────────────────
+     dawn = 1 at t=0 (bright, warm, golden hour Dubai)
+     dawn = 0 at t=0.20 (the moment the orb finishes absorbing the colour)
+     The image brightness, warmth and contrast drain away in sync with
+     the orb gaining its blue — as if the orb stole the colour from the city. */
+  var dawn = Math.max(0, 1 - t / 0.20);
+
+  if (sceneBgs.hero) {
+    /* Dubai sunset at dawn → cold grey as the orb absorbs the warmth */
+    var br   = (1.0  + dawn * 0.35).toFixed(3);    /* 1.35 → 1.0  (warm glow) */
+    var sat  = (1.0  + dawn * 0.90).toFixed(3);    /* 1.90 → 1.0  (rich orange-gold) */
+    var sep  = (dawn * 0.62).toFixed(3);            /* 0.62 → 0    (deep amber heat) */
+    var con  = (1.0  - dawn * 0.18).toFixed(3);    /* 0.82 → 1.0  (soft haze) */
+    var hrot = Math.round(-22 * dawn);              /* -22° → 0°   (push toward orange) */
+    sceneBgs.hero.style.filter =
+      'brightness(' + br + ') saturate(' + sat + ') sepia(' + sep +
+      ') contrast(' + con + ') hue-rotate(' + hrot + 'deg)';
+  }
+
+  /* Overlay much lighter at dawn — let the sunset bleed through fully,
+     then seal the darkness as the orb finishes its transfer */
+  if (heroOverlay) {
+    heroOverlay.style.opacity = (0.6 + (1 - dawn) * 0.88).toFixed(3); /* 0.6 → 1.0 */
+  }
+}
+
+
+/* ─────────────────────────────────────────────
+   SPINE UPDATE
+───────────────────────────────────────────── */
+function updateSpine(t) {
+  spineFill.style.height = (t * 100) + '%';
+  spineDot.style.top     = (t * 100) + '%';
+  /* Fade spine out as footer scrolls into view (t > 0.975) */
+  var spineEl = document.getElementById('spine');
+  var spineOpacity = t < 0.975 ? 1 : Math.max(0, 1 - (t - 0.975) / 0.025);
+  spineEl.style.opacity = spineOpacity;
+}
+
+/* ─────────────────────────────────────────────
+   ORB UPDATE
+   Section t-values with investor=480vh (maxScroll≈1540vh):
+     Hero      0       → 0.143   gap → 0.208
+     Languages 0.208   → 0.325   gap → 0.390
+     Developer 0.390   → 0.506   gap → 0.571
+     Broker    0.571   → 0.688   gap → 0.753
+     Investor  0.753   → ~0.975
+       Phase 1 (0.753→0.820): holds left, user reads content
+       Phase 2 (0.820→0.975): drifts into demo phone, shrinks, fades to 0
+     Footer    ~0.975  → 1.0  : invisible
+───────────────────────────────────────────── */
+var orbContainer  = document.getElementById('orb-container');
+var investorPhone = document.getElementById('investor-phone');
+var heroContent   = document.getElementById('hero-content');
+var heroEyebrow   = document.getElementById('hero-eyebrow');
+
+/* Returns the vh offset (from viewport centre) that puts the orb's
+   bottom edge exactly 80px above the "Introducing Rechitta" eyebrow. */
+function heroOrbY() {
+  var el = heroEyebrow || heroContent;
+  if (!el) return -14;
+  var rect        = el.getBoundingClientRect();
+  var isMob       = window.innerWidth <= 768;
+  /* Always use the natural wrapper size — this matches the actual rendered element */
+  var orbSizePx   = Math.min(420, Math.max(260, 0.32 * window.innerWidth));
+  var heroScale   = isMob ? 0.65 : 1.18;
+  var orbRadiusPx = orbSizePx * heroScale / 2;
+  /* Extra clearance on mobile so the glow (iframe extends 25% beyond wrapper) clears text */
+  var clearance   = isMob ? orbSizePx * heroScale * 0.25 / 2 + 8 : 8;
+  var orbCenterPx = rect.top - clearance - orbRadiusPx;
+  return (orbCenterPx - window.innerHeight / 2) / window.innerHeight * 100;
+}
+
+/* ─────────────────────────────────────────────
+   ORB UPDATE — MOBILE
+   Hero: centred, full mobile size (≈38vw).
+   Content sections: tiny orb tucked into corners
+     Languages / Broker  →  top-right
+     Developer           →  bottom-left
+   Investor: fade to zero as orb merges into phone.
+───────────────────────────────────────────── */
+function updateOrbMobile(t) {
+  var orbXPx, orbY, orbScale, orbOpacity;
+
+  /* Use the same natural wrapper size as desktop — do NOT reduce it.
+     Reducing the frame makes Spline zoom its camera (orb larger = more bleed).
+     Instead we shrink only via scale(); visual pixels land within viewport. */
+  var S          = Math.min(420, Math.max(260, 0.32 * window.innerWidth));
+  var mHeroSc    = 0.65;   /* hero: visually ~170px — clearly smaller than desktop      */
+  var mCornerSc  = 0.45;   /* corner: visually ~78px — small ambient decoration          */
+  var mPad       = 16;     /* px from visual edge to viewport edge                        */
+
+  /* Corner translate: position the VISUAL centre so the visual edge is mPad inside viewport.
+     Visual half = S * scale / 2.  The layout box will extend outside the viewport,
+     but for position:fixed the browser composites the scaled pixels correctly. */
+  var mRightX = window.innerWidth  / 2 - S * mCornerSc / 2 - mPad;
+  var mLeftX  = -mRightX;
+  var mTopY   = -(window.innerHeight / 2 - S * mCornerSc / 2 - mPad) / window.innerHeight * 100;
+  var mBotY   = -mTopY;
+
+  function ei(p) { return p < 0.5 ? 2*p*p : -1 + (4-2*p)*p; }
+
+  if (t <= 0.143) {
+    /* Hero: centred, scale 0.65 → visually ~170px */
+    orbXPx     = 0;
+    orbY       = heroOrbY();
+    orbScale   = mHeroSc;
+    orbOpacity = 0.88;
+
+  } else if (t <= 0.208) {
+    /* Shrink + drift to top-right corner */
+    var p      = ei((t - 0.143) / (0.208 - 0.143));
+    orbXPx     = mRightX * p;
+    orbY       = multiMap(p, [0, 1], [heroOrbY(), mTopY]);
+    orbScale   = multiMap(p, [0, 1], [mHeroSc, mCornerSc]);
+    orbOpacity = multiMap(p, [0, 1], [0.88, 0.62]);
+
+  } else if (t <= 0.325) {
+    /* Languages — top-right */
+    orbXPx = mRightX; orbY = mTopY; orbScale = mCornerSc; orbOpacity = 0.62;
+
+  } else if (t <= 0.390) {
+    /* Top-right → bottom-left */
+    var p  = ei((t - 0.325) / (0.390 - 0.325));
+    orbXPx = multiMap(p, [0,1], [mRightX, mLeftX]);
+    orbY   = multiMap(p, [0,1], [mTopY,   mBotY]);
+    orbScale = mCornerSc; orbOpacity = 0.62;
+
+  } else if (t <= 0.506) {
+    /* Developer — bottom-left */
+    orbXPx = mLeftX; orbY = mBotY; orbScale = mCornerSc; orbOpacity = 0.62;
+
+  } else if (t <= 0.571) {
+    /* Bottom-left → top-right */
+    var p  = ei((t - 0.506) / (0.571 - 0.506));
+    orbXPx = multiMap(p, [0,1], [mLeftX,  mRightX]);
+    orbY   = multiMap(p, [0,1], [mBotY,   mTopY]);
+    orbScale = mCornerSc; orbOpacity = 0.62;
+
+  } else if (t <= 0.688) {
+    /* Broker — top-right */
+    orbXPx = mRightX; orbY = mTopY; orbScale = mCornerSc; orbOpacity = 0.62;
+
+  } else if (t <= 0.753) {
+    /* Glide back to centre for investor */
+    var p  = ei((t - 0.688) / (0.753 - 0.688));
+    orbXPx = multiMap(p, [0,1], [mRightX, 0]);
+    orbY   = multiMap(p, [0,1], [mTopY,   0]);
+    orbScale   = multiMap(p, [0,1], [mCornerSc, 0.50]);
+    orbOpacity = multiMap(p, [0,1], [0.62, 0.28]);
+
+  } else if (t <= 0.975) {
+    /* Investor: drift into phone, fade to zero */
+    var p   = (t - 0.753) / (0.975 - 0.753);
+    var e   = ei(p);
+    var endXPx = 0, endY = 0;
+    if (investorPhone) {
+      var r  = investorPhone.getBoundingClientRect();
+      endXPx = (r.left + r.width  * 0.5) - window.innerWidth  * 0.5;
+      endY   = ((r.top  + r.height * 0.38) - window.innerHeight * 0.5) / window.innerHeight * 100;
+    }
+    orbXPx     = endXPx * e;
+    orbY       = endY   * e;
+    orbScale   = 0.50 * (1 - e);
+    orbOpacity = 0.28 * (1 - e);
+
+  } else {
+    orbXPx = 0; orbY = 0; orbScale = 0; orbOpacity = 0;
+  }
+
+  orbContainer.style.zIndex = t >= 0.753 ? '4' : '5';
+  var grey   = Math.max(0, 1 - t / 0.20);
+  var bright = 0.78 + (1 - grey) * 0.22;
+
+  orbWrapper.style.transform = 'translateX(' + orbXPx + 'px) translateY(' + orbY + 'vh) scale(' + orbScale + ')';
+  orbWrapper.style.opacity   = String(orbHasLoaded ? orbOpacity : 0);
+  orbInner.style.filter      = 'grayscale(' + grey + ') brightness(' + bright + ')';
+}
+
+function updateOrb(t) {
+  if (window.innerWidth <= 768) { updateOrbMobile(t); return; }
+  var orbXPx, orbY, orbScale, orbOpacity;
+
+  if (t <= 0.820) {
+    /* ── Hero + all sections up to investor phase 1 ── */
+    var orbXVw = multiMap(t,
+      [0,    0.143, 0.208, 0.325, 0.390, 0.506, 0.571, 0.688, 0.753, 0.820],
+      [0,    0,     22,    22,    -22,   -22,   22,    22,    -22,   -22  ]
+    );
+    orbXPx   = orbXVw / 100 * window.innerWidth;
+    /* Hero: 80px clearance above text, measured live; settles to centre by first content section */
+    var heroY = heroOrbY();
+    orbY      = multiMap(t, [0, 0.143, 0.208], [heroY, heroY, 0]);
+    orbScale = multiMap(t, [0, 0.143, 0.208, 0.820], [1.18, 1.18, 1.0, 1.0]);
+    /* Fade orb to a subtle ambient glow once investor section is active
+       so the demo phone takes centre stage */
+    orbOpacity = multiMap(t, [0, 0.753, 0.820], [0.90, 0.90, 0.28]);
+    /* Keep orb behind the investor sticky-frame (z:6) from the moment investor section starts */
+    orbContainer.style.zIndex = t >= 0.753 ? '4' : '5';
+
+  } else if (t <= 0.975) {
+    /* ── Investor phase 2: drift into the demo phone ── */
+    var p    = (t - 0.820) / (0.975 - 0.820);          /* 0 → 1 */
+    var ease = p < 0.5 ? 2*p*p : -1 + (4 - 2*p) * p;  /* ease-in-out */
+
+    /* Start: left side */
+    var startXPx = -22 / 100 * window.innerWidth;
+
+    /* End: centre of the phone screen */
+    var endXPx = 0, endY = 0;
+    if (investorPhone) {
+      var r  = investorPhone.getBoundingClientRect();
+      endXPx = (r.left + r.width  * 0.5) - window.innerWidth  * 0.5;
+      endY   = ((r.top  + r.height * 0.38) - window.innerHeight * 0.5) / window.innerHeight * 100;
+    }
+
+    orbXPx     = startXPx + (endXPx - startXPx) * ease;
+    orbY       = 0        + (endY   - 0)         * ease;
+    orbScale   = 1.0 - ease;           /* 1.0 → 0  (shrinks away) */
+    orbOpacity = 0.90 * (1 - ease);    /* 0.9 → 0  (fades out)    */
+    orbContainer.style.zIndex = '4';   /* behind phone (z:8) so it slides under it */
+
+  } else {
+    /* ── Footer: orb is fully absorbed into the demo ── */
+    orbXPx     = 0;
+    orbY       = 0;
+    orbScale   = 0;
+    orbOpacity = 0;
+    orbContainer.style.zIndex = '5';
+  }
+
+  /* Greyscale at top, full colour by t=0.20 */
+  var grey   = Math.max(0, 1 - t / 0.20);
+  var bright = 0.78 + (1 - grey) * 0.22;
+
+  orbWrapper.style.transform = 'translateX(' + orbXPx + 'px) translateY(' + orbY + 'vh) scale(' + orbScale + ')';
+  orbWrapper.style.opacity   = String(orbHasLoaded ? orbOpacity : 0);
+  orbInner.style.filter      = 'grayscale(' + grey + ') brightness(' + bright + ')';
+}
+
+/* ─────────────────────────────────────────────
+   HEADER
+───────────────────────────────────────────── */
+function updateHeader(scrollY) { /* header is not sticky */ }
+
+/* ─────────────────────────────────────────────
+   SCROLL HINT
+───────────────────────────────────────────── */
+function updateScrollHint(scrollY) {
+  scrollHint.style.opacity = String(Math.max(0, 1 - scrollY / 80));
+}
+
+/* ─────────────────────────────────────────────
+   MAIN TICK
+───────────────────────────────────────────── */
+function update() {
+  ticking = false;
+  var scrollY   = window.scrollY;
+  var maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+  var t         = maxScroll > 0 ? scrollY / maxScroll : 0;
+  /* Disable orb hover effect in hero section */
+  if (t < 0.208) orbHovered = false;
+
+  updateSpine(t);
+  updateOrb(t);
+  updateCursorFloor(t);
+  updateHeader(scrollY);
+  updateScrollHint(scrollY);
+  updateSceneBgs(t);
+}
+
+window.addEventListener('scroll', function() {
+  if (!ticking) {
+    requestAnimationFrame(update);
+    ticking = true;
+  }
+}, { passive: true });
+
+/* ─────────────────────────────────────────────
+   INTERSECTION OBSERVER — REVEAL ANIMATIONS
+───────────────────────────────────────────── */
+var revealObs = new IntersectionObserver(function(entries) {
+  entries.forEach(function(e) {
+    if (!e.isIntersecting) return;
+    var el = e.target;
+    el.classList.add('in');
+    el.querySelectorAll('.lang-chip').forEach(function(c, i) {
+      setTimeout(function() { c.classList.add('in'); }, 200 + i * 80);
+    });
+    el.querySelectorAll('.step-row').forEach(function(s, i) {
+      setTimeout(function() { s.classList.add('in'); }, 250 + i * 100);
+    });
+    el.querySelectorAll('.bullet-row').forEach(function(b, i) {
+      setTimeout(function() { b.classList.add('in'); }, 250 + i * 100);
+    });
+  });
+}, { threshold: 0.15 });
+
+var langChipsObs = new IntersectionObserver(function(entries) {
+  entries.forEach(function(e) {
+    if (!e.isIntersecting) return;
+    e.target.querySelectorAll('.lang-chip').forEach(function(c, i) {
+      setTimeout(function() { c.classList.add('in'); }, i * 80);
+    });
+  });
+}, { threshold: 0.2 });
+
+document.querySelectorAll('.reveal, .reveal-x').forEach(function(el) {
+  revealObs.observe(el);
+});
+
+document.querySelectorAll('.step-row, .bullet-row').forEach(function(el) {
+  var obs = new IntersectionObserver(function(entries) {
+    entries.forEach(function(e) {
+      if (e.isIntersecting) { e.target.classList.add('in'); obs.unobserve(e.target); }
+    });
+  }, { threshold: 0.2 });
+  obs.observe(el);
+});
+
+/* ─────────────────────────────────────────────
+   CYCLING LANGUAGE HEADLINE
+───────────────────────────────────────────── */
+(function() {
+  var languages = [
+    'English', 'العربية', 'Русский', 'हिंदी', '中文'
+  ];
+  var el = document.getElementById('lang-cycling-word');
+  if (!el) return;
+  var idx = 0;
+  var cycling = false;
+
+  function cycleTo(next) {
+    if (cycling) return;
+    cycling = true;
+    /* Exit current word upward */
+    el.classList.add('exit');
+    setTimeout(function() {
+      /* Snap to bottom (enter position) with new text */
+      el.classList.remove('exit');
+      el.classList.add('enter');
+      el.textContent = next;
+      /* Force reflow so transition fires */
+      void el.offsetWidth;
+      el.classList.remove('enter');
+      el.classList.add('enter-active');
+      setTimeout(function() {
+        el.classList.remove('enter-active');
+        cycling = false;
+      }, 400);
+    }, 320);
+  }
+
+  setInterval(function() {
+    idx = (idx + 1) % languages.length;
+    cycleTo(languages[idx]);
+  }, 1800);
+})();
+
+/* ─────────────────────────────────────────────
+   PAGE LOAD SEQUENCE
+───────────────────────────────────────────── */
+window.addEventListener('DOMContentLoaded', function() {
+  /* Eyebrow */
+  setTimeout(function() {
+    var ey = document.getElementById('hero-eyebrow');
+    if (ey) ey.style.opacity = '1';
+  }, 180);
+
+  /* Hero words staggered */
+  ['hw0','hw1','hw2','hw3'].forEach(function(id, i) {
+    setTimeout(function() {
+      var el = document.getElementById(id);
+      if (el) el.classList.add('in');
+    }, 380 + i * 130);
+  });
+
+  /* Sub text */
+  setTimeout(function() {
+    var sub = document.getElementById('hero-sub');
+    if (sub) sub.style.opacity = '1';
+  }, 980);
+
+  /* Scroll hint */
+  setTimeout(function() {
+    if (scrollHint) scrollHint.style.opacity = '1';
+  }, 1400);
+
+  /* Initial tick */
+  update();
+});
+
+/* ─────────────────────────────────────────────
+   VOICE PILL TOGGLE
+───────────────────────────────────────────── */
+function toggleWave() {
+  var play = document.getElementById('play-icon');
+  var wave = document.getElementById('wave-icon');
+  var playing = wave.style.display === 'flex';
+  play.style.display = playing ? 'inline' : 'none';
+  wave.style.display = playing ? 'none'   : 'flex';
+}
+</script>
+
+</body>
+</html>

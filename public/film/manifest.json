@@ -1,0 +1,67 @@
+{
+  "version": 2,
+  "fps": 12,
+  "comment": "Rechitta scroll film asset manifest. Orientation buckets per PLAN.md Phase 1: 'reuse' = crop-tolerant landscape source used in portrait; a real 'portrait' entry supersedes it when the asset lands. Paths are relative to the film base URL (public/film in dev, Blob/CDN in production). Frames are 1-indexed f_001…",
+  "sequences": {
+    "transit-a": {
+      "landscape": {
+        "frames": 96,
+        "tiers": [960],
+        "size": [960, 540],
+        "pattern": "frames/transit-a/landscape/{tier}/f_{frame}.webp"
+      },
+      "portrait": { "reuse": "landscape" }
+    },
+    "transit-b": null,
+    "transit-c": null,
+    "transit-d": null
+  },
+  "stills": {
+    "kf-01": { "landscape": { "src": "stills/kf-01.webp", "size": [1280, 720] } },
+    "kf-02": { "landscape": { "src": "stills/kf-02.webp", "size": [1280, 720] } },
+    "kf-03": { "landscape": { "src": "stills/kf-03.webp", "size": [1280, 720] } },
+    "kf-03d": { "landscape": { "src": "stills/kf-03d.webp", "size": [1280, 720] } },
+    "kf-04": { "landscape": { "src": "stills/kf-04.webp", "size": [1280, 720] } },
+    "kf-05": { "landscape": { "src": "stills/kf-05.webp", "size": [1280, 720] } },
+    "kf-06": { "landscape": { "src": "stills/kf-06.webp", "size": [1280, 720] } },
+    "kf-07": { "landscape": { "src": "stills/kf-07.webp", "size": [1280, 720] } },
+    "kf-08": { "landscape": { "src": "stills/kf-08.webp", "size": [1280, 720] } }
+  },
+  "plates": {
+    "mumbai":   { "landscape": { "src": "plates/mumbai.webp",   "size": [1600, 893] } },
+    "moscow":   { "landscape": { "src": "plates/moscow.webp",   "size": [1600, 893] } },
+    "london":   { "landscape": { "src": "plates/london.webp",   "size": [1600, 893] } },
+    "shanghai": { "landscape": { "src": "plates/shanghai.webp", "size": [1600, 893] } },
+    "riyadh":   { "landscape": { "src": "plates/riyadh.webp",   "size": [1600, 893] } },
+    "paris":    { "landscape": { "src": "plates/paris.webp",    "size": [1600, 893] } }
+  },
+  "sprites": {
+    "hand": {
+      "src": "plates/hand-cutout.webp",
+      "size": [1013, 1116],
+      "screenCenter": [0.3554, 0.4561]
+    }
+  },
+  "anchors": {
+    "kf-03-screen": {
+      "still": "kf-03",
+      "quad": [[0.4305, 0.07504], [0.846, 0.03026], [0.846, 0.50694], [0.4305, 0.4935]],
+      "comment": "Normalized image-space corners TL,TR,BR,BL of the boardroom screen. Derived by Canny+Hough line fit on the four screen edges, then intersected. Fitted aspect 1.775 vs 16:9 1.778 (0.2%) corroborates the fit. Recalibrate if KF-03 is re-rolled."
+    },
+    "kf-05-screen": {
+      "still": "kf-05",
+      "quad": null,
+      "comment": "Broker phone screen. Same calibration flow."
+    },
+    "kf-06-screen": {
+      "still": "kf-06",
+      "quad": null,
+      "comment": "Buyer phone screen."
+    },
+    "kf-03d-screen": {
+      "still": "kf-03d",
+      "quad": [[0.4305, 0.07504], [0.846, 0.03026], [0.846, 0.50694], [0.4305, 0.4935]],
+      "comment": "Same quad as kf-03-screen: KF-03D is derived from KF-03, verified by overlay (bottom edge identical at y=0.5069, left/right within 0.4%)."
+    }
+  }
+}

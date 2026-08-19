@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Keyframe review — retouches & derivations</title>
+<style>
+  body{background:#0B0F16;color:#F2DCB8;font-family:ui-monospace,Menlo,monospace;padding:32px;max-width:1400px;margin:0 auto}
+  h1{font-size:18px;letter-spacing:.14em;text-transform:uppercase;margin-bottom:6px}
+  p.note{font-size:12px;opacity:.7;margin-bottom:28px}
+  .pair{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:8px}
+  .single{margin-bottom:8px}
+  img{width:100%;border-radius:8px;display:block}
+  .lbl{font-size:11px;letter-spacing:.12em;text-transform:uppercase;opacity:.75;margin:4px 0 24px}
+  .lbl b{color:#E8A24B}
+  h2{font-size:13px;letter-spacing:.18em;text-transform:uppercase;color:#E8A24B;margin:36px 0 12px;border-top:1px solid rgba(242,220,184,.15);padding-top:24px}
+</style>
+</head>
+<body>
+<h1>Keyframe review — v0.7 retouch pass</h1>
+<p class="note">Left = original · right = retouched. Derived frames shown solo. Originals preserved in stills/orig/.</p>
+
+<h2>KF-03 · boardroom — screen dissolved, presenter face softened</h2>
+<div class="pair"><img src="stills/orig/KF3.webp"><img src="stills/KF3.webp"></div>
+<div class="lbl">re-roll (camera square to screen) still <b>recommended</b> — this retouch is the stopgap</div>
+
+<h2>KF-04 · street broker — dusk → golden hour, signage dissolved</h2>
+<div class="pair"><img src="stills/orig/KF4.webp"><img src="stills/KF4.webp"></div>
+<div class="lbl">now matches Act II's amber/teal continuity lock</div>
+
+<h2>KF-05 · phone macro — reflected face removed, glow brightened</h2>
+<div class="pair"><img src="stills/orig/KF5.webp"><img src="stills/KF5.webp"></div>
+<div class="lbl">screen repainted: dark gradient + cyan glow · notch preserved · chat overlay lands here</div>
+
+<h2>KF-02 · window portal — REAL 1280×720 (owner-generated)</h2>
+<div class="single"><img src="stills/KF2.webp"></div>
+<div class="lbl"><b>needed from owner:</b> the 1280×720 original (drop into stills/ as KF2.webp) — this is Transit B's conditioning frame</div>
+
+<h2>KF-03D · derived — dusk boardroom, green-cyan screen (Transit D start)</h2>
+<div class="single"><img src="stills/KF-03D.webp"></div>
+<div class="lbl">the live world-map DOM overlay renders over this screen</div>
+
+<h2>KF-07 · derived draft — night facade, one lit window (style ref)</h2>
+<div class="single"><img src="stills/KF-07.webp"></div>
+<div class="lbl">derived from the REAL KF-02 · style ref for Transit D</div>
+
+<h2>KF-08 · derived — finale sky (engine's night grade, pre-baked)</h2>
+<div class="single"><img src="stills/KF-08.webp"></div>
+<div class="lbl">upper-center clean for orb + wordmark + CTAs · loops back into KF-01</div>
+
+<h2>Hand plate v2 · Apple Vision subject-lift matte (montage foreground)</h2>
+<div class="pair"><img src="plates/composite-shanghai.webp"><img src="plates/composite-mumbai.webp"></div>
+<div class="lbl">re-matted after owner rejected v1 ("very very bad") — Vision subject-lift, screen flattened, wrist flush to frame bottom, per-city tint in engine. Left = worst case (bright Shanghai), right = Mumbai</div>
+
+<h2>Montage city plates · ALL SIX GENERATED — live in the film</h2>
+<div class="pair"><img src="plates/mumbai.webp"><img src="plates/moscow.webp"></div>
+<div class="lbl">Mumbai 09:41 · Moscow 07:11</div>
+<div class="pair"><img src="plates/london.webp"><img src="plates/shanghai.webp"></div>
+<div class="lbl">London 05:11 (rainy variant; cars variant banked in plates/alts/) · Shanghai 12:11</div>
+<div class="pair"><img src="plates/riyadh.webp"><img src="plates/paris.webp"></div>
+<div class="lbl">Riyadh 07:11 · Paris 06:11 (soft variant banked in plates/alts/)</div>
+</body>
+</html>

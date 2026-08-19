@@ -1,0 +1,128 @@
+/* ─────────────────────────────────────────────────
+   DESIGN TOKENS — carried over from v1 (legacy/index.html)
+───────────────────────────────────────────────── */
+:root {
+  --bg:           #0A0A09;
+  --hud-blue:     #3D6FF5;
+  --gold:         #C5A572;
+  --text-primary:   #FAFAF9;
+  --text-secondary: #A8A8A1;
+  --text-dim:       #535350;
+
+  --font-display: 'Playfair Display', Georgia, serif;
+  --font-ui:      'Inter', system-ui, sans-serif;
+
+  --ease-expo:  cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-quart: cubic-bezier(0.25, 1, 0.5, 1);
+
+  --section-pad: clamp(96px, 14vh, 180px);
+  --content-max: 1120px;
+}
+
+/* ─── Reset ─── */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: var(--bg);
+  color: var(--text-primary);
+  font-family: var(--font-ui);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+a { text-decoration: none; color: inherit; }
+::selection { background: rgba(61, 111, 245, 0.3); color: #fafaf9; }
+
+/* ─── Typography ─── */
+.display {
+  font-family: var(--font-display);
+  font-weight: 400;
+  line-height: 1.08;
+  letter-spacing: -0.01em;
+}
+
+.eyebrow {
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+
+/* ─── Layout ─── */
+.section {
+  position: relative;
+  padding: var(--section-pad) 24px;
+  max-width: var(--content-max);
+  margin: 0 auto;
+}
+
+/* ─── Buttons ─── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-ui);
+  font-size: 15px;
+  font-weight: 500;
+  padding: 14px 28px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: transform 300ms var(--ease-quart), background 300ms, border-color 300ms, color 300ms;
+}
+.btn:hover { transform: translateY(-1px); }
+
+.btn-primary {
+  background: var(--text-primary);
+  color: var(--bg);
+}
+.btn-primary:hover { background: #fff; }
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text-primary);
+  border-color: rgba(250, 250, 249, 0.22);
+}
+.btn-ghost:hover { border-color: rgba(250, 250, 249, 0.5); }
+
+.btn-gold {
+  background: var(--gold);
+  color: var(--bg);
+}
+
+/* ─── Forms ─── */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.field label {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+.field input,
+.field select,
+.field textarea {
+  font-family: var(--font-ui);
+  font-size: 15px;
+  color: var(--text-primary);
+  background: rgba(250, 250, 249, 0.04);
+  border: 1px solid rgba(250, 250, 249, 0.12);
+  border-radius: 10px;
+  padding: 13px 16px;
+  outline: none;
+  transition: border-color 250ms, background 250ms;
+}
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
+  border-color: var(--hud-blue);
+  background: rgba(61, 111, 245, 0.06);
+}
+.field input::placeholder { color: var(--text-dim); }
