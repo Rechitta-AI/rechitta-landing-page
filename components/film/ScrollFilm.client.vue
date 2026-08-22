@@ -699,10 +699,10 @@ onMounted(() => {
   const ORB: Array<[number, number, number, number]> = [
     // T=0 is handled dynamically via orbAnchorEl, so these first two points are fallback paths
     [0, 50, 33, 1.15], [0.9, 50, 33, 1.15], 
-    // T=0.9 to 2.2: Camera diving towards building. Orb moves downwards.
-    [1.5, 50, 80, 0.9], [2.2, 50, 110, 0.5], 
+    // T=0.9 to 2.2: Camera diving towards building. Orb moves downwards but stays in frame.
+    [1.5, 50, 75, 0.9], [2.2, 50, 85, 0.5], 
     // T=2.2 to 3.8: Enter the glass. We shrink and land in the center of the presentation screen
-    [2.8, 50, 70, 0.4], [3.4, 50, 35, 0.35],
+    [2.8, 50, 60, 0.4], [3.4, 50, 35, 0.35],
     [3.8, 50, 35, 0.35], [4.6, 42, 72, 0.6], [5.1, 50, 16, 0.55], [6.55, 50, 16, 0.55],
     [6.9, 50, 46, 0.3], [7.3, 50, 34, 0.5], [7.8, 74, 22, 0.55], [9.1, 74, 22, 0.5],
     [9.5, 50, 13, 0.45], [10.4, 50, 13, 0.45], [11.0, 66, 38, 0.7], [11.35, 66, 38, 0.7],

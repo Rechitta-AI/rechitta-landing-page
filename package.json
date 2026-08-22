@@ -10,6 +10,7 @@
     "postinstall": "nuxt prepare"
   },
   "dependencies": {
+    "glob": "^13.0.6",
     "nuxt": "^3.21.8",
     "posthog-js": "^1.384.3",
     "three": "^0.184.0",
