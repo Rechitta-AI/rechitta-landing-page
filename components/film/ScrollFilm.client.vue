@@ -49,96 +49,16 @@
       </div>
     </div>
 
-    <div ref="ovBoardEl" class="ov presentation-screen" style="opacity: 0; pointer-events: none; visibility: hidden;">
-      <div class="presentation-canvas" :class="{ dimmed: activeStat !== null }">
-        <div class="brd-bloom"></div>
-
-        <!-- Detail expansion view (shown when a stat is clicked) -->
-        <div class="brd-detail" :class="{ open: activeStat !== null }" ref="brdDetailEl">
-          <button class="brd-detail-close" @click.stop="activeStat = null">✕ overview</button>
-          <div v-if="activeStat !== null" class="brd-detail-inner">
-            <div class="brd-detail-key">{{ STATS[activeStat].key }}</div>
-            <div class="brd-detail-title">{{ STATS[activeStat].label }}</div>
-            <div class="brd-detail-rule"></div>
-            <div class="brd-detail-body">{{ STATS[activeStat].detail }}</div>
-          </div>
+    <div ref="ovBoardEl" class="ov ov-board" style="opacity: 0; pointer-events: none; visibility: hidden;">
+      <div class="slide-panel">
+        <div class="eyebrow">Scene 03 · XYZ Developments — launch week</div>
+        <h2 class="display">One launch. Thousands of briefings.</h2>
+        <div class="chips">
+          <button v-for="c in CHIPS" :key="c.id" class="chip" :data-d="c.id" @click="onChip(c.id)">{{ c.label }}</button>
         </div>
-
-        <!-- Title block -->
-        <div class="brd-header" ref="brdHeaderEl">
-          <div class="brd-eyebrow">SCENE 03 · XYZ DEVELOPMENTS — LAUNCH WEEK</div>
-          <h2 class="brd-headline">One launch.<br>Thousands of briefings.</h2>
-        </div>
-
-        <!-- Four data callouts -->
-        <button
-          class="brd-stat" id="stat0"
-          :class="{ active: activeStat === 0, faded: activeStat !== null && activeStat !== 0 }"
-          ref="brdStat0El"
-          @click.stop="activeStat = activeStat === 0 ? null : 0"
-        >
-          <div class="brd-stat-top">
-            <div class="brd-num">01</div>
-            <div class="brd-line"></div>
-          </div>
-          <div class="brd-key">THOUSANDS</div>
-          <div class="brd-label">brokers to brief</div>
-          <div class="brd-plus">
-            <svg viewBox="0 0 10 10"><circle cx="5" cy="5" r="4.5" fill="none" stroke="currentColor" stroke-width="0.5"/><path d="M5 2.5v5M2.5 5h5" stroke="currentColor" stroke-width="0.5"/></svg>
-          </div>
-        </button>
-
-        <button
-          class="brd-stat" id="stat1"
-          :class="{ active: activeStat === 1, faded: activeStat !== null && activeStat !== 1 }"
-          ref="brdStat1El"
-          @click.stop="activeStat = activeStat === 1 ? null : 1"
-        >
-          <div class="brd-stat-top">
-            <div class="brd-line"></div>
-            <div class="brd-num">02</div>
-          </div>
-          <div class="brd-key">40+</div>
-          <div class="brd-label">nationalities</div>
-          <div class="brd-plus">
-            <svg viewBox="0 0 10 10"><circle cx="5" cy="5" r="4.5" fill="none" stroke="currentColor" stroke-width="0.5"/><path d="M5 2.5v5M2.5 5h5" stroke="currentColor" stroke-width="0.5"/></svg>
-          </div>
-        </button>
-
-        <button
-          class="brd-stat" id="stat2"
-          :class="{ active: activeStat === 2, faded: activeStat !== null && activeStat !== 2 }"
-          ref="brdStat2El"
-          @click.stop="activeStat = activeStat === 2 ? null : 2"
-        >
-          <div class="brd-stat-top">
-            <div class="brd-num">03</div>
-            <div class="brd-line"></div>
-          </div>
-          <div class="brd-key">WEEKS-LONG</div>
-          <div class="brd-label">briefing cycle</div>
-          <div class="brd-plus">
-            <svg viewBox="0 0 10 10"><circle cx="5" cy="5" r="4.5" fill="none" stroke="currentColor" stroke-width="0.5"/><path d="M5 2.5v5M2.5 5h5" stroke="currentColor" stroke-width="0.5"/></svg>
-          </div>
-        </button>
-
-        <button
-          class="brd-stat" id="stat3"
-          :class="{ active: activeStat === 3, faded: activeStat !== null && activeStat !== 3 }"
-          ref="brdStat3El"
-          @click.stop="activeStat = activeStat === 3 ? null : 3"
-        >
-          <div class="brd-stat-top">
-            <div class="brd-line"></div>
-            <div class="brd-num">04</div>
-          </div>
-          <div class="brd-key">WEEKLY</div>
-          <div class="brd-label">price movement</div>
-          <div class="brd-plus">
-            <svg viewBox="0 0 10 10"><circle cx="5" cy="5" r="4.5" fill="none" stroke="currentColor" stroke-width="0.5"/><path d="M5 2.5v5M2.5 5h5" stroke="currentColor" stroke-width="0.5"/></svg>
-          </div>
-        </button>
-      </div><!-- /canvas -->
+        <div v-for="c in CHIPS" :key="c.id + '-d'" class="chip-detail" :class="{ open: openChip === c.id }">{{ c.detail }}</div>
+        <div class="slide-note">▸ Tap a stat. Keep scrolling — Rechitta takes it from here.</div>
+      </div>
     </div>
 
     <div ref="ovBrokerEl" class="ov ov-broker">
@@ -236,19 +156,6 @@ const ovBuyerEl = ref<HTMLElement>(); const ovMontEl = ref<HTMLElement>(); const
 const ovFinaleEl = ref<HTMLElement>(); const floatCtaEl = ref<HTMLElement>()
 const mCityEl = ref<HTMLElement>(); const mTimeEl = ref<HTMLElement>()
 const mTxtEl = ref<HTMLElement>(); const mSubEl = ref<HTMLElement>()
-const brdHeaderEl = ref<HTMLElement>()
-const brdDetailEl = ref<HTMLElement>()
-const brdStat0El = ref<HTMLElement>(); const brdStat1El = ref<HTMLElement>()
-const brdStat2El = ref<HTMLElement>(); const brdStat3El = ref<HTMLElement>()
-
-/* ---- boardroom state ---- */
-const activeStat = ref<number | null>(null)
-const STATS = [
-  { key: 'THOUSANDS', label: 'Brokers to Brief', detail: 'Every Dubai launch depends on an open broker network. Reaching it means roadshows, call centres, and repeated in-person sessions — for every single project.' },
-  { key: '40+',       label: 'Nationalities',    detail: 'Brokers — and their buyers — work in dozens of languages. A PDF speaks one. The message fragments the moment it leaves the boardroom.' },
-  { key: 'WEEKS-LONG', label: 'Briefing Cycle',  detail: 'By the time the last broker is briefed, the first briefing is already stale. The market pitches yesterday\'s project.' },
-  { key: 'WEEKLY',    label: 'Price Movement',   detail: 'Inventory and pricing shift constantly during a launch. There is no channel that keeps every broker current — until now.' }
-]
 
 /* ---- overlay copy (Vue-owned state; engine only drives opacity/transform) ---- */
 const CHIPS = [
@@ -438,14 +345,11 @@ onMounted(() => {
 
   const ready = (img?: HTMLImageElement) => !!img && img.complete && img.naturalWidth > 0
   let boardZoom = 1.02 // current boardroom zoom — anchor overlay tracks it
-  let boardFy = 0.5
-  let boardCx = 0
-  let boardCy = 0
-  function drawCover(img: HTMLImageElement, zoom = 1, fy = 0.5) {
+  function drawCover(img: HTMLImageElement, zoom = 1) {
     if (!ready(img)) return false
     const k = Math.max(W / img.naturalWidth, H / img.naturalHeight) * zoom
     const dw = img.naturalWidth * k, dh = img.naturalHeight * k
-    cx.drawImage(img, (W - dw) / 2, H * fy - dh * fy, dw, dh)
+    cx.drawImage(img, (W - dw) / 2, (H - dh) / 2, dw, dh)
     return true
   }
   function seqFrame(imgs: HTMLImageElement[], idx: number) {
@@ -570,38 +474,16 @@ onMounted(() => {
     },
     boardroom(p) {
       if (s13Imgs) {
-        // Scene 1-3: reach frame 150 at p=0.45 to pause and show UI.
+        // Scene 1-3: boardroom occupies ~72%–100% of the 156 frames (scene 3)
         const startFrac = 0.72
-        const pReach = 0.45
-        const targetFrac = 150 / 155 // approx 0.9677
-        
-        let frac = targetFrac
-        if (p < pReach) {
-          frac = lerp(startFrac, targetFrac, p / pReach)
-        }
-        
-        const rawIdx = Math.round(frac * (s13Imgs.length - 1))
-        const idx = Math.min(150, rawIdx)
+        const frac = startFrac + p * (1 - startFrac)
+        const idx = Math.round(frac * (s13Imgs.length - 1))
         const img = seqFrame(s13Imgs, idx)
-        
-        let zoom = 1.02
-        let fy = 0.5
-        // Start zooming smoothly once we reach the pause at p = pReach
-        if (p > pReach) {
-          const zP = clamp((p - pReach) / 0.2, 0, 1) // zoom finishes by p=0.65
-          const q = easeF(zP)
-          zoom = 1.02 + q * 0.15 // zoom by 15%
-          fy = lerp(0.5, 0.35, q)
-        }
-        boardZoom = zoom // update tracker for overlays
-        boardFy = fy     // track fy for overlays
-        
-        if (img) drawCover(img, zoom, fy)
-        else drawCover(S.kf3, zoom, fy)
+        if (img) drawCover(img, 1)
+        else drawCover(S.kf3, 1.02)
       } else {
         boardZoom = 1.02 + Math.sin(p * Math.PI) * 0.015
-        boardFy = 0.5
-        drawCover(S.kf3, boardZoom, boardFy)
+        drawCover(S.kf3, boardZoom)
       }
       vignette(0.34)
       if (p < 0.05) { cx.fillStyle = `rgba(255,232,196,${(1 - p / 0.05) * 0.95})`; cx.fillRect(0, 0, W, H) }
@@ -839,78 +721,57 @@ onMounted(() => {
 
   // Pinning is only honest when the screen is actually on screen. The quad is
   // normalized to a 16:9 still, but cover-fit on a portrait viewport keeps just
-  // Custom quad for the perfectly centered physical screen in the boardroom scene.
-  // The projector screen is perfectly centered at frame 150. 
-  // We use this hardcoded quad instead of the manifest's kf-03-screen, 
-  // because the manifest quad was calibrated for a different camera pan offset.
-  const BOARD_QUAD: Quad = [
-    [0.264, 0.112], // TL
-    [0.736, 0.112], // TR
-    [0.736, 0.595], // BR
-    [0.264, 0.595]  // BL
-  ]
-
+  // the middle ~26% (phone) to ~39% (tablet) of the image width — and the
+  // boardroom screen lives at x 0.43..0.85, so most of it is cropped away and a
+  // pinned panel runs off the right edge. Rather than guess a breakpoint, test
+  // the projected quad: pin only when it is substantially visible and big
+  // enough to read. Everything else falls back to the CSS layout.
+  const MIN_ON_SCREEN = 0.86  // fraction of the quad's bbox inside the viewport
+  const MIN_QUAD_W = 340      // px; below this the projected copy is unreadable
   function unpinBoard(el: HTMLElement) {
     el.style.transform = ''; el.style.transformOrigin = ''
     el.style.left = ''; el.style.top = ''; el.style.right = ''; el.style.width = ''
   }
   function applyBoardAnchor() {
     const el = ovBoardEl.value!
-    if (!ready(S.kf3)) { unpinBoard(el); return }
-    const vq = imageQuadToViewport(BOARD_QUAD, S.kf3.naturalWidth, S.kf3.naturalHeight, W, H, boardZoom, boardFy)
-    
-    // Track the precise center of the projected screen so the orb can stick to it
-    boardCx = (vq[0][0] + vq[1][0] + vq[2][0] + vq[3][0]) / 4
-    boardCy = (vq[0][1] + vq[1][1] + vq[2][1] + vq[3][1]) / 4
-
-    // Use a flat rectangular bounding box mapped to the screen's extremities,
-    // avoiding the complex perspective warp.
+    if (!boardAnchor?.quad || !ready(S.kf3)) { unpinBoard(el); return }
+    const vq = imageQuadToViewport(boardAnchor.quad as Quad, S.kf3.naturalWidth, S.kf3.naturalHeight, W, H, boardZoom)
+    const xs = vq.map((p) => p[0]), ys = vq.map((p) => p[1])
+    const bx0 = Math.min(...xs), bx1 = Math.max(...xs), by0 = Math.min(...ys), by1 = Math.max(...ys)
+    const area = (bx1 - bx0) * (by1 - by0)
+    const vis = Math.max(0, Math.min(bx1, W) - Math.max(bx0, 0)) * Math.max(0, Math.min(by1, H) - Math.max(by0, 0))
+    if (!area || vis / area < MIN_ON_SCREEN || bx1 - bx0 < MIN_QUAD_W) { unpinBoard(el); return }
     const panel = el.firstElementChild as HTMLElement
-    // panel has width/height defined, which provides the coordinate space for the matrix
     el.style.left = '0'; el.style.top = '0'; el.style.right = 'auto'; el.style.width = 'auto'
     el.style.transformOrigin = '0 0'
     el.style.transform = quadToMatrix3d(panel.offsetWidth, panel.offsetHeight, vq)
   }
 
-  /* ---- interactions: boardroom cinematic reveal (scroll-driven, staggered) ---- */
-  function animateBoard(p: number) {
-    // p is 0..1 within the 'rest1' segment.
-    // 0.00–0.45 : boardroom pans to frame 150
-    // 0.45–0.65 : zoom in
-    // 0.50–0.58 : header reveals
-    // 0.55–0.70 : stats reveal (staggered)
-    // 0.70–0.84 : HOLD and read
-    // 0.84–1.00 : fade out (handled by restO)
-
-    const ease = (v: number) => v < 0.5 ? 2 * v * v : 1 - Math.pow(-2 * v + 2, 2) / 2
-    const reveal = (el: HTMLElement | undefined, start: number, end: number, fromY = 20) => {
-      if (!el) return
-      const q = ease(clamp((p - start) / (end - start), 0, 1))
-      el.style.opacity = String(q)
-      if (el === brdHeaderEl.value) {
-        el.style.transform = `translateX(-50%) translateY(${(1 - q) * fromY}px)`
-      } else {
-        el.style.transform = `translateY(${(1 - q) * fromY}px)`
-      }
+  /* ---- interactions: chip absorb (engine-timed, so imperative) ---- */
+  let absorbed = false
+  function absorb(on: boolean) {
+    const chips = ovBoardEl.value!.querySelectorAll<HTMLElement>('.chip')
+    if (on && !absorbed) {
+      absorbed = true
+      const ob = orb.getBoundingClientRect(), ox = ob.left + ob.width / 2, oy = ob.top + ob.height / 2
+      chips.forEach((c, i) => {
+        const r = c.getBoundingClientRect()
+        c.style.setProperty('--ax', ox - r.left - r.width / 2 + 'px')
+        c.style.setProperty('--ay', oy - r.top - r.height / 2 + 'px')
+        c.style.transitionDelay = i * 70 + 'ms'
+        c.classList.add('absorbed')
+      })
+      orb.classList.remove('pulse'); void orb.offsetWidth; orb.classList.add('pulse')
+      pulseT = performance.now()
+    } else if (!on && absorbed) {
+      absorbed = false
+      chips.forEach((c) => { c.classList.remove('absorbed'); c.style.transitionDelay = '0ms' })
     }
-
-    // Header block
-    reveal(brdHeaderEl.value, 0.50, 0.58)
-    // Stats – staggered: 1 (LT), 2 (RT), 3 (LB), 4 (RB)
-    reveal(brdStat0El.value, 0.55, 0.62, 15)
-    reveal(brdStat1El.value, 0.57, 0.64, 15)
-    reveal(brdStat2El.value, 0.60, 0.67, 15)
-    reveal(brdStat3El.value, 0.62, 0.70, 15)
   }
 
   /* ---- main loop ---- */
   const restO = (p: number) => clamp((p - 0.06) / 0.14, 0, 1) * clamp((0.96 - p) / 0.12, 0, 1)
-  const setO = (el: HTMLElement | undefined, v: number) => {
-    if (!el) return
-    el.style.opacity = String(v)
-    el.classList.toggle('on', v > 0.5)
-    if (v > 0) el.style.visibility = 'visible'
-  }
+  const setO = (el: HTMLElement | undefined, v: number) => { if (!el) return; el.style.opacity = String(v); el.classList.toggle('on', v > 0.5) }
   let T = 0, dT = 0, lastLabel = '', lastSegIdx = -1, maxT = 0, depthSent = false
 
   function frame(now: number) {
@@ -960,15 +821,6 @@ onMounted(() => {
       ok = lerp(ok, targetScale, blend)
     }
 
-    // If we are in the boardroom scene (where the projector screen is active),
-    // we must perfectly lock the orb to the physical screen's center, which moves during the camera pan.
-    if ((currentSegId === 'rest1' || currentSegId === 'pan') && boardCx && boardCy) {
-      // Smoothly snap to the screen's center once the initial descent is mostly done
-      const snapBlend = clamp((t - 2.8) / 0.2, 0, 1)
-      ox = lerp(ox, boardCx, snapBlend)
-      oy = lerp(oy, boardCy, snapBlend)
-    }
-
     const bob = reduced ? 0 : Math.sin(now * 0.0016) * 6
     // We adjust the centering to account for the orb's internal padding/offset if needed,
     // but standard centering based on 300 base size should work with the new scale.
@@ -995,16 +847,7 @@ onMounted(() => {
 
     setO(ovHeroEl.value, seg.id === 'hero' ? 1 - clamp((p - 0.3) / 0.5, 0, 1) : t < SEGS[0].b ? 1 : 0)
     setO(ovBoardEl.value, seg.id === 'rest1' ? restO(p) : 0)
-    if (seg.id === 'rest1') {
-      applyBoardAnchor()
-      animateBoard(p)
-    }
-    else {
-      // Reset board elements when leaving rest1 so they re-animate cleanly
-      unpinBoard(ovBoardEl.value!)
-      if (brdHeaderEl.value) { brdHeaderEl.value.style.opacity = '0'; brdHeaderEl.value.style.transform = 'translateX(-50%) translateY(12px)' }
-      ;[brdStat0El, brdStat1El, brdStat2El, brdStat3El].forEach(r => { if (r.value) { r.value.style.opacity = '0'; r.value.style.transform = 'translateY(10px)' } })
-    }
+    if (seg.id === 'rest1') applyBoardAnchor()
     setO(ovBrokerEl.value, seg.id === 'rest2' ? restO(p) : 0)
     setO(ovBuyerEl.value, seg.id === 'rest3' ? restO(p) : 0)
     setO(ovFinaleEl.value, seg.id === 'finale' ? clamp((p - 0.12) / 0.3, 0, 1) : seg.id === 'loop' ? 1 - clamp(p * 2.2, 0, 1) : 0)
@@ -1018,6 +861,8 @@ onMounted(() => {
         mTxtEl.value!.textContent = Mc.txt; mSubEl.value!.textContent = Mc.sub + ' · live data'
       }
     }
+
+    absorb(t > SEGS[2].a + SEGS[2].w * 0.8)
 
     floatCtaEl.value!.classList.toggle('on', t > 1.4 && seg.id !== 'finale' && seg.id !== 'loop')
 
@@ -1115,8 +960,6 @@ onBeforeUnmount(() => {
 
 .ov { position: fixed; z-index: 5; opacity: 0; pointer-events: none; }
 .ov.on { pointer-events: auto; }
-/* Board overlay sits above canvas but below the orb */
-.ov-board { z-index: 4; }
 .eyebrow { font-family: 'Inter', system-ui, sans-serif; font-weight: 400; font-size: 10.5px; letter-spacing: .22em; text-transform: uppercase; color: var(--champagne); margin-bottom: 14px; }
 .display { font-family: 'Cormorant Garamond', serif; font-weight: 400; line-height: 1.08; letter-spacing: -0.025em; word-spacing: -0.02em; color: var(--ivory); }
 
@@ -1137,168 +980,16 @@ onBeforeUnmount(() => {
 .scroll-indicator .arrow-down { width: 6px; height: 6px; border-right: 1px solid rgba(242, 235, 221, 0.4); border-bottom: 1px solid rgba(242, 235, 221, 0.4); transform: rotate(45deg); margin-top: -8px; animation: hintbob 2.4s ease-in-out infinite; }
 @keyframes hintbob { 50% { transform: rotate(45deg) translate(4px, 4px); } }
 
-/* ── BOARDROOM: Screen-locked Presentation ──────────────────────────── */
-.presentation-screen {
-  position: fixed;
-  overflow: hidden;
-  /* Slight projector softness — not sharp browser UI */
-  filter: blur(0.6px) brightness(1.05);
-  opacity: 0.9;
-  /* left, top, width, height set by applyBoardAnchor */
-}
-
-.presentation-canvas {
-  position: relative;
-  /* ~16:9 canvas matches calibrated projector screen aspect ratio */
-  width: 800px;
-  height: 450px;
-  padding: 8% 9%;
-  transition: opacity 0.4s;
-}
-.presentation-canvas.dimmed { opacity: 0.08; pointer-events: none; }
-
-/* Ambient screen bloom */
-.brd-bloom {
-  position: absolute; inset: 0;
-  background: radial-gradient(ellipse at 50% 45%, rgba(88,180,220,0.06) 0%, transparent 70%);
-  pointer-events: none;
-}
-
-/* Header */
-.brd-header {
-  position: absolute;
-  top: 17%;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 100%;
-  text-align: center;
-  opacity: 0;
-  will-change: opacity, transform;
-}
-.brd-eyebrow {
-  font-family: 'Inter', system-ui, sans-serif;
-  font-weight: 400; font-size: 10px;
-  letter-spacing: 0.18em; text-transform: uppercase;
-  color: var(--champagne); opacity: 0.9;
-  margin-bottom: 6px;
-}
-.brd-headline {
-  font-family: 'Cormorant Garamond', serif;
-  font-weight: 400; font-size: 26px;
-  line-height: 1.15; letter-spacing: -0.02em;
-  color: var(--ivory);
-  text-shadow: 0 1px 12px rgba(0,0,0,0.8);
-}
-
-/* Stat button */
-.brd-stat {
-  position: absolute;
-  display: flex; flex-direction: column; align-items: flex-start; gap: 1px;
-  background: none; border: none; cursor: pointer;
-  padding: 0; width: max-content;
-  opacity: 0; will-change: opacity, transform;
-  transition: opacity 0.3s, transform 0.2s;
-  text-align: left;
-}
-#stat0 { left: 15%; top: 56%; }
-#stat1 { right: 15%; top: 56%; }
-#stat2 { left: 15%; top: 76%; }
-#stat3 { right: 15%; top: 76%; }
-.brd-stat.active { transform: scale(1.02); }
-.brd-stat.faded { opacity: 0.35 !important; }
-
-.brd-stat-top {
-  display: flex; align-items: center; gap: 6px;
-  width: 100%; margin-bottom: 4px;
-}
-.brd-num {
-  font-family: 'Inter', system-ui, sans-serif;
-  font-size: 8px; color: var(--champagne);
-  width: 16px; height: 16px; flex-shrink: 0;
-  border: 1px solid rgba(200,163,106,0.4);
-  border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-}
-.brd-line {
-  flex: 1; height: 1px;
-  background: rgba(200,163,106,0.3);
-}
-
-.brd-key {
-  font-family: 'Inter', system-ui, sans-serif;
-  font-weight: 500; font-size: 12px;
-  letter-spacing: 0.08em; color: var(--ivory);
-  line-height: 1.1;
-}
-.brd-label {
-  font-family: 'Inter', system-ui, sans-serif;
-  font-weight: 400; font-size: 9px;
-  letter-spacing: 0.06em;
-  color: rgba(242, 235, 221, 0.6); line-height: 1.2;
-}
-
-.brd-plus {
-  width: 14px; height: 14px;
-  color: var(--champagne); opacity: 0.6;
-  margin-top: 4px;
-  transition: opacity 0.2s, transform 0.2s, color 0.2s;
-}
-.brd-stat:hover .brd-plus {
-  opacity: 1; transform: scale(1.1); color: var(--amber-hot);
-}
-.brd-plus svg { width: 100%; height: 100%; display: block; }
-
-/* ── Detail expansion ───────────────────────────────────────────────── */
-.brd-detail {
-  position: absolute; inset: 0;
-  display: flex; flex-direction: column;
-  padding: 14px 16px;
-  opacity: 0; pointer-events: none;
-  transition: opacity 0.45s;
-}
-.brd-detail.open { opacity: 1; pointer-events: auto; }
-
-.brd-detail-close {
-  font-family: 'Inter', system-ui, sans-serif;
-  font-size: 5px; letter-spacing: 0.18em; text-transform: uppercase;
-  color: rgba(200,163,106,0.7);
-  background: none; border: none; cursor: pointer;
-  align-self: flex-end; padding: 2px 4px;
-  transition: color 0.2s;
-}
-.brd-detail-close:hover { color: var(--champagne); }
-
-.brd-detail-inner {
-  flex: 1; display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
-  text-align: center; gap: 6px;
-}
-.brd-detail-key {
-  font-family: 'Cormorant Garamond', serif;
-  font-weight: 400; font-size: 36px;
-  letter-spacing: -0.03em; line-height: 1;
-  color: var(--ivory);
-  text-shadow: 0 2px 20px rgba(0,0,0,0.9);
-}
-.brd-detail-title {
-  font-family: 'Inter', system-ui, sans-serif;
-  font-weight: 400; font-size: 7px;
-  letter-spacing: 0.2em; text-transform: uppercase;
-  color: var(--champagne); opacity: 0.9;
-}
-.brd-detail-rule {
-  width: 28px; height: 1px;
-  background: rgba(200,163,106,0.4);
-  margin: 2px auto;
-}
-.brd-detail-body {
-  font-family: 'Inter', system-ui, sans-serif;
-  font-weight: 400; font-size: 6.5px;
-  line-height: 1.55; letter-spacing: 0.02em;
-  color: rgba(242,235,221,0.65);
-  max-width: 260px;
-}
-
+.ov-board { top: 12vh; right: 5vw; width: min(480px, 86vw); }
+.slide-panel { background: var(--panel); backdrop-filter: blur(12px); border: 1px solid var(--line); border-radius: 10px; padding: 26px 28px; box-shadow: 0 30px 80px rgba(0, 0, 0, .55); max-height: 72vh; overflow-y: auto; }
+.slide-panel .display { font-size: clamp(22px, 2.6vw, 32px); margin-bottom: 18px; }
+.chips { display: flex; flex-wrap: wrap; gap: 10px; }
+.chip { font-family: 'Inter', system-ui, sans-serif; font-weight: 400; font-size: 13px; color: var(--paper); background: rgba(46, 113, 128, .28); border: 1px solid rgba(88, 200, 230, .4); border-radius: 999px; padding: 9px 16px; cursor: pointer; transition: transform .8s cubic-bezier(.5, 0, .2, 1), opacity .8s, background .2s; }
+.chip:hover { background: rgba(88, 200, 230, .22); }
+.chip.absorbed { transform: translate(var(--ax), var(--ay)) scale(.08); opacity: 0; pointer-events: none; }
+.chip-detail { display: none; margin-top: 16px; font-size: 13.5px; line-height: 1.65; color: var(--sand); border-top: 1px solid var(--line); padding-top: 14px; }
+.chip-detail.open { display: block; }
+.slide-note { margin-top: 16px; font-family: 'Inter', system-ui, sans-serif; font-size: 10px; opacity: .5; letter-spacing: .1em; }
 
 .ov-broker { left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(300px, 76vw); }
 .chat { display: flex; flex-direction: column; gap: 12px; }

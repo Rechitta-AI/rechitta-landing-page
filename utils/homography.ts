@@ -81,11 +81,10 @@ export function imageQuadToViewport(
   quad: Quad,
   iw: number, ih: number,
   W: number, H: number,
-  zoom = 1,
-  fy = 0.5
+  zoom = 1
 ): Quad {
   const k = Math.max(W / iw, H / ih) * zoom
   const ox = (W - iw * k) / 2
-  const oy = H * fy - ih * k * fy
+  const oy = (H - ih * k) / 2
   return quad.map(([x, y]) => [ox + x * iw * k, oy + y * ih * k]) as Quad
 }
