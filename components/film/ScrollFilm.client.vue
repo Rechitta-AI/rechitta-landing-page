@@ -857,17 +857,11 @@ onMounted(() => {
 
     // Use a flat rectangular bounding box mapped to the screen's extremities,
     // avoiding the complex perspective warp.
-    const minX = Math.min(vq[0][0], vq[1][0], vq[2][0], vq[3][0])
-    const maxX = Math.max(vq[0][0], vq[1][0], vq[2][0], vq[3][0])
-    const minY = Math.min(vq[0][1], vq[1][1], vq[2][1], vq[3][1])
-    const maxY = Math.max(vq[0][1], vq[1][1], vq[2][1], vq[3][1])
-
-    el.style.left = minX + 'px'
-    el.style.top = minY + 'px'
-    el.style.width = (maxX - minX) + 'px'
-    el.style.height = (maxY - minY) + 'px'
-    el.style.transform = ''
-    el.style.transformOrigin = ''
+    const panel = el.firstElementChild as HTMLElement
+    // panel has width/height defined, which provides the coordinate space for the matrix
+    el.style.left = '0'; el.style.top = '0'; el.style.right = 'auto'; el.style.width = 'auto'
+    el.style.transformOrigin = '0 0'
+    el.style.transform = quadToMatrix3d(panel.offsetWidth, panel.offsetHeight, vq)
   }
 
   /* ---- interactions: boardroom cinematic reveal (scroll-driven, staggered) ---- */
@@ -1147,9 +1141,10 @@ onBeforeUnmount(() => {
 
 .presentation-canvas {
   position: relative;
-  width: 100%;
-  height: 100%;
-  padding: 9% 10%;
+  /* ~16:9 canvas matches calibrated projector screen aspect ratio */
+  width: 500px;
+  height: 281px;
+  padding: 8% 9%;
   transition: opacity 0.4s;
 }
 .presentation-canvas.dimmed { opacity: 0.08; pointer-events: none; }
