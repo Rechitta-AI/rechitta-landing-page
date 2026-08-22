@@ -458,6 +458,9 @@ onMounted(() => {
 
   const ready = (img?: HTMLImageElement) => !!img && img.complete && img.naturalWidth > 0
   let boardZoom = 1.02 // current boardroom zoom — anchor overlay tracks it
+  let boardFy = 0.5
+  let boardCx = 0
+  let boardCy = 0
   function drawCover(img: HTMLImageElement, zoom = 1, fy = 0.5) {
     if (!ready(img)) return false
     const k = Math.max(W / img.naturalWidth, H / img.naturalHeight) * zoom
@@ -861,11 +864,6 @@ onMounted(() => {
     [0.74, 0.59], // BR
     [0.26, 0.59]  // BL
   ]
-
-  let boardZoom = 1.02
-  let boardFy = 0.5
-  let boardCx = 0
-  let boardCy = 0
 
   function unpinBoard(el: HTMLElement) {
     el.style.transform = ''; el.style.transformOrigin = ''
