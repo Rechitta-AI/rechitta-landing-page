@@ -840,16 +840,24 @@ onMounted(() => {
   // Pinning is only honest when the screen is actually on screen. The quad is
   // normalized to a 16:9 still, but cover-fit on a portrait viewport keeps just
   // Custom quad for the perfectly centered physical screen in the boardroom scene.
+  // The projector screen is perfectly centered at frame 150. 
+  // We use this hardcoded quad instead of the manifest's kf-03-screen, 
+  // because the manifest quad was calibrated for a different camera pan offset.
+  const BOARD_QUAD: Quad = [
+    [0.264, 0.112], // TL
+    [0.736, 0.112], // TR
+    [0.736, 0.595], // BR
+    [0.264, 0.595]  // BL
+  ]
+
   function unpinBoard(el: HTMLElement) {
     el.style.transform = ''; el.style.transformOrigin = ''
     el.style.left = ''; el.style.top = ''; el.style.right = ''; el.style.width = ''
   }
   function applyBoardAnchor() {
     const el = ovBoardEl.value!
-    if (!ready(S.kf3) || !boardAnchor) { unpinBoard(el); return }
-    const anchorQuad = boardAnchor.quad as Quad
-    if (!anchorQuad) return
-    const vq = imageQuadToViewport(anchorQuad, S.kf3.naturalWidth, S.kf3.naturalHeight, W, H, boardZoom, boardFy)
+    if (!ready(S.kf3)) { unpinBoard(el); return }
+    const vq = imageQuadToViewport(BOARD_QUAD, S.kf3.naturalWidth, S.kf3.naturalHeight, W, H, boardZoom, boardFy)
     
     // Track the precise center of the projected screen so the orb can stick to it
     boardCx = (vq[0][0] + vq[1][0] + vq[2][0] + vq[3][0]) / 4
@@ -1142,8 +1150,8 @@ onBeforeUnmount(() => {
 .presentation-canvas {
   position: relative;
   /* ~16:9 canvas matches calibrated projector screen aspect ratio */
-  width: 500px;
-  height: 281px;
+  width: 800px;
+  height: 450px;
   padding: 8% 9%;
   transition: opacity 0.4s;
 }
@@ -1169,14 +1177,14 @@ onBeforeUnmount(() => {
 }
 .brd-eyebrow {
   font-family: 'Inter', system-ui, sans-serif;
-  font-weight: 400; font-size: 5.5px;
+  font-weight: 400; font-size: 10px;
   letter-spacing: 0.18em; text-transform: uppercase;
   color: var(--champagne); opacity: 0.9;
-  margin-bottom: 3px;
+  margin-bottom: 6px;
 }
 .brd-headline {
   font-family: 'Cormorant Garamond', serif;
-  font-weight: 400; font-size: 15px;
+  font-weight: 400; font-size: 26px;
   line-height: 1.15; letter-spacing: -0.02em;
   color: var(--ivory);
   text-shadow: 0 1px 12px rgba(0,0,0,0.8);
@@ -1200,39 +1208,39 @@ onBeforeUnmount(() => {
 .brd-stat.faded { opacity: 0.35 !important; }
 
 .brd-stat-top {
-  display: flex; align-items: center; gap: 4px;
-  width: 100%; margin-bottom: 2px;
+  display: flex; align-items: center; gap: 6px;
+  width: 100%; margin-bottom: 4px;
 }
 .brd-num {
   font-family: 'Inter', system-ui, sans-serif;
-  font-size: 3.5px; color: var(--champagne);
-  width: 9px; height: 9px; flex-shrink: 0;
-  border: 0.5px solid rgba(200,163,106,0.4);
+  font-size: 8px; color: var(--champagne);
+  width: 16px; height: 16px; flex-shrink: 0;
+  border: 1px solid rgba(200,163,106,0.4);
   border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
 }
 .brd-line {
-  flex: 1; height: 0.5px;
+  flex: 1; height: 1px;
   background: rgba(200,163,106,0.3);
 }
 
 .brd-key {
   font-family: 'Inter', system-ui, sans-serif;
-  font-weight: 500; font-size: 7.5px;
+  font-weight: 500; font-size: 12px;
   letter-spacing: 0.08em; color: var(--ivory);
   line-height: 1.1;
 }
 .brd-label {
   font-family: 'Inter', system-ui, sans-serif;
-  font-weight: 400; font-size: 4.8px;
+  font-weight: 400; font-size: 9px;
   letter-spacing: 0.06em;
   color: rgba(242, 235, 221, 0.6); line-height: 1.2;
 }
 
 .brd-plus {
-  width: 9px; height: 9px;
+  width: 14px; height: 14px;
   color: var(--champagne); opacity: 0.6;
-  margin-top: 1px;
+  margin-top: 4px;
   transition: opacity 0.2s, transform 0.2s, color 0.2s;
 }
 .brd-stat:hover .brd-plus {
