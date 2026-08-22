@@ -3,6 +3,15 @@
   "fps": 12,
   "comment": "Rechitta scroll film asset manifest. Orientation buckets per PLAN.md Phase 1: 'reuse' = crop-tolerant landscape source used in portrait; a real 'portrait' entry supersedes it when the asset lands. Paths are relative to the film base URL (public/film in dev, Blob/CDN in production). Frames are 1-indexed f_001…",
   "sequences": {
+    "scene1-3": {
+      "landscape": {
+        "frames": 156,
+        "tiers": [1280],
+        "size": [1280, 720],
+        "pattern": "frames/scene1-3/landscape/{tier}/f_{frame}.webp"
+      },
+      "portrait": { "reuse": "landscape" }
+    },
     "transit-a": {
       "landscape": {
         "frames": 96,

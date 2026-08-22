@@ -11,24 +11,44 @@
     <div ref="orbEl" class="orb"><canvas ref="orbGlEl" width="800" height="800"></canvas>
       <div class="ring"></div><div class="core"></div></div>
 
-    <div class="hud hud-badge">RECHITTA</div>
-    <!-- The film is ONE continuous move. A per-scene label and a segmented,
-         act-labelled timeline advertised the seams and made it read as a
-         slideshow of eleven scenes. Both are gone; what's left is a single
-         hairline thread with no marks, so progress is legible but the cuts
-         are not. The scene name survives as an sr-only live region — screen
-         readers still get the narrative beats they were relying on. -->
-    <div ref="hudSceneEl" class="sr-only" aria-live="polite">SCENE 01 · THE SKY</div>
-    <div class="hud hud-progress"><i ref="progFillEl"></i></div>
-
-    <div ref="ovHeroEl" class="ov on ov-hero">
-      <div class="eyebrow">Rechitta</div>
-      <h1 class="display">One source of truth.</h1>
-      <p class="sub">Live developer inventory, delivered as conversation — to every broker, and every buyer, in their language.</p>
-      <div class="hint">Scroll to descend</div>
+    <!-- Global HUD Overlays -->
+    <div class="hud hud-badge">
+      <div class="brand">RECHITTA</div>
+      <div class="tag">REAL ESTATE INTELLIGENCE</div>
     </div>
 
-    <div ref="ovBoardEl" class="ov ov-board">
+    <div class="hud hud-context">
+      <div class="line"></div>
+      <div class="dot"></div>
+      DUBAI <span>/ 2026</span>
+    </div>
+
+    <div ref="hudSceneEl" class="sr-only" aria-live="polite">SCENE 01 · THE SKY</div>
+    
+    <div class="hud hud-timeline">
+      <div class="chapter-line"></div>
+      <div class="chapter-dot" ref="chapterDotEl"></div>
+      <div v-for="(s, i) in CHAPTERS" :key="s.id" class="chapter" :class="{ active: activeChapter === i }" :ref="(el) => { if (el) chapterEls[i] = el as HTMLElement }">
+        {{ s.label }}
+      </div>
+    </div>
+
+    <!-- Hero Overlay -->
+    <div ref="ovHeroEl" class="ov on ov-hero">
+      <div class="hero-grid">
+        <div class="hero-content">
+          <h1 class="display"><span ref="orbAnchorEl" class="orb-placeholder">O</span>ne source of truth.</h1>
+          <p class="sub">Live developer inventory, translated into conversation — so every broker and every buyer speaks the same language.</p>
+        </div>
+      </div>
+      <div class="scroll-indicator">
+        <div class="lbl">SCROLL TO DESCEND</div>
+        <div class="line"></div>
+        <div class="arrow-down"></div>
+      </div>
+    </div>
+
+    <div ref="ovBoardEl" class="ov ov-board" style="opacity: 0; pointer-events: none; visibility: hidden;">
       <div class="slide-panel">
         <div class="eyebrow">Scene 03 · XYZ Developments — launch week</div>
         <h2 class="display">One launch. Thousands of briefings.</h2>
@@ -126,7 +146,10 @@ const { track } = useTrack()
 const spacerEl = ref<HTMLElement>(); const stageEl = ref<HTMLCanvasElement>()
 const loaderEl = ref<HTMLElement>(); const ldEl = ref<HTMLElement>(); const ldbEl = ref<HTMLElement>()
 const orbEl = ref<HTMLElement>(); const orbGlEl = ref<HTMLCanvasElement>()
-const hudSceneEl = ref<HTMLElement>(); const progFillEl = ref<HTMLElement>()
+const orbAnchorEl = ref<HTMLElement>()
+const hudSceneEl = ref<HTMLElement>()
+const chapterDotEl = ref<HTMLElement>()
+const chapterEls = ref<HTMLElement[]>([])
 const ovHeroEl = ref<HTMLElement>(); const ovBoardEl = ref<HTMLElement>(); const ovBrokerEl = ref<HTMLElement>()
 const ovBuyerEl = ref<HTMLElement>(); const ovMontEl = ref<HTMLElement>(); const ovDashEl = ref<HTMLElement>()
 const ovFinaleEl = ref<HTMLElement>(); const floatCtaEl = ref<HTMLElement>()
@@ -159,22 +182,32 @@ const DOTS = [
 ]
 
 /* ---- timeline (verbatim from the prototype) ---- */
-const SEGS = [
-  { id: 'hero', type: 'hold', w: 0.9, scene: 'sky', label: 'SCENE 01 · THE SKY' },
-  { id: 'tA', type: 'transit', w: 1.3, scene: 'approach', label: 'TRANSIT A · THE DESCENT' },
-  { id: 'rest1', type: 'rest', w: 1.6, scene: 'boardroom', label: 'SCENE 03 · THE BOARDROOM' },
-  { id: 'tB', type: 'transit', w: 1.3, scene: 'descend', label: 'TRANSIT B · OUT & DOWN' },
-  { id: 'rest2', type: 'rest', w: 1.6, scene: 'brokerPhone', label: 'SCENE 05 · THE BROKER' },
-  { id: 'tC', type: 'transit', w: 1.1, scene: 'toBeach', label: 'TRANSIT C · THROUGH THE SCREEN' },
-  { id: 'rest3', type: 'rest', w: 1.3, scene: 'buyerPhone', label: 'SCENE 07 · THE BUYER' },
-  { id: 'mont', type: 'transit', w: 1.3, scene: 'montage', label: 'SCENE 08 · ONE MOMENT, EVERY MARKET' },
-  { id: 'tD', type: 'transit', w: 1.5, scene: 'ret', label: 'TRANSIT D · THE RETURN' },
-  { id: 'finale', type: 'hold', w: 1.0, scene: 'finale', label: 'SCENE 09 · ONE SOURCE OF TRUTH' },
-  { id: 'loop', type: 'transit', w: 0.9, scene: 'sunrise', label: 'SCENE 10 · A NEW DAY — BEGIN AGAIN' }
+type SegDef = { id: string; type: string; w: number; scene: string; label: string; shortLabel?: string; a: number; b: number }
+const SEGS: SegDef[] = [
+  { id: 'hero', type: 'hold', w: 0.9, scene: 'sky', label: 'SCENE 01 · THE SKY', shortLabel: 'HERO', a: 0, b: 0 },
+  { id: 'tA', type: 'transit', w: 1.3, scene: 'approach', label: 'TRANSIT A · THE DESCENT', a: 0, b: 0 },
+  { id: 'rest1', type: 'rest', w: 1.6, scene: 'boardroom', label: 'SCENE 03 · THE BOARDROOM', shortLabel: 'BOARDROOM', a: 0, b: 0 },
+  { id: 'tB', type: 'transit', w: 1.3, scene: 'descend', label: 'TRANSIT B · OUT & DOWN', a: 0, b: 0 },
+  { id: 'rest2', type: 'rest', w: 1.6, scene: 'brokerPhone', label: 'SCENE 05 · THE BROKER', shortLabel: 'BROKER', a: 0, b: 0 },
+  { id: 'tC', type: 'transit', w: 1.1, scene: 'toBeach', label: 'TRANSIT C · THROUGH THE SCREEN', a: 0, b: 0 },
+  { id: 'rest3', type: 'rest', w: 1.3, scene: 'buyerPhone', label: 'SCENE 07 · THE BUYER', shortLabel: 'BUYER', a: 0, b: 0 },
+  { id: 'mont', type: 'transit', w: 1.3, scene: 'montage', label: 'SCENE 08 · ONE MOMENT, EVERY MARKET', shortLabel: 'WORLD', a: 0, b: 0 },
+  { id: 'tD', type: 'transit', w: 1.5, scene: 'ret', label: 'TRANSIT D · THE RETURN', a: 0, b: 0 },
+  { id: 'finale', type: 'hold', w: 1.0, scene: 'finale', label: 'SCENE 09 · ONE SOURCE OF TRUTH', shortLabel: 'RETURN', a: 0, b: 0 },
+  { id: 'loop', type: 'transit', w: 0.9, scene: 'sunrise', label: 'SCENE 10 · A NEW DAY — BEGIN AGAIN', a: 0, b: 0 }
 ].map((s) => ({ ...s, a: 0, b: 0 }))
 let acc = 0
 SEGS.forEach((s) => { s.a = acc; acc += s.w; s.b = acc })
 const TOTAL = acc
+
+const CHAPTERS = [
+  { id: 'hero', label: '01 HERO', map: ['hero', 'tA'] },
+  { id: 'rest1', label: '02 BOARDROOM', map: ['rest1', 'tB'] },
+  { id: 'rest2', label: '03 BROKER', map: ['rest2', 'tC'] },
+  { id: 'rest3', label: '04 BUYER', map: ['rest3'] },
+  { id: 'mont', label: '05 WORLD', map: ['mont', 'tD', 'finale', 'loop'] }
+]
+const activeChapter = ref(0)
 
 function onSendClient() {
   track('send_to_client_clicked')
@@ -236,19 +269,20 @@ onMounted(() => {
   const PIM: Record<string, HTMLImageElement> = {}
   ;['mumbai', 'moscow', 'london', 'shanghai', 'riyadh', 'paris'].forEach((k) => { PIM[k] = plate(k, 4) })
   const taImgs = seq('transit-a', 0)!  // hero transit always exists
+  const s13Imgs = seq('scene1-3', 0)  // new scene 1-3 continuous sequence
 
   // QA handle (see HANDOFF): asset readiness + a seek() that skips the scroll
   // smoothing — headless verification and calibration both need to land on an
   // exact playhead without waiting for the lerp.
   ;(window as any).__DBG = {
-    S, PIM, taCount: taImgs.length, loader,
+    S, PIM, taCount: taImgs.length, s13Count: s13Imgs?.length, loader,
     seek: (tt: number) => { window.scrollTo(0, tt * vh); dT = tt },
     state: () => ({ T, dT, seg: currentSegId })
   }
 
   /* loader overlay clears when the film can start: hero still + first 12 frames */
   const firstPaintReady = () =>
-    ready(S.kf1) && taImgs.slice(0, 12).every(ready)
+    s13Imgs ? s13Imgs.slice(0, 12).every(ready) : (ready(S.kf1) && taImgs.slice(0, 12).every(ready))
   loader.onProgress(() => {
     const { loaded, total } = loader.stats()
     const pc = Math.round((loaded / Math.max(1, total)) * 100)
@@ -261,7 +295,7 @@ onMounted(() => {
 
   /* approach-based priority boost: current segment −3, next −2, after −1 */
   const SEG_ASSETS: Record<string, string[]> = {
-    hero: ['still:kf-01'], tA: ['seq:transit-a'], rest1: ['still:kf-03'],
+    hero: s13Imgs ? ['seq:scene1-3'] : ['still:kf-01'], tA: s13Imgs ? ['seq:scene1-3'] : ['seq:transit-a'], rest1: s13Imgs ? ['seq:scene1-3'] : ['still:kf-03'],
     tB: ['seq:transit-b', 'still:kf-04'], rest2: ['still:kf-05'],
     tC: ['seq:transit-c', 'still:kf-06'], rest3: ['still:kf-06'],
     mont: ['plate:', 'sprite:hand'], tD: ['seq:transit-d'],
@@ -406,23 +440,50 @@ onMounted(() => {
   /* ---- scenes (verbatim port; transits swap procedural → real when footage lands) ---- */
   const SCENES: Record<string, (p: number, t: number) => void> = {
     sky(p) {
-      if (!drawCover(S.kf1, 1 + p * 0.06)) {
+      if (s13Imgs) {
+        // Scene 1-3: hero occupies ~first 14% of the 156 frames (scene 1 of 3)
+        const heroEnd = 0.14
+        const idx = Math.round(p * heroEnd * (s13Imgs.length - 1))
+        const img = seqFrame(s13Imgs, idx)
+        if (img) drawCover(img, 1)
+        else { skyGrad('#0E2233', '#7A4E33', '#E8A24B', 0.78); skyline(1 + p * 0.06, 0.55, 0.8, 0.8, 0.9, 1) }
+      } else if (!drawCover(S.kf1, 1 + p * 0.06)) {
         skyGrad('#0E2233', '#7A4E33', '#E8A24B', 0.78)
         skyline(1 + p * 0.06, 0.55, 0.8, 0.8, 0.9, 1)
       }
       vignette(0.18)
     },
     approach(p) {
-      const idx = Math.round(p * (taImgs.length - 1))
-      const img = seqFrame(taImgs, idx)
-      if (img) drawCover(img, 1)
-      else { skyGrad('#0E2233', '#8A5636', '#E8A24B', 0.7); skyline(1 + easeF(p) * 2.6, 0.62, 0.62, 0.8, 0.85, 1) }
+      if (s13Imgs) {
+        // Scene 1-3: approach/descent occupies ~14%–72% of the 156 frames (scene 2)
+        const startFrac = 0.14, endFrac = 0.72
+        const frac = startFrac + p * (endFrac - startFrac)
+        const idx = Math.round(frac * (s13Imgs.length - 1))
+        const img = seqFrame(s13Imgs, idx)
+        if (img) drawCover(img, 1)
+        else { skyGrad('#0E2233', '#8A5636', '#E8A24B', 0.7); skyline(1 + easeF(p) * 2.6, 0.62, 0.62, 0.8, 0.85, 1) }
+      } else {
+        const idx = Math.round(p * (taImgs.length - 1))
+        const img = seqFrame(taImgs, idx)
+        if (img) drawCover(img, 1)
+        else { skyGrad('#0E2233', '#8A5636', '#E8A24B', 0.7); skyline(1 + easeF(p) * 2.6, 0.62, 0.62, 0.8, 0.85, 1) }
+      }
       vignette(0.22)
       if (p > 0.88) { const q = (p - 0.88) / 0.12; cx.fillStyle = `rgba(255,232,196,${q * q * 0.95})`; cx.fillRect(0, 0, W, H) }
     },
     boardroom(p) {
-      boardZoom = 1.02 + Math.sin(p * Math.PI) * 0.015
-      drawCover(S.kf3, boardZoom)
+      if (s13Imgs) {
+        // Scene 1-3: boardroom occupies ~72%–100% of the 156 frames (scene 3)
+        const startFrac = 0.72
+        const frac = startFrac + p * (1 - startFrac)
+        const idx = Math.round(frac * (s13Imgs.length - 1))
+        const img = seqFrame(s13Imgs, idx)
+        if (img) drawCover(img, 1)
+        else drawCover(S.kf3, 1.02)
+      } else {
+        boardZoom = 1.02 + Math.sin(p * Math.PI) * 0.015
+        drawCover(S.kf3, boardZoom)
+      }
       vignette(0.34)
       if (p < 0.05) { cx.fillStyle = `rgba(255,232,196,${(1 - p / 0.05) * 0.95})`; cx.fillRect(0, 0, W, H) }
     },
@@ -633,9 +694,16 @@ onMounted(() => {
   initSpline()
 
   /* ---- orb path (verbatim) ---- */
+  // The new trajectory descends with the camera from T=0.9 to T=2.2, then enters the boardroom glass to the screen.
+  // Boardroom (T=2.2 -> 3.8). We want it to land inside the presentation screen by T=3.4.
   const ORB: Array<[number, number, number, number]> = [
-    [0, 50, 33, 1.15], [0.9, 50, 33, 1.15], [2.2, 72, 58, 0.8], [3.4, 72, 58, 0.8],
-    [3.8, 66, 44, 0.85], [4.6, 42, 72, 0.6], [5.1, 50, 16, 0.55], [6.55, 50, 16, 0.55],
+    // T=0 is handled dynamically via orbAnchorEl, so these first two points are fallback paths
+    [0, 50, 33, 1.15], [0.9, 50, 33, 1.15], 
+    // T=0.9 to 2.2: Camera diving towards building. Orb moves downwards.
+    [1.5, 50, 80, 0.9], [2.2, 50, 110, 0.5], 
+    // T=2.2 to 3.8: Enter the glass. We shrink and land in the center of the presentation screen
+    [2.8, 50, 70, 0.4], [3.4, 50, 35, 0.35],
+    [3.8, 50, 35, 0.35], [4.6, 42, 72, 0.6], [5.1, 50, 16, 0.55], [6.55, 50, 16, 0.55],
     [6.9, 50, 46, 0.3], [7.3, 50, 34, 0.5], [7.8, 74, 22, 0.55], [9.1, 74, 22, 0.5],
     [9.5, 50, 13, 0.45], [10.4, 50, 13, 0.45], [11.0, 66, 38, 0.7], [11.35, 66, 38, 0.7],
     [12.0, 50, 44, 0.9], [12.4, 50, 26, 1.35], [12.9, 50, 26, 1.35], [13.8, 50, 33, 1.15]
@@ -728,9 +796,35 @@ onMounted(() => {
 
     const o = orbAt(t)
     const os = clamp(Math.min(W, H) * 0.155, 64, 230) * o.s // aspect-safe: short edge, clamped
-    const k = os / 300
+    let ox = (W * o.x) / 100
+    let oy = (H * o.y) / 100
+    let ok = os / 300
+    
+    // Smoothly blend the dynamic anchor position into the script trajectory between T=0.7 and T=1.1
+    if (t < 1.1 && orbAnchorEl.value) {
+      const rect = orbAnchorEl.value.getBoundingClientRect()
+      // Center of the placeholder letter 'O'
+      const anchorX = rect.left + rect.width / 2
+      const anchorY = rect.top + rect.height / 2
+      // The orb's visual core is slightly offset from its container center depending on Spline setup,
+      // but assuming the container center is the core:
+      const blend = t < 0.7 ? 1 : 1 - clamp((t - 0.7) / 0.4, 0, 1)
+      
+      // The orb graphic fills most of its container.
+      // A small multiplier ensures the core perfectly matches the optical size of 'O'.
+      const targetSize = Math.max(rect.width, rect.height) * 1.15 
+      const targetScale = targetSize / 300
+      
+      ox = lerp(ox, anchorX, blend)
+      oy = lerp(oy, anchorY, blend)
+      ok = lerp(ok, targetScale, blend)
+    }
+
     const bob = reduced ? 0 : Math.sin(now * 0.0016) * 6
-    orb.style.transform = `translate(${(W * o.x) / 100 - os / 2}px,${(H * o.y) / 100 - os / 2 + bob}px) scale(${k})`
+    // We adjust the centering to account for the orb's internal padding/offset if needed,
+    // but standard centering based on 300 base size should work with the new scale.
+    orb.style.transform = `translate(${ox - (300 * ok) / 2}px,${oy - (300 * ok) / 2 + bob}px) scale(${ok})`
+    
     if (splineApp && orbLayers.length) {
       // Synthetic bands choreographed to the film (constant low breathing; pulse
       // on chip absorb; "speech" cadence docked over the broker phone).
@@ -772,8 +866,25 @@ onMounted(() => {
     floatCtaEl.value!.classList.toggle('on', t > 1.4 && seg.id !== 'finale' && seg.id !== 'loop')
 
     if (seg.label !== lastLabel) { hudSceneEl.value!.textContent = seg.label; lastLabel = seg.label }
-    // One unbroken thread across the whole film — no per-segment marks.
-    if (progFillEl.value) progFillEl.value.style.transform = `scaleX(${clamp(t / TOTAL, 0, 1)})`
+    
+    // Update Chapter tracking and active dot position
+    const cIdx = CHAPTERS.findIndex((c) => c.map.includes(currentSegId))
+    if (cIdx !== -1 && cIdx !== activeChapter.value) {
+      activeChapter.value = cIdx
+    }
+    
+    // Animate the gold chapter dot
+    if (chapterEls.value.length && chapterDotEl.value) {
+      const activeEl = chapterEls.value[activeChapter.value]
+      if (activeEl) {
+        // Move dot to the left center of the active chapter label
+        const targetX = activeEl.offsetLeft - 16
+        // Simple easing for the dot position
+        const currentX = parseFloat(chapterDotEl.value.style.transform.replace('translateX(', '') || '0')
+        const nextX = currentX === 0 ? targetX : lerp(currentX, targetX, 0.1)
+        chapterDotEl.value.style.transform = `translateX(${nextX}px)`
+      }
+    }
   }
   let mIdx = -1
   raf = requestAnimationFrame(frame)
@@ -822,11 +933,23 @@ onBeforeUnmount(() => {
 @keyframes ringspin { to { transform: rotate(360deg); } }
 @keyframes orbpulse { 0% { filter: brightness(1); } 30% { filter: brightness(2.1); } 100% { filter: brightness(1); } }
 
-.hud { position: fixed; z-index: 9; font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: .08em; color: rgba(242, 220, 184, .75); pointer-events: none; }
-.hud-badge { top: 16px; left: 18px; text-transform: uppercase; }
-.hud-progress { bottom: 0; left: 0; right: 0; height: 2px; background: rgba(242, 220, 184, .12); }
-.hud-progress i { display: block; height: 100%; background: var(--amber); opacity: .8;
-  transform: scaleX(0); transform-origin: 0 50%; will-change: transform; }
+.hud { position: fixed; z-index: 9; font-family: 'Sora', sans-serif; font-weight: 300; font-size: 10px; letter-spacing: .12em; color: var(--paper); pointer-events: none; }
+
+.hud-badge { top: 32px; left: 40px; display: flex; flex-direction: column; gap: 4px; }
+.hud-badge .brand { font-family: 'Marcellus', serif; font-size: 15px; letter-spacing: .35em; text-transform: uppercase; }
+.hud-badge .tag { font-family: 'IBM Plex Mono', monospace; font-size: 8px; letter-spacing: .25em; opacity: 0.6; }
+
+.hud-context { top: 32px; right: 40px; display: flex; align-items: center; gap: 12px; font-family: 'IBM Plex Mono', monospace; font-size: 9.5px; letter-spacing: .2em; opacity: 0.8; }
+.hud-context .line { width: 1px; height: 16px; background: var(--amber); opacity: 0.4; }
+.hud-context .dot { width: 4px; height: 4px; background: var(--amber); border-radius: 50%; box-shadow: 0 0 6px var(--amber); }
+.hud-context span { opacity: 0.5; }
+
+.hud-timeline { bottom: 32px; left: 40px; right: 40px; display: flex; align-items: center; gap: 24px; }
+.hud-timeline .chapter-line { flex: 1; height: 1px; background: rgba(242, 220, 184, 0.15); }
+.hud-timeline .chapter-dot { position: absolute; left: 0; width: 6px; height: 6px; background: var(--amber); border-radius: 50%; box-shadow: 0 0 8px var(--amber); transform: translateX(0); transition: transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1); will-change: transform; z-index: 2; margin-top: 1px; }
+.hud-timeline .chapter { position: relative; font-family: 'IBM Plex Mono', monospace; font-size: 9px; letter-spacing: .15em; text-transform: uppercase; color: rgba(242, 220, 184, 0.35); transition: color 0.4s; }
+.hud-timeline .chapter.active { color: var(--paper); text-shadow: 0 0 12px rgba(255, 255, 255, 0.3); }
+
 .sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden;
   clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; border: 0; }
 
@@ -835,11 +958,21 @@ onBeforeUnmount(() => {
 .eyebrow { font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; letter-spacing: .22em; text-transform: uppercase; color: var(--amber); margin-bottom: 14px; }
 .display { font-family: 'Marcellus', serif; font-weight: 400; line-height: 1.08; color: var(--paper); }
 
-.ov-hero { inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding-top: 14vh; text-align: center; }
-.ov-hero .display { font-size: clamp(38px, 6.4vw, 84px); text-shadow: 0 2px 40px rgba(7, 14, 22, .7); }
-.ov-hero .sub { margin-top: 18px; font-size: clamp(13px, 1.4vw, 17px); color: var(--sand); opacity: .9; max-width: 560px; padding: 0 24px; text-shadow: 0 1px 18px rgba(7, 14, 22, .8); }
-.ov-hero .hint { position: absolute; bottom: 9vh; font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; letter-spacing: .24em; text-transform: uppercase; opacity: .6; animation: hintbob 2.4s ease-in-out infinite; }
-@keyframes hintbob { 50% { transform: translateY(7px); } }
+.ov-hero { inset: 0; display: flex; flex-direction: column; }
+.hero-grid { flex: 1; display: grid; grid-template-columns: repeat(12, 1fr); gap: 24px; padding: 0 40px; align-items: center; }
+.hero-content { grid-column: 3 / 11; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; z-index: 2; }
+/* Subtle invisible gradient for text contrast */
+.hero-content::before { content: ''; position: absolute; inset: -40% -20%; background: radial-gradient(ellipse at center, rgba(7, 14, 22, 0.4) 0%, rgba(7, 14, 22, 0) 70%); z-index: -1; pointer-events: none; }
+
+.hero-content .display { font-size: clamp(48px, 7vw, 100px); text-shadow: 0 4px 60px rgba(7, 14, 22, 0.8); display: flex; align-items: baseline; justify-content: center; }
+.orb-placeholder { color: transparent; user-select: none; }
+.hero-content .sub { margin-top: 28px; font-size: clamp(14px, 1.3vw, 18px); line-height: 1.6; color: var(--paper); opacity: .85; max-width: 520px; text-shadow: 0 2px 24px rgba(7, 14, 22, 0.9); font-weight: 300; }
+
+.scroll-indicator { position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.scroll-indicator .lbl { font-family: 'IBM Plex Mono', monospace; font-size: 8.5px; letter-spacing: .25em; text-transform: uppercase; opacity: 0.5; }
+.scroll-indicator .line { width: 1px; height: 32px; background: linear-gradient(to bottom, rgba(242, 220, 184, 0.4), transparent); }
+.scroll-indicator .arrow-down { width: 6px; height: 6px; border-right: 1px solid rgba(242, 220, 184, 0.4); border-bottom: 1px solid rgba(242, 220, 184, 0.4); transform: rotate(45deg); margin-top: -8px; animation: hintbob 2.4s ease-in-out infinite; }
+@keyframes hintbob { 50% { transform: rotate(45deg) translate(4px, 4px); } }
 
 .ov-board { top: 12vh; right: 5vw; width: min(480px, 86vw); }
 .slide-panel { background: var(--panel); backdrop-filter: blur(12px); border: 1px solid var(--line); border-radius: 10px; padding: 26px 28px; box-shadow: 0 30px 80px rgba(0, 0, 0, .55); max-height: 72vh; overflow-y: auto; }
