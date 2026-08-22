@@ -590,22 +590,25 @@ onMounted(() => {
     },
     boardroom(p) {
       if (s13Imgs) {
-        // Scene 1-3: boardroom occupies ~72%–100% of the 156 frames (scene 3)
+        // Scene 1-3: reach frame 150 at p=0.45 to pause and show UI.
         const startFrac = 0.72
-        const frac = startFrac + p * (1 - startFrac)
+        const pReach = 0.45
+        const targetFrac = 150 / 155 // approx 0.9677
         
-        // Pause at frame 151
+        let frac = targetFrac
+        if (p < pReach) {
+          frac = lerp(startFrac, targetFrac, p / pReach)
+        }
+        
         const rawIdx = Math.round(frac * (s13Imgs.length - 1))
-        const idx = Math.min(151, rawIdx)
+        const idx = Math.min(150, rawIdx)
         const img = seqFrame(s13Imgs, idx)
         
-        // Zoom into presentation screen (y=35%) during the pause
         let zoom = 1.02
         let fy = 0.5
-        // Find when rawIdx crosses 151 to start the zoom
-        const pauseP = (151 / 155 - 0.72) / 0.28 // approx 0.907
-        if (p > pauseP) {
-          const zP = clamp((p - pauseP) / (1 - pauseP), 0, 1)
+        // Start zooming smoothly once we reach the pause at p = pReach
+        if (p > pReach) {
+          const zP = clamp((p - pReach) / 0.2, 0, 1) // zoom finishes by p=0.65
           const q = easeF(zP)
           zoom = 1.02 + q * 0.15 // zoom by 15%
           fy = lerp(0.5, 0.35, q)
@@ -857,22 +860,16 @@ onMounted(() => {
   // Pinning is only honest when the screen is actually on screen. The quad is
   // normalized to a 16:9 still, but cover-fit on a portrait viewport keeps just
   // Custom quad for the perfectly centered physical screen in the boardroom scene.
-  // The screen takes up roughly 48% of the video width and is centered at X=0.5, Y=0.35
-  const BOARD_QUAD: Quad = [
-    [0.26, 0.11], // TL
-    [0.74, 0.11], // TR
-    [0.74, 0.59], // BR
-    [0.26, 0.59]  // BL
-  ]
-
   function unpinBoard(el: HTMLElement) {
     el.style.transform = ''; el.style.transformOrigin = ''
     el.style.left = ''; el.style.top = ''; el.style.right = ''; el.style.width = ''
   }
   function applyBoardAnchor() {
     const el = ovBoardEl.value!
-    if (!ready(S.kf3)) { unpinBoard(el); return }
-    const vq = imageQuadToViewport(BOARD_QUAD, S.kf3.naturalWidth, S.kf3.naturalHeight, W, H, boardZoom, boardFy)
+    if (!ready(S.kf3) || !boardAnchor) { unpinBoard(el); return }
+    const anchorQuad = boardAnchor.quad as Quad
+    if (!anchorQuad) return
+    const vq = imageQuadToViewport(anchorQuad, S.kf3.naturalWidth, S.kf3.naturalHeight, W, H, boardZoom, boardFy)
     
     // Track the precise center of the projected screen so the orb can stick to it
     boardCx = (vq[0][0] + vq[1][0] + vq[2][0] + vq[3][0]) / 4
@@ -887,14 +884,12 @@ onMounted(() => {
   /* ---- interactions: boardroom cinematic reveal (scroll-driven, staggered) ---- */
   function animateBoard(p: number) {
     // p is 0..1 within the 'rest1' segment.
-    // Sequence:
-    // 0.00–0.20 : boardroom enters (fade handled by restO)
-    // 0.20–0.50 : orb travels to screen center (handled by ORB trajectory)
-    // 0.50–0.55 : orb settles – slight pulse
-    // 0.55–0.65 : header (eyebrow + headline) reveals
-    // 0.65–0.78 : stat 0 (LT) and stat 1 (RT) enter
-    // 0.78–0.90 : stat 2 (LB) and stat 3 (RB) enter
-    // 0.90–1.00 : hold
+    // 0.00–0.45 : boardroom pans to frame 150
+    // 0.45–0.65 : zoom in
+    // 0.50–0.58 : header reveals
+    // 0.55–0.70 : stats reveal (staggered)
+    // 0.70–0.84 : HOLD and read
+    // 0.84–1.00 : fade out (handled by restO)
 
     const ease = (v: number) => v < 0.5 ? 2 * v * v : 1 - Math.pow(-2 * v + 2, 2) / 2
     const reveal = (el: HTMLElement | undefined, start: number, end: number, fromY = 20) => {
@@ -905,12 +900,12 @@ onMounted(() => {
     }
 
     // Header block
-    reveal(brdHeaderEl.value, 0.55, 0.67)
+    reveal(brdHeaderEl.value, 0.50, 0.58)
     // Stats – staggered: 1 (LT), 2 (RT), 3 (LB), 4 (RB)
-    reveal(brdStat0El.value, 0.65, 0.73, 15)
-    reveal(brdStat1El.value, 0.69, 0.77, 15)
-    reveal(brdStat2El.value, 0.73, 0.81, 15)
-    reveal(brdStat3El.value, 0.77, 0.85, 15)
+    reveal(brdStat0El.value, 0.55, 0.62, 15)
+    reveal(brdStat1El.value, 0.57, 0.64, 15)
+    reveal(brdStat2El.value, 0.60, 0.67, 15)
+    reveal(brdStat3El.value, 0.62, 0.70, 15)
   }
 
   /* ---- main loop ---- */
