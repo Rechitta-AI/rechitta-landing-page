@@ -29,7 +29,8 @@
       <div class="chapter-line"></div>
       <div class="chapter-dot" ref="chapterDotEl"></div>
       <div v-for="(s, i) in CHAPTERS" :key="s.id" class="chapter" :class="{ active: activeChapter === i }" :ref="(el) => { if (el) chapterEls[i] = el as HTMLElement }">
-        {{ s.label }}
+        <span class="num">{{ s.label.split(' ')[0] }}</span>
+        <span class="lbl">{{ s.label.split(' ')[1] }}</span>
       </div>
     </div>
 
@@ -42,22 +43,122 @@
         </div>
       </div>
       <div class="scroll-indicator">
-        <div class="lbl">SCROLL TO DESCEND</div>
+        <div class="lbl">SCROLL TO <span>DESCEND</span></div>
         <div class="line"></div>
         <div class="arrow-down"></div>
       </div>
     </div>
 
     <div ref="ovBoardEl" class="ov ov-board" style="opacity: 0; pointer-events: none; visibility: hidden;">
-      <div class="slide-panel">
-        <div class="eyebrow">Scene 03 · XYZ Developments — launch week</div>
-        <h2 class="display">One launch. Thousands of briefings.</h2>
-        <div class="chips">
-          <button v-for="c in CHIPS" :key="c.id" class="chip" :data-d="c.id" @click="onChip(c.id)">{{ c.label }}</button>
+      <!-- Fixed-size panel — quadToMatrix3d will perspective-warp this into the physical screen -->
+      <div class="brd-panel">
+
+        <!-- Projector screen glow overlay — subtle ambient bloom -->
+        <div class="brd-bloom"></div>
+
+        <!-- Detail expansion view (shown when a stat is clicked) -->
+        <div class="brd-detail" :class="{ open: activeStat !== null }" ref="brdDetailEl">
+          <button class="brd-detail-close" @click.stop="activeStat = null">✕ overview</button>
+          <div v-if="activeStat !== null" class="brd-detail-inner">
+            <div class="brd-detail-key">{{ STATS[activeStat].key }}</div>
+            <div class="brd-detail-title">{{ STATS[activeStat].label }}</div>
+            <div class="brd-detail-rule"></div>
+            <div class="brd-detail-body">{{ STATS[activeStat].detail }}</div>
+          </div>
         </div>
-        <div v-for="c in CHIPS" :key="c.id + '-d'" class="chip-detail" :class="{ open: openChip === c.id }">{{ c.detail }}</div>
-        <div class="slide-note">▸ Tap a stat. Keep scrolling — Rechitta takes it from here.</div>
-      </div>
+
+        <!-- Overview layer (header + orb zone + stats) -->
+        <div class="brd-overview" :class="{ dimmed: activeStat !== null }">
+
+          <!-- Title block -->
+          <div class="brd-header" ref="brdHeaderEl">
+            <div class="brd-eyebrow">SCENE 03 · XYZ DEVELOPMENTS — LAUNCH WEEK</div>
+            <h2 class="brd-headline">One launch.<br>Thousands of briefings.</h2>
+          </div>
+
+          <!-- Orb zone: empty space the physical orb floats through -->
+          <div class="brd-orb-zone"></div>
+
+          <!-- Four data callouts: 2 left + 2 right of the orb -->
+          <div class="brd-callouts">
+            <!-- Left column -->
+            <div class="brd-col-left">
+              <button
+                class="brd-stat brd-stat-left"
+                :class="{ active: activeStat === 0, faded: activeStat !== null && activeStat !== 0 }"
+                ref="brdStat0El"
+                @click.stop="activeStat = activeStat === 0 ? null : 0"
+              >
+                <div class="brd-stat-top">
+                  <div class="brd-num">01</div>
+                  <div class="brd-line"></div>
+                </div>
+                <div class="brd-key">THOUSANDS</div>
+                <div class="brd-label">brokers to brief</div>
+                <div class="brd-plus">
+                  <svg viewBox="0 0 10 10"><circle cx="5" cy="5" r="4.5" fill="none" stroke="currentColor" stroke-width="0.5"/><path d="M5 2.5v5M2.5 5h5" stroke="currentColor" stroke-width="0.5"/></svg>
+                </div>
+              </button>
+              <button
+                class="brd-stat brd-stat-left"
+                :class="{ active: activeStat === 2, faded: activeStat !== null && activeStat !== 2 }"
+                ref="brdStat2El"
+                @click.stop="activeStat = activeStat === 2 ? null : 2"
+              >
+                <div class="brd-stat-top">
+                  <div class="brd-num">03</div>
+                  <div class="brd-line"></div>
+                </div>
+                <div class="brd-key">WEEKS-LONG</div>
+                <div class="brd-label">briefing cycle</div>
+                <div class="brd-plus">
+                  <svg viewBox="0 0 10 10"><circle cx="5" cy="5" r="4.5" fill="none" stroke="currentColor" stroke-width="0.5"/><path d="M5 2.5v5M2.5 5h5" stroke="currentColor" stroke-width="0.5"/></svg>
+                </div>
+              </button>
+            </div>
+
+            <!-- Centre gap — orb lives here -->
+            <div class="brd-centre-gap"></div>
+
+            <!-- Right column -->
+            <div class="brd-col-right">
+              <button
+                class="brd-stat brd-stat-right"
+                :class="{ active: activeStat === 1, faded: activeStat !== null && activeStat !== 1 }"
+                ref="brdStat1El"
+                @click.stop="activeStat = activeStat === 1 ? null : 1"
+              >
+                <div class="brd-stat-top">
+                  <div class="brd-line"></div>
+                  <div class="brd-num">02</div>
+                </div>
+                <div class="brd-key">40+</div>
+                <div class="brd-label">nationalities</div>
+                <div class="brd-plus">
+                  <svg viewBox="0 0 10 10"><circle cx="5" cy="5" r="4.5" fill="none" stroke="currentColor" stroke-width="0.5"/><path d="M5 2.5v5M2.5 5h5" stroke="currentColor" stroke-width="0.5"/></svg>
+                </div>
+              </button>
+              <button
+                class="brd-stat brd-stat-right"
+                :class="{ active: activeStat === 3, faded: activeStat !== null && activeStat !== 3 }"
+                ref="brdStat3El"
+                @click.stop="activeStat = activeStat === 3 ? null : 3"
+              >
+                <div class="brd-stat-top">
+                  <div class="brd-line"></div>
+                  <div class="brd-num">04</div>
+                </div>
+                <div class="brd-key">WEEKLY</div>
+                <div class="brd-label">price movement</div>
+                <div class="brd-plus">
+                  <svg viewBox="0 0 10 10"><circle cx="5" cy="5" r="4.5" fill="none" stroke="currentColor" stroke-width="0.5"/><path d="M5 2.5v5M2.5 5h5" stroke="currentColor" stroke-width="0.5"/></svg>
+                </div>
+              </button>
+            </div>
+          </div>
+
+        </div><!-- /overview -->
+      </div><!-- /panel -->
     </div>
 
     <div ref="ovBrokerEl" class="ov ov-broker">
@@ -155,6 +256,19 @@ const ovBuyerEl = ref<HTMLElement>(); const ovMontEl = ref<HTMLElement>(); const
 const ovFinaleEl = ref<HTMLElement>(); const floatCtaEl = ref<HTMLElement>()
 const mCityEl = ref<HTMLElement>(); const mTimeEl = ref<HTMLElement>()
 const mTxtEl = ref<HTMLElement>(); const mSubEl = ref<HTMLElement>()
+const brdHeaderEl = ref<HTMLElement>()
+const brdDetailEl = ref<HTMLElement>()
+const brdStat0El = ref<HTMLElement>(); const brdStat1El = ref<HTMLElement>()
+const brdStat2El = ref<HTMLElement>(); const brdStat3El = ref<HTMLElement>()
+
+/* ---- boardroom state ---- */
+const activeStat = ref<number | null>(null)
+const STATS = [
+  { key: 'THOUSANDS', label: 'Brokers to Brief', detail: 'Every Dubai launch depends on an open broker network. Reaching it means roadshows, call centres, and repeated in-person sessions — for every single project.' },
+  { key: '40+',       label: 'Nationalities',    detail: 'Brokers — and their buyers — work in dozens of languages. A PDF speaks one. The message fragments the moment it leaves the boardroom.' },
+  { key: 'WEEKS-LONG', label: 'Briefing Cycle',  detail: 'By the time the last broker is briefed, the first briefing is already stale. The market pitches yesterday\'s project.' },
+  { key: 'WEEKLY',    label: 'Price Movement',   detail: 'Inventory and pricing shift constantly during a launch. There is no channel that keeps every broker current — until now.' }
+]
 
 /* ---- overlay copy (Vue-owned state; engine only drives opacity/transform) ---- */
 const CHIPS = [
@@ -344,11 +458,11 @@ onMounted(() => {
 
   const ready = (img?: HTMLImageElement) => !!img && img.complete && img.naturalWidth > 0
   let boardZoom = 1.02 // current boardroom zoom — anchor overlay tracks it
-  function drawCover(img: HTMLImageElement, zoom = 1) {
+  function drawCover(img: HTMLImageElement, zoom = 1, fy = 0.5) {
     if (!ready(img)) return false
     const k = Math.max(W / img.naturalWidth, H / img.naturalHeight) * zoom
     const dw = img.naturalWidth * k, dh = img.naturalHeight * k
-    cx.drawImage(img, (W - dw) / 2, (H - dh) / 2, dw, dh)
+    cx.drawImage(img, (W - dw) / 2, H * fy - dh * fy, dw, dh)
     return true
   }
   function seqFrame(imgs: HTMLImageElement[], idx: number) {
@@ -476,13 +590,32 @@ onMounted(() => {
         // Scene 1-3: boardroom occupies ~72%–100% of the 156 frames (scene 3)
         const startFrac = 0.72
         const frac = startFrac + p * (1 - startFrac)
-        const idx = Math.round(frac * (s13Imgs.length - 1))
+        
+        // Pause at frame 151
+        const rawIdx = Math.round(frac * (s13Imgs.length - 1))
+        const idx = Math.min(151, rawIdx)
         const img = seqFrame(s13Imgs, idx)
-        if (img) drawCover(img, 1)
-        else drawCover(S.kf3, 1.02)
+        
+        // Zoom into presentation screen (y=35%) during the pause
+        let zoom = 1.02
+        let fy = 0.5
+        // Find when rawIdx crosses 151 to start the zoom
+        const pauseP = (151 / 155 - 0.72) / 0.28 // approx 0.907
+        if (p > pauseP) {
+          const zP = clamp((p - pauseP) / (1 - pauseP), 0, 1)
+          const q = easeF(zP)
+          zoom = 1.02 + q * 0.15 // zoom by 15%
+          fy = lerp(0.5, 0.35, q)
+        }
+        boardZoom = zoom // update tracker for overlays
+        boardFy = fy     // track fy for overlays
+        
+        if (img) drawCover(img, zoom, fy)
+        else drawCover(S.kf3, zoom, fy)
       } else {
         boardZoom = 1.02 + Math.sin(p * Math.PI) * 0.015
-        drawCover(S.kf3, boardZoom)
+        boardFy = 0.5
+        drawCover(S.kf3, boardZoom, boardFy)
       }
       vignette(0.34)
       if (p < 0.05) { cx.fillStyle = `rgba(255,232,196,${(1 - p / 0.05) * 0.95})`; cx.fillRect(0, 0, W, H) }
@@ -720,57 +853,76 @@ onMounted(() => {
 
   // Pinning is only honest when the screen is actually on screen. The quad is
   // normalized to a 16:9 still, but cover-fit on a portrait viewport keeps just
-  // the middle ~26% (phone) to ~39% (tablet) of the image width — and the
-  // boardroom screen lives at x 0.43..0.85, so most of it is cropped away and a
-  // pinned panel runs off the right edge. Rather than guess a breakpoint, test
-  // the projected quad: pin only when it is substantially visible and big
-  // enough to read. Everything else falls back to the CSS layout.
-  const MIN_ON_SCREEN = 0.86  // fraction of the quad's bbox inside the viewport
-  const MIN_QUAD_W = 340      // px; below this the projected copy is unreadable
+  // Custom quad for the perfectly centered physical screen in the boardroom scene.
+  // The screen takes up roughly 48% of the video width and is centered at X=0.5, Y=0.35
+  const BOARD_QUAD: Quad = [
+    [0.26, 0.11], // TL
+    [0.74, 0.11], // TR
+    [0.74, 0.59], // BR
+    [0.26, 0.59]  // BL
+  ]
+
+  let boardZoom = 1.02
+  let boardFy = 0.5
+  let boardCx = 0
+  let boardCy = 0
+
   function unpinBoard(el: HTMLElement) {
     el.style.transform = ''; el.style.transformOrigin = ''
     el.style.left = ''; el.style.top = ''; el.style.right = ''; el.style.width = ''
   }
   function applyBoardAnchor() {
     const el = ovBoardEl.value!
-    if (!boardAnchor?.quad || !ready(S.kf3)) { unpinBoard(el); return }
-    const vq = imageQuadToViewport(boardAnchor.quad as Quad, S.kf3.naturalWidth, S.kf3.naturalHeight, W, H, boardZoom)
-    const xs = vq.map((p) => p[0]), ys = vq.map((p) => p[1])
-    const bx0 = Math.min(...xs), bx1 = Math.max(...xs), by0 = Math.min(...ys), by1 = Math.max(...ys)
-    const area = (bx1 - bx0) * (by1 - by0)
-    const vis = Math.max(0, Math.min(bx1, W) - Math.max(bx0, 0)) * Math.max(0, Math.min(by1, H) - Math.max(by0, 0))
-    if (!area || vis / area < MIN_ON_SCREEN || bx1 - bx0 < MIN_QUAD_W) { unpinBoard(el); return }
+    if (!ready(S.kf3)) { unpinBoard(el); return }
+    const vq = imageQuadToViewport(BOARD_QUAD, S.kf3.naturalWidth, S.kf3.naturalHeight, W, H, boardZoom, boardFy)
+    
+    // Track the precise center of the projected screen so the orb can stick to it
+    boardCx = (vq[0][0] + vq[1][0] + vq[2][0] + vq[3][0]) / 4
+    boardCy = (vq[0][1] + vq[1][1] + vq[2][1] + vq[3][1]) / 4
+
     const panel = el.firstElementChild as HTMLElement
     el.style.left = '0'; el.style.top = '0'; el.style.right = 'auto'; el.style.width = 'auto'
     el.style.transformOrigin = '0 0'
     el.style.transform = quadToMatrix3d(panel.offsetWidth, panel.offsetHeight, vq)
   }
 
-  /* ---- interactions: chip absorb (engine-timed, so imperative) ---- */
-  let absorbed = false
-  function absorb(on: boolean) {
-    const chips = ovBoardEl.value!.querySelectorAll<HTMLElement>('.chip')
-    if (on && !absorbed) {
-      absorbed = true
-      const ob = orb.getBoundingClientRect(), ox = ob.left + ob.width / 2, oy = ob.top + ob.height / 2
-      chips.forEach((c, i) => {
-        const r = c.getBoundingClientRect()
-        c.style.setProperty('--ax', ox - r.left - r.width / 2 + 'px')
-        c.style.setProperty('--ay', oy - r.top - r.height / 2 + 'px')
-        c.style.transitionDelay = i * 70 + 'ms'
-        c.classList.add('absorbed')
-      })
-      orb.classList.remove('pulse'); void orb.offsetWidth; orb.classList.add('pulse')
-      pulseT = performance.now()
-    } else if (!on && absorbed) {
-      absorbed = false
-      chips.forEach((c) => { c.classList.remove('absorbed'); c.style.transitionDelay = '0ms' })
+  /* ---- interactions: boardroom cinematic reveal (scroll-driven, staggered) ---- */
+  function animateBoard(p: number) {
+    // p is 0..1 within the 'rest1' segment.
+    // Sequence:
+    // 0.00–0.20 : boardroom enters (fade handled by restO)
+    // 0.20–0.50 : orb travels to screen center (handled by ORB trajectory)
+    // 0.50–0.55 : orb settles – slight pulse
+    // 0.55–0.65 : header (eyebrow + headline) reveals
+    // 0.65–0.78 : stat 0 (LT) and stat 1 (RT) enter
+    // 0.78–0.90 : stat 2 (LB) and stat 3 (RB) enter
+    // 0.90–1.00 : hold
+
+    const ease = (v: number) => v < 0.5 ? 2 * v * v : 1 - Math.pow(-2 * v + 2, 2) / 2
+    const reveal = (el: HTMLElement | undefined, start: number, end: number, fromY = 20) => {
+      if (!el) return
+      const q = ease(clamp((p - start) / (end - start), 0, 1))
+      el.style.opacity = String(q)
+      el.style.transform = `translateY(${(1 - q) * fromY}px)`
     }
+
+    // Header block
+    reveal(brdHeaderEl.value, 0.55, 0.67)
+    // Stats – staggered: 1 (LT), 2 (RT), 3 (LB), 4 (RB)
+    reveal(brdStat0El.value, 0.65, 0.73, 15)
+    reveal(brdStat1El.value, 0.69, 0.77, 15)
+    reveal(brdStat2El.value, 0.73, 0.81, 15)
+    reveal(brdStat3El.value, 0.77, 0.85, 15)
   }
 
   /* ---- main loop ---- */
   const restO = (p: number) => clamp((p - 0.06) / 0.14, 0, 1) * clamp((0.96 - p) / 0.12, 0, 1)
-  const setO = (el: HTMLElement | undefined, v: number) => { if (!el) return; el.style.opacity = String(v); el.classList.toggle('on', v > 0.5) }
+  const setO = (el: HTMLElement | undefined, v: number) => {
+    if (!el) return
+    el.style.opacity = String(v)
+    el.classList.toggle('on', v > 0.5)
+    if (v > 0) el.style.visibility = 'visible'
+  }
   let T = 0, dT = 0, lastLabel = '', lastSegIdx = -1, maxT = 0, depthSent = false
 
   function frame(now: number) {
@@ -778,7 +930,7 @@ onMounted(() => {
     if (scrollY >= TOTAL * vh - 2) { window.scrollTo(0, 0); dT = 0; track('loop_completed') }
     T = clamp(scrollY / vh, 0, TOTAL)
     maxT = Math.max(maxT, T)
-    dT = reduced ? T : dT + (T - dT) * 0.14
+    dT = reduced ? T : dT + (T - dT) * 0.07
     const t = Math.abs(T - dT) < 0.0005 ? T : dT; dT = t
 
     let seg = SEGS[0], segIdx = 0
@@ -820,6 +972,15 @@ onMounted(() => {
       ok = lerp(ok, targetScale, blend)
     }
 
+    // If we are in the boardroom scene (where the projector screen is active),
+    // we must perfectly lock the orb to the physical screen's center, which moves during the camera pan.
+    if ((currentSegId === 'rest1' || currentSegId === 'pan') && boardCx && boardCy) {
+      // Smoothly snap to the screen's center once the initial descent is mostly done
+      const snapBlend = clamp((t - 2.8) / 0.2, 0, 1)
+      ox = lerp(ox, boardCx, snapBlend)
+      oy = lerp(oy, boardCy, snapBlend)
+    }
+
     const bob = reduced ? 0 : Math.sin(now * 0.0016) * 6
     // We adjust the centering to account for the orb's internal padding/offset if needed,
     // but standard centering based on 300 base size should work with the new scale.
@@ -846,7 +1007,16 @@ onMounted(() => {
 
     setO(ovHeroEl.value, seg.id === 'hero' ? 1 - clamp((p - 0.3) / 0.5, 0, 1) : t < SEGS[0].b ? 1 : 0)
     setO(ovBoardEl.value, seg.id === 'rest1' ? restO(p) : 0)
-    if (seg.id === 'rest1') applyBoardAnchor()
+    if (seg.id === 'rest1') {
+      applyBoardAnchor()
+      animateBoard(p)
+    }
+    else {
+      // Reset board elements when leaving rest1 so they re-animate cleanly
+      unpinBoard(ovBoardEl.value!)
+      if (brdHeaderEl.value) { brdHeaderEl.value.style.opacity = '0'; brdHeaderEl.value.style.transform = 'translateY(12px)' }
+      ;[brdStat0El, brdStat1El, brdStat2El, brdStat3El].forEach(r => { if (r.value) { r.value.style.opacity = '0'; r.value.style.transform = 'translateY(10px)' } })
+    }
     setO(ovBrokerEl.value, seg.id === 'rest2' ? restO(p) : 0)
     setO(ovBuyerEl.value, seg.id === 'rest3' ? restO(p) : 0)
     setO(ovFinaleEl.value, seg.id === 'finale' ? clamp((p - 0.12) / 0.3, 0, 1) : seg.id === 'loop' ? 1 - clamp(p * 2.2, 0, 1) : 0)
@@ -860,8 +1030,6 @@ onMounted(() => {
         mTxtEl.value!.textContent = Mc.txt; mSubEl.value!.textContent = Mc.sub + ' · live data'
       }
     }
-
-    absorb(t > SEGS[2].a + SEGS[2].w * 0.8)
 
     floatCtaEl.value!.classList.toggle('on', t > 1.4 && seg.id !== 'finale' && seg.id !== 'loop')
 
@@ -911,14 +1079,15 @@ onBeforeUnmount(() => {
   --sky-deep: #0B1826; --ink: #070E16; --amber: #E8A24B; --amber-hot: #F5C069;
   --sand: #F2DCB8; --teal: #2E7180; --paper: #F5F1E8; --cyan: #58C8E6; --glow: #9FE8FF;
   --panel: rgba(6, 12, 20, .88); --line: rgba(242, 220, 184, .22);
-  background: var(--ink); color: var(--paper); font-family: 'Sora', sans-serif; font-weight: 300;
+  --ivory: #F2EBDD; --ivory-muted: rgba(242, 235, 221, 0.68); --champagne: #C8A36A;
+  background: var(--ink); color: var(--ivory); font-family: 'Inter', system-ui, sans-serif; font-weight: 400;
 }
 .spacer { width: 100%; }
 #film-stage { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; z-index: 1; }
 
 .loader { position: fixed; inset: 0; z-index: 20; background: var(--ink); display: flex; flex-direction: column; gap: 18px; align-items: center; justify-content: center; transition: opacity .5s; }
 .loader.done { opacity: 0; pointer-events: none; }
-.loader .mono { font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: .24em; text-transform: uppercase; color: var(--sand); }
+.loader .mono { font-family: 'Inter', system-ui, sans-serif; font-size: 11px; letter-spacing: .24em; text-transform: uppercase; color: var(--sand); }
 .loader .bar { width: min(280px, 60vw); height: 2px; background: rgba(242, 220, 184, .15); }
 .loader .bar i { display: block; height: 100%; width: 0; background: var(--amber); }
 
@@ -933,30 +1102,35 @@ onBeforeUnmount(() => {
 @keyframes ringspin { to { transform: rotate(360deg); } }
 @keyframes orbpulse { 0% { filter: brightness(1); } 30% { filter: brightness(2.1); } 100% { filter: brightness(1); } }
 
-.hud { position: fixed; z-index: 9; font-family: 'Sora', sans-serif; font-weight: 300; font-size: 10px; letter-spacing: .12em; color: var(--paper); pointer-events: none; }
+.hud { position: fixed; z-index: 9; font-family: 'Inter', system-ui, sans-serif; font-weight: 400; font-size: 10px; letter-spacing: .12em; color: var(--ivory); pointer-events: none; }
 
 .hud-badge { top: 32px; left: 40px; display: flex; flex-direction: column; gap: 4px; }
-.hud-badge .brand { font-family: 'Marcellus', serif; font-size: 15px; letter-spacing: .35em; text-transform: uppercase; }
-.hud-badge .tag { font-family: 'IBM Plex Mono', monospace; font-size: 8px; letter-spacing: .25em; opacity: 0.6; }
+.hud-badge .brand { font-family: 'Inter', system-ui, sans-serif; font-weight: 400; font-size: 11px; letter-spacing: .2em; text-transform: uppercase; color: var(--ivory); opacity: 0.85; }
+.hud-badge .tag { font-family: 'Inter', system-ui, sans-serif; font-weight: 400; font-size: 8.5px; letter-spacing: .18em; opacity: 0.6; color: var(--ivory); }
 
-.hud-context { top: 32px; right: 40px; display: flex; align-items: center; gap: 12px; font-family: 'IBM Plex Mono', monospace; font-size: 9.5px; letter-spacing: .2em; opacity: 0.8; }
-.hud-context .line { width: 1px; height: 16px; background: var(--amber); opacity: 0.4; }
-.hud-context .dot { width: 4px; height: 4px; background: var(--amber); border-radius: 50%; box-shadow: 0 0 6px var(--amber); }
-.hud-context span { opacity: 0.5; }
+.hud-context { top: 32px; right: 40px; display: flex; align-items: center; gap: 12px; font-family: 'Inter', system-ui, sans-serif; font-weight: 400; font-size: 9.5px; letter-spacing: .12em; color: var(--ivory); opacity: 0.9; }
+.hud-context .line { width: 1px; height: 16px; background: var(--ivory-muted); opacity: 0.4; }
+.hud-context .dot { width: 4px; height: 4px; background: var(--ivory-muted); border-radius: 50%; }
+.hud-context span { opacity: 0.6; }
 
-.hud-timeline { bottom: 32px; left: 40px; right: 40px; display: flex; align-items: center; gap: 24px; }
-.hud-timeline .chapter-line { flex: 1; height: 1px; background: rgba(242, 220, 184, 0.15); }
-.hud-timeline .chapter-dot { position: absolute; left: 0; width: 6px; height: 6px; background: var(--amber); border-radius: 50%; box-shadow: 0 0 8px var(--amber); transform: translateX(0); transition: transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1); will-change: transform; z-index: 2; margin-top: 1px; }
-.hud-timeline .chapter { position: relative; font-family: 'IBM Plex Mono', monospace; font-size: 9px; letter-spacing: .15em; text-transform: uppercase; color: rgba(242, 220, 184, 0.35); transition: color 0.4s; }
-.hud-timeline .chapter.active { color: var(--paper); text-shadow: 0 0 12px rgba(255, 255, 255, 0.3); }
+.hud-timeline { bottom: 0; left: 0; right: 0; padding: 60px 40px 32px 40px; display: flex; align-items: center; justify-content: center; gap: 32px; background: linear-gradient(to top, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0) 100%); pointer-events: auto; }
+.hud-timeline .chapter-line { display: none; }
+.hud-timeline .chapter-dot { position: absolute; left: 0; width: 6px; height: 6px; background: var(--champagne); border-radius: 50%; transform: translateX(0); transition: transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1); will-change: transform; z-index: 2; margin-top: 1px; pointer-events: none; }
+.hud-timeline .chapter { position: relative; display: flex; align-items: baseline; gap: 6px; cursor: pointer; }
+.hud-timeline .chapter .num { font-family: 'Inter', system-ui, sans-serif; font-size: 17px; font-weight: 500; color: rgba(242, 235, 221, 0.4); transition: color 0.4s; }
+.hud-timeline .chapter .lbl { font-family: 'Inter', system-ui, sans-serif; font-size: 9.5px; font-weight: 400; letter-spacing: .18em; text-transform: uppercase; color: rgba(242, 235, 221, 0.4); transition: color 0.4s; }
+.hud-timeline .chapter.active .num { color: var(--ivory); }
+.hud-timeline .chapter.active .lbl { color: var(--champagne); }
 
 .sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden;
   clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; border: 0; }
 
 .ov { position: fixed; z-index: 5; opacity: 0; pointer-events: none; }
 .ov.on { pointer-events: auto; }
-.eyebrow { font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; letter-spacing: .22em; text-transform: uppercase; color: var(--amber); margin-bottom: 14px; }
-.display { font-family: 'Marcellus', serif; font-weight: 400; line-height: 1.08; color: var(--paper); }
+/* Board overlay sits above canvas but below the orb */
+.ov-board { z-index: 4; }
+.eyebrow { font-family: 'Inter', system-ui, sans-serif; font-weight: 400; font-size: 10.5px; letter-spacing: .22em; text-transform: uppercase; color: var(--champagne); margin-bottom: 14px; }
+.display { font-family: 'Cormorant Garamond', serif; font-weight: 400; line-height: 1.08; letter-spacing: -0.025em; word-spacing: -0.02em; color: var(--ivory); }
 
 .ov-hero { inset: 0; display: flex; flex-direction: column; }
 .hero-grid { flex: 1; display: grid; grid-template-columns: repeat(12, 1fr); gap: 24px; padding: 0 40px; align-items: center; }
@@ -964,26 +1138,193 @@ onBeforeUnmount(() => {
 /* Subtle invisible gradient for text contrast */
 .hero-content::before { content: ''; position: absolute; inset: -40% -20%; background: radial-gradient(ellipse at center, rgba(7, 14, 22, 0.4) 0%, rgba(7, 14, 22, 0) 70%); z-index: -1; pointer-events: none; }
 
-.hero-content .display { font-size: clamp(48px, 7vw, 100px); text-shadow: 0 4px 60px rgba(7, 14, 22, 0.8); display: flex; align-items: baseline; justify-content: center; }
+.hero-content .display { font-size: clamp(48px, 7vw, 100px); display: flex; align-items: baseline; justify-content: center; text-shadow: 0 4px 60px rgba(7, 14, 22, 0.8); }
 .orb-placeholder { color: transparent; user-select: none; }
-.hero-content .sub { margin-top: 28px; font-size: clamp(14px, 1.3vw, 18px); line-height: 1.6; color: var(--paper); opacity: .85; max-width: 520px; text-shadow: 0 2px 24px rgba(7, 14, 22, 0.9); font-weight: 300; }
+.hero-content .sub { margin-top: 28px; font-family: 'Inter', system-ui, sans-serif; font-size: clamp(15px, 1.4vw, 17px); line-height: 1.5; letter-spacing: 0.02em; color: var(--ivory-muted); max-width: 520px; font-weight: 400; text-shadow: 0 2px 24px rgba(7, 14, 22, 0.9); }
 
 .scroll-indicator { position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 12px; }
-.scroll-indicator .lbl { font-family: 'IBM Plex Mono', monospace; font-size: 8.5px; letter-spacing: .25em; text-transform: uppercase; opacity: 0.5; }
-.scroll-indicator .line { width: 1px; height: 32px; background: linear-gradient(to bottom, rgba(242, 220, 184, 0.4), transparent); }
-.scroll-indicator .arrow-down { width: 6px; height: 6px; border-right: 1px solid rgba(242, 220, 184, 0.4); border-bottom: 1px solid rgba(242, 220, 184, 0.4); transform: rotate(45deg); margin-top: -8px; animation: hintbob 2.4s ease-in-out infinite; }
+.scroll-indicator .lbl { font-family: 'Inter', system-ui, sans-serif; font-weight: 400; font-size: 8.5px; letter-spacing: .2em; text-transform: uppercase; color: var(--ivory-muted); }
+.scroll-indicator .lbl span { color: var(--ivory); }
+.scroll-indicator .line { width: 1px; height: 32px; background: linear-gradient(to bottom, rgba(242, 235, 221, 0.4), transparent); }
+.scroll-indicator .arrow-down { width: 6px; height: 6px; border-right: 1px solid rgba(242, 235, 221, 0.4); border-bottom: 1px solid rgba(242, 235, 221, 0.4); transform: rotate(45deg); margin-top: -8px; animation: hintbob 2.4s ease-in-out infinite; }
 @keyframes hintbob { 50% { transform: rotate(45deg) translate(4px, 4px); } }
 
-.ov-board { top: 12vh; right: 5vw; width: min(480px, 86vw); }
-.slide-panel { background: var(--panel); backdrop-filter: blur(12px); border: 1px solid var(--line); border-radius: 10px; padding: 26px 28px; box-shadow: 0 30px 80px rgba(0, 0, 0, .55); max-height: 72vh; overflow-y: auto; }
-.slide-panel .display { font-size: clamp(22px, 2.6vw, 32px); margin-bottom: 18px; }
-.chips { display: flex; flex-wrap: wrap; gap: 10px; }
-.chip { font-family: 'Sora'; font-weight: 400; font-size: 13px; color: var(--paper); background: rgba(46, 113, 128, .28); border: 1px solid rgba(88, 200, 230, .4); border-radius: 999px; padding: 9px 16px; cursor: pointer; transition: transform .8s cubic-bezier(.5, 0, .2, 1), opacity .8s, background .2s; }
-.chip:hover { background: rgba(88, 200, 230, .22); }
-.chip.absorbed { transform: translate(var(--ax), var(--ay)) scale(.08); opacity: 0; pointer-events: none; }
-.chip-detail { display: none; margin-top: 16px; font-size: 13.5px; line-height: 1.65; color: var(--sand); border-top: 1px solid var(--line); padding-top: 14px; }
-.chip-detail.open { display: block; }
-.slide-note { margin-top: 16px; font-family: 'IBM Plex Mono', monospace; font-size: 10px; opacity: .5; letter-spacing: .1em; }
+/* ── BOARDROOM: Screen-locked Presentation ──────────────────────────── */
+/* The .ov-board element is positioned by applyBoardAnchor() via matrix3d.
+   .brd-panel must be a fixed-pixel-size block so offsetWidth/offsetHeight
+   are stable for quadToMatrix3d to compute the correct transform.          */
+.ov-board { position: fixed; left: 0; top: 0; }
+.brd-panel {
+  /* ~16:9 panel — matches the calibrated screen aspect ratio (1.775).
+     400×225 gives a good balance: large enough to be readable through the
+     perspective warp, small enough that homography stays numerically stable. */
+  width: 400px;
+  height: 225px;
+  position: relative;
+  overflow: hidden;
+  /* Slight projector softness — not sharp browser UI */
+  filter: blur(0.4px) brightness(1.1);
+}
+
+/* Ambient screen bloom */
+.brd-bloom {
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse at 50% 45%, rgba(88,180,220,0.06) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+/* ── Overview layer ──────────────────────────────────────────────────── */
+.brd-overview {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  padding: 12px 14px 10px;
+  transition: opacity 0.4s;
+}
+.brd-overview.dimmed { opacity: 0.08; pointer-events: none; }
+
+/* Header */
+.brd-header {
+  text-align: center;
+  margin-bottom: 6px;
+  opacity: 0;
+  will-change: opacity, transform;
+  flex-shrink: 0;
+}
+.brd-eyebrow {
+  font-family: 'Inter', system-ui, sans-serif;
+  font-weight: 400; font-size: 5.5px;
+  letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--champagne); opacity: 0.9;
+  margin-bottom: 3px;
+}
+.brd-headline {
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 400; font-size: 15px;
+  line-height: 1.15; letter-spacing: -0.02em;
+  color: var(--ivory);
+  text-shadow: 0 1px 12px rgba(0,0,0,0.8);
+}
+
+/* Orb zone — spacer so the physical orb appears between header and callouts */
+.brd-orb-zone { flex: 1; }
+
+/* Callouts row */
+.brd-callouts {
+  display: flex; align-items: flex-end;
+  gap: 0; flex-shrink: 0;
+  padding-bottom: 4px;
+}
+.brd-col-left, .brd-col-right {
+  flex: 1; display: flex; flex-direction: column; gap: 8px;
+}
+.brd-col-left { align-items: flex-end; padding-right: 8px; }
+.brd-col-right { align-items: flex-start; padding-left: 8px; }
+.brd-centre-gap { width: 100px; flex-shrink: 0; } /* gap for orb */
+
+/* Stat button */
+.brd-stat {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 1px;
+  background: none; border: none; cursor: pointer;
+  padding: 0; width: 100%;
+  opacity: 0; will-change: opacity, transform;
+  transition: opacity 0.3s, transform 0.2s;
+  text-align: left;
+}
+.brd-stat.active { transform: scale(1.02); }
+.brd-stat.faded { opacity: 0.35 !important; }
+
+.brd-stat-top {
+  display: flex; align-items: center; gap: 4px;
+  width: 100%; margin-bottom: 2px;
+}
+.brd-num {
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 3.5px; color: var(--champagne);
+  width: 9px; height: 9px; flex-shrink: 0;
+  border: 0.5px solid rgba(200,163,106,0.4);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+}
+.brd-line {
+  flex: 1; height: 0.5px;
+  background: rgba(200,163,106,0.3);
+}
+
+.brd-key {
+  font-family: 'Inter', system-ui, sans-serif;
+  font-weight: 500; font-size: 7.5px;
+  letter-spacing: 0.08em; color: var(--ivory);
+  line-height: 1.1;
+}
+.brd-label {
+  font-family: 'Inter', system-ui, sans-serif;
+  font-weight: 400; font-size: 4.8px;
+  letter-spacing: 0.06em;
+  color: rgba(242, 235, 221, 0.6); line-height: 1.2;
+}
+
+.brd-plus {
+  width: 9px; height: 9px;
+  color: var(--champagne); opacity: 0.6;
+  margin-top: 1px;
+  transition: opacity 0.2s, transform 0.2s, color 0.2s;
+}
+.brd-stat:hover .brd-plus {
+  opacity: 1; transform: scale(1.1); color: var(--amber-hot);
+}
+.brd-plus svg { width: 100%; height: 100%; display: block; }
+
+/* ── Detail expansion ───────────────────────────────────────────────── */
+.brd-detail {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  padding: 14px 16px;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.45s;
+}
+.brd-detail.open { opacity: 1; pointer-events: auto; }
+
+.brd-detail-close {
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 5px; letter-spacing: 0.18em; text-transform: uppercase;
+  color: rgba(200,163,106,0.7);
+  background: none; border: none; cursor: pointer;
+  align-self: flex-end; padding: 2px 4px;
+  transition: color 0.2s;
+}
+.brd-detail-close:hover { color: var(--champagne); }
+
+.brd-detail-inner {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  text-align: center; gap: 6px;
+}
+.brd-detail-key {
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 400; font-size: 36px;
+  letter-spacing: -0.03em; line-height: 1;
+  color: var(--ivory);
+  text-shadow: 0 2px 20px rgba(0,0,0,0.9);
+}
+.brd-detail-title {
+  font-family: 'Inter', system-ui, sans-serif;
+  font-weight: 400; font-size: 7px;
+  letter-spacing: 0.2em; text-transform: uppercase;
+  color: var(--champagne); opacity: 0.9;
+}
+.brd-detail-rule {
+  width: 28px; height: 1px;
+  background: rgba(200,163,106,0.4);
+  margin: 2px auto;
+}
+.brd-detail-body {
+  font-family: 'Inter', system-ui, sans-serif;
+  font-weight: 400; font-size: 6.5px;
+  line-height: 1.55; letter-spacing: 0.02em;
+  color: rgba(242,235,221,0.65);
+  max-width: 260px;
+}
+
 
 .ov-broker { left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(300px, 76vw); }
 .chat { display: flex; flex-direction: column; gap: 12px; }
@@ -996,12 +1337,12 @@ onBeforeUnmount(() => {
 .wave i:nth-child(3) { height: 8px; animation-delay: .3s; } .wave i:nth-child(4) { height: 11px; animation-delay: .45s; }
 @keyframes wv { 50% { transform: scaleY(.35); } }
 .unit-card { margin-top: 10px; border: 1px solid var(--line); border-radius: 10px; padding: 11px 13px; background: rgba(7, 14, 22, .6); }
-.unit-card .name { font-family: 'Marcellus', serif; font-size: 15px; color: var(--amber-hot); }
+.unit-card .name { font-family: 'Cormorant Garamond', serif; font-size: 15px; color: var(--amber-hot); }
 .unit-card .meta { font-size: 11.5px; color: var(--sand); opacity: .9; margin-top: 5px; line-height: 1.55; }
-.live { display: inline-flex; align-items: center; gap: 6px; font-family: 'IBM Plex Mono', monospace; font-size: 9px; letter-spacing: .12em; color: var(--cyan); margin-top: 8px; text-transform: uppercase; }
+.live { display: inline-flex; align-items: center; gap: 6px; font-family: 'Inter', system-ui, sans-serif; font-size: 9px; letter-spacing: .12em; color: var(--cyan); margin-top: 8px; text-transform: uppercase; }
 .live::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--cyan); box-shadow: 0 0 8px var(--cyan); animation: blink 1.6s infinite; }
 @keyframes blink { 50% { opacity: .25; } }
-.btn { display: inline-block; margin-top: 12px; font-family: 'Sora'; font-weight: 600; font-size: 12.5px; color: var(--ink); background: var(--amber); border: none; border-radius: 8px; padding: 11px 18px; cursor: pointer; transition: transform .15s, box-shadow .15s; }
+.btn { display: inline-block; margin-top: 12px; font-family: 'Inter', system-ui, sans-serif; font-weight: 600; font-size: 12.5px; color: var(--ink); background: var(--amber); border: none; border-radius: 8px; padding: 11px 18px; cursor: pointer; transition: transform .15s, box-shadow .15s; }
 .btn:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(232, 162, 75, .35); }
 
 .ov-buyer { left: 48%; top: 50%; transform: translate(-50%, -50%); width: min(300px, 74vw); }
@@ -1009,7 +1350,7 @@ onBeforeUnmount(() => {
 .brief .display { color: #14202C; font-size: 20px; }
 .brief p { font-size: 12.5px; line-height: 1.6; margin-top: 8px; color: #33414F; }
 .langs { display: flex; gap: 8px; margin-bottom: 12px; }
-.lang { font-family: 'IBM Plex Mono', monospace; font-size: 11px; padding: 5px 12px; border-radius: 999px; border: 1px solid #C8D4DC; background: #fff; cursor: pointer; color: #33414F; }
+.lang { font-family: 'Inter', system-ui, sans-serif; font-size: 11px; padding: 5px 12px; border-radius: 999px; border: 1px solid #C8D4DC; background: #fff; cursor: pointer; color: #33414F; }
 .lang.sel { background: #14536B; color: #fff; border-color: #14536B; }
 .brief .live { color: #14536B; } .brief .live::before { background: #14536B; box-shadow: none; }
 
@@ -1023,23 +1364,23 @@ onBeforeUnmount(() => {
 .dot.hub { background: var(--amber); box-shadow: 0 0 12px var(--amber); }
 .dot.hub::after { border-color: rgba(232, 162, 75, .8); }
 @keyframes ping { 0% { transform: scale(.3); opacity: 1; } 100% { transform: scale(2.5); opacity: 0; } }
-.mapcap { margin-top: 12px; font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--sand); opacity: .7; }
+.mapcap { margin-top: 12px; font-family: 'Inter', system-ui, sans-serif; font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--sand); opacity: .7; }
 
 .ov-montage { inset: 0; }
 .mont-caption { position: fixed; top: 11vh; left: 50%; transform: translateX(-50%); display: flex; gap: 16px; white-space: nowrap;
-  font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: .2em; text-transform: uppercase; color: var(--paper); text-shadow: 0 1px 14px rgba(0, 0, 0, .65); }
+  font-family: 'Inter', system-ui, sans-serif; font-size: 11px; letter-spacing: .2em; text-transform: uppercase; color: var(--paper); text-shadow: 0 1px 14px rgba(0, 0, 0, .65); }
 .mont-caption .m-city { color: var(--amber-hot); }
 .mont-screen { position: fixed; left: 50%; top: 53.5%; transform: translate(-50%, -50%); width: min(250px, 58vw); text-align: center; }
 .mont-screen .display { font-size: 20px; line-height: 1.4; }
 .mont-screen .live { display: flex; justify-content: center; margin-top: 10px; }
 
 .ov-finale { inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 0 24px; }
-.ov-finale .wordmark { font-family: 'Marcellus', serif; font-size: clamp(15px, 1.6vw, 19px); letter-spacing: .55em; text-indent: .55em; color: var(--sand); opacity: .9; }
+.ov-finale .wordmark { font-family: 'Cormorant Garamond', serif; font-size: clamp(15px, 1.6vw, 19px); letter-spacing: .55em; text-indent: .55em; color: var(--sand); opacity: .9; }
 .ov-finale .display { font-size: clamp(34px, 5.6vw, 74px); margin-top: 14px; }
 .ov-finale .ctas { display: flex; gap: 14px; margin-top: 34px; flex-wrap: wrap; justify-content: center; }
 .btn.ghost { background: transparent; color: var(--sand); border: 1px solid var(--line); }
 .btn.ghost:hover { box-shadow: 0 8px 24px rgba(242, 220, 184, .15); }
-.ov-finale .inv { margin-top: 46px; font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; letter-spacing: .18em; text-transform: uppercase; opacity: .45; color: var(--sand); text-decoration: none; }
+.ov-finale .inv { margin-top: 46px; font-family: 'Inter', system-ui, sans-serif; font-size: 10.5px; letter-spacing: .18em; text-transform: uppercase; opacity: .45; color: var(--sand); text-decoration: none; }
 .ov-finale .inv:hover { opacity: .8; }
 
 .float-cta { position: fixed; right: 20px; bottom: 44px; z-index: 8; opacity: 0; pointer-events: none; transition: opacity .3s; }
