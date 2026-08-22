@@ -885,7 +885,11 @@ onMounted(() => {
       if (!el) return
       const q = ease(clamp((p - start) / (end - start), 0, 1))
       el.style.opacity = String(q)
-      el.style.transform = `translateY(${(1 - q) * fromY}px)`
+      if (el === brdHeaderEl.value) {
+        el.style.transform = `translateX(-50%) translateY(${(1 - q) * fromY}px)`
+      } else {
+        el.style.transform = `translateY(${(1 - q) * fromY}px)`
+      }
     }
 
     // Header block
@@ -996,7 +1000,7 @@ onMounted(() => {
     else {
       // Reset board elements when leaving rest1 so they re-animate cleanly
       unpinBoard(ovBoardEl.value!)
-      if (brdHeaderEl.value) { brdHeaderEl.value.style.opacity = '0'; brdHeaderEl.value.style.transform = 'translateY(12px)' }
+      if (brdHeaderEl.value) { brdHeaderEl.value.style.opacity = '0'; brdHeaderEl.value.style.transform = 'translateX(-50%) translateY(12px)' }
       ;[brdStat0El, brdStat1El, brdStat2El, brdStat3El].forEach(r => { if (r.value) { r.value.style.opacity = '0'; r.value.style.transform = 'translateY(10px)' } })
     }
     setO(ovBrokerEl.value, seg.id === 'rest2' ? restO(p) : 0)
@@ -1133,12 +1137,12 @@ onBeforeUnmount(() => {
 
 /* ── BOARDROOM: Screen-locked Presentation ──────────────────────────── */
 .presentation-screen {
-  position: absolute;
+  position: fixed;
   overflow: hidden;
   /* Slight projector softness — not sharp browser UI */
   filter: blur(0.6px) brightness(1.05);
   opacity: 0.9;
-  /* left, top, width, height set by animateBoard */
+  /* left, top, width, height set by applyBoardAnchor */
 }
 
 .presentation-canvas {
