@@ -49,11 +49,8 @@
       </div>
     </div>
 
-    <div ref="ovBoardEl" class="ov ov-board" style="opacity: 0; pointer-events: none; visibility: hidden;">
-      <!-- Fixed-size panel — quadToMatrix3d will perspective-warp this into the physical screen -->
-      <div class="brd-panel">
-
-        <!-- Projector screen glow overlay — subtle ambient bloom -->
+    <div ref="ovBoardEl" class="ov presentation-screen" style="opacity: 0; pointer-events: none; visibility: hidden;">
+      <div class="presentation-canvas" :class="{ dimmed: activeStat !== null }">
         <div class="brd-bloom"></div>
 
         <!-- Detail expansion view (shown when a stat is clicked) -->
@@ -67,98 +64,81 @@
           </div>
         </div>
 
-        <!-- Overview layer (header + orb zone + stats) -->
-        <div class="brd-overview" :class="{ dimmed: activeStat !== null }">
+        <!-- Title block -->
+        <div class="brd-header" ref="brdHeaderEl">
+          <div class="brd-eyebrow">SCENE 03 · XYZ DEVELOPMENTS — LAUNCH WEEK</div>
+          <h2 class="brd-headline">One launch.<br>Thousands of briefings.</h2>
+        </div>
 
-          <!-- Title block -->
-          <div class="brd-header" ref="brdHeaderEl">
-            <div class="brd-eyebrow">SCENE 03 · XYZ DEVELOPMENTS — LAUNCH WEEK</div>
-            <h2 class="brd-headline">One launch.<br>Thousands of briefings.</h2>
+        <!-- Four data callouts -->
+        <button
+          class="brd-stat" id="stat0"
+          :class="{ active: activeStat === 0, faded: activeStat !== null && activeStat !== 0 }"
+          ref="brdStat0El"
+          @click.stop="activeStat = activeStat === 0 ? null : 0"
+        >
+          <div class="brd-stat-top">
+            <div class="brd-num">01</div>
+            <div class="brd-line"></div>
           </div>
-
-          <!-- Orb zone: empty space the physical orb floats through -->
-          <div class="brd-orb-zone"></div>
-
-          <!-- Four data callouts: 2 left + 2 right of the orb -->
-          <div class="brd-callouts">
-            <!-- Left column -->
-            <div class="brd-col-left">
-              <button
-                class="brd-stat brd-stat-left"
-                :class="{ active: activeStat === 0, faded: activeStat !== null && activeStat !== 0 }"
-                ref="brdStat0El"
-                @click.stop="activeStat = activeStat === 0 ? null : 0"
-              >
-                <div class="brd-stat-top">
-                  <div class="brd-num">01</div>
-                  <div class="brd-line"></div>
-                </div>
-                <div class="brd-key">THOUSANDS</div>
-                <div class="brd-label">brokers to brief</div>
-                <div class="brd-plus">
-                  <svg viewBox="0 0 10 10"><circle cx="5" cy="5" r="4.5" fill="none" stroke="currentColor" stroke-width="0.5"/><path d="M5 2.5v5M2.5 5h5" stroke="currentColor" stroke-width="0.5"/></svg>
-                </div>
-              </button>
-              <button
-                class="brd-stat brd-stat-left"
-                :class="{ active: activeStat === 2, faded: activeStat !== null && activeStat !== 2 }"
-                ref="brdStat2El"
-                @click.stop="activeStat = activeStat === 2 ? null : 2"
-              >
-                <div class="brd-stat-top">
-                  <div class="brd-num">03</div>
-                  <div class="brd-line"></div>
-                </div>
-                <div class="brd-key">WEEKS-LONG</div>
-                <div class="brd-label">briefing cycle</div>
-                <div class="brd-plus">
-                  <svg viewBox="0 0 10 10"><circle cx="5" cy="5" r="4.5" fill="none" stroke="currentColor" stroke-width="0.5"/><path d="M5 2.5v5M2.5 5h5" stroke="currentColor" stroke-width="0.5"/></svg>
-                </div>
-              </button>
-            </div>
-
-            <!-- Centre gap — orb lives here -->
-            <div class="brd-centre-gap"></div>
-
-            <!-- Right column -->
-            <div class="brd-col-right">
-              <button
-                class="brd-stat brd-stat-right"
-                :class="{ active: activeStat === 1, faded: activeStat !== null && activeStat !== 1 }"
-                ref="brdStat1El"
-                @click.stop="activeStat = activeStat === 1 ? null : 1"
-              >
-                <div class="brd-stat-top">
-                  <div class="brd-line"></div>
-                  <div class="brd-num">02</div>
-                </div>
-                <div class="brd-key">40+</div>
-                <div class="brd-label">nationalities</div>
-                <div class="brd-plus">
-                  <svg viewBox="0 0 10 10"><circle cx="5" cy="5" r="4.5" fill="none" stroke="currentColor" stroke-width="0.5"/><path d="M5 2.5v5M2.5 5h5" stroke="currentColor" stroke-width="0.5"/></svg>
-                </div>
-              </button>
-              <button
-                class="brd-stat brd-stat-right"
-                :class="{ active: activeStat === 3, faded: activeStat !== null && activeStat !== 3 }"
-                ref="brdStat3El"
-                @click.stop="activeStat = activeStat === 3 ? null : 3"
-              >
-                <div class="brd-stat-top">
-                  <div class="brd-line"></div>
-                  <div class="brd-num">04</div>
-                </div>
-                <div class="brd-key">WEEKLY</div>
-                <div class="brd-label">price movement</div>
-                <div class="brd-plus">
-                  <svg viewBox="0 0 10 10"><circle cx="5" cy="5" r="4.5" fill="none" stroke="currentColor" stroke-width="0.5"/><path d="M5 2.5v5M2.5 5h5" stroke="currentColor" stroke-width="0.5"/></svg>
-                </div>
-              </button>
-            </div>
+          <div class="brd-key">THOUSANDS</div>
+          <div class="brd-label">brokers to brief</div>
+          <div class="brd-plus">
+            <svg viewBox="0 0 10 10"><circle cx="5" cy="5" r="4.5" fill="none" stroke="currentColor" stroke-width="0.5"/><path d="M5 2.5v5M2.5 5h5" stroke="currentColor" stroke-width="0.5"/></svg>
           </div>
+        </button>
 
-        </div><!-- /overview -->
-      </div><!-- /panel -->
+        <button
+          class="brd-stat" id="stat1"
+          :class="{ active: activeStat === 1, faded: activeStat !== null && activeStat !== 1 }"
+          ref="brdStat1El"
+          @click.stop="activeStat = activeStat === 1 ? null : 1"
+        >
+          <div class="brd-stat-top">
+            <div class="brd-line"></div>
+            <div class="brd-num">02</div>
+          </div>
+          <div class="brd-key">40+</div>
+          <div class="brd-label">nationalities</div>
+          <div class="brd-plus">
+            <svg viewBox="0 0 10 10"><circle cx="5" cy="5" r="4.5" fill="none" stroke="currentColor" stroke-width="0.5"/><path d="M5 2.5v5M2.5 5h5" stroke="currentColor" stroke-width="0.5"/></svg>
+          </div>
+        </button>
+
+        <button
+          class="brd-stat" id="stat2"
+          :class="{ active: activeStat === 2, faded: activeStat !== null && activeStat !== 2 }"
+          ref="brdStat2El"
+          @click.stop="activeStat = activeStat === 2 ? null : 2"
+        >
+          <div class="brd-stat-top">
+            <div class="brd-num">03</div>
+            <div class="brd-line"></div>
+          </div>
+          <div class="brd-key">WEEKS-LONG</div>
+          <div class="brd-label">briefing cycle</div>
+          <div class="brd-plus">
+            <svg viewBox="0 0 10 10"><circle cx="5" cy="5" r="4.5" fill="none" stroke="currentColor" stroke-width="0.5"/><path d="M5 2.5v5M2.5 5h5" stroke="currentColor" stroke-width="0.5"/></svg>
+          </div>
+        </button>
+
+        <button
+          class="brd-stat" id="stat3"
+          :class="{ active: activeStat === 3, faded: activeStat !== null && activeStat !== 3 }"
+          ref="brdStat3El"
+          @click.stop="activeStat = activeStat === 3 ? null : 3"
+        >
+          <div class="brd-stat-top">
+            <div class="brd-line"></div>
+            <div class="brd-num">04</div>
+          </div>
+          <div class="brd-key">WEEKLY</div>
+          <div class="brd-label">price movement</div>
+          <div class="brd-plus">
+            <svg viewBox="0 0 10 10"><circle cx="5" cy="5" r="4.5" fill="none" stroke="currentColor" stroke-width="0.5"/><path d="M5 2.5v5M2.5 5h5" stroke="currentColor" stroke-width="0.5"/></svg>
+          </div>
+        </button>
+      </div><!-- /canvas -->
     </div>
 
     <div ref="ovBrokerEl" class="ov ov-broker">
@@ -875,10 +855,19 @@ onMounted(() => {
     boardCx = (vq[0][0] + vq[1][0] + vq[2][0] + vq[3][0]) / 4
     boardCy = (vq[0][1] + vq[1][1] + vq[2][1] + vq[3][1]) / 4
 
-    const panel = el.firstElementChild as HTMLElement
-    el.style.left = '0'; el.style.top = '0'; el.style.right = 'auto'; el.style.width = 'auto'
-    el.style.transformOrigin = '0 0'
-    el.style.transform = quadToMatrix3d(panel.offsetWidth, panel.offsetHeight, vq)
+    // Use a flat rectangular bounding box mapped to the screen's extremities,
+    // avoiding the complex perspective warp.
+    const minX = Math.min(vq[0][0], vq[1][0], vq[2][0], vq[3][0])
+    const maxX = Math.max(vq[0][0], vq[1][0], vq[2][0], vq[3][0])
+    const minY = Math.min(vq[0][1], vq[1][1], vq[2][1], vq[3][1])
+    const maxY = Math.max(vq[0][1], vq[1][1], vq[2][1], vq[3][1])
+
+    el.style.left = minX + 'px'
+    el.style.top = minY + 'px'
+    el.style.width = (maxX - minX) + 'px'
+    el.style.height = (maxY - minY) + 'px'
+    el.style.transform = ''
+    el.style.transformOrigin = ''
   }
 
   /* ---- interactions: boardroom cinematic reveal (scroll-driven, staggered) ---- */
@@ -1143,21 +1132,23 @@ onBeforeUnmount(() => {
 @keyframes hintbob { 50% { transform: rotate(45deg) translate(4px, 4px); } }
 
 /* ── BOARDROOM: Screen-locked Presentation ──────────────────────────── */
-/* The .ov-board element is positioned by applyBoardAnchor() via matrix3d.
-   .brd-panel must be a fixed-pixel-size block so offsetWidth/offsetHeight
-   are stable for quadToMatrix3d to compute the correct transform.          */
-.ov-board { position: fixed; left: 0; top: 0; }
-.brd-panel {
-  /* ~16:9 panel — matches the calibrated screen aspect ratio (1.775).
-     400×225 gives a good balance: large enough to be readable through the
-     perspective warp, small enough that homography stays numerically stable. */
-  width: 400px;
-  height: 225px;
-  position: relative;
+.presentation-screen {
+  position: absolute;
   overflow: hidden;
   /* Slight projector softness — not sharp browser UI */
-  filter: blur(0.4px) brightness(1.1);
+  filter: blur(0.6px) brightness(1.05);
+  opacity: 0.9;
+  /* left, top, width, height set by animateBoard */
 }
+
+.presentation-canvas {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  padding: 9% 10%;
+  transition: opacity 0.4s;
+}
+.presentation-canvas.dimmed { opacity: 0.08; pointer-events: none; }
 
 /* Ambient screen bloom */
 .brd-bloom {
@@ -1166,22 +1157,16 @@ onBeforeUnmount(() => {
   pointer-events: none;
 }
 
-/* ── Overview layer ──────────────────────────────────────────────────── */
-.brd-overview {
-  position: absolute; inset: 0;
-  display: flex; flex-direction: column;
-  padding: 12px 14px 10px;
-  transition: opacity 0.4s;
-}
-.brd-overview.dimmed { opacity: 0.08; pointer-events: none; }
-
 /* Header */
 .brd-header {
+  position: absolute;
+  top: 17%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
   text-align: center;
-  margin-bottom: 6px;
   opacity: 0;
   will-change: opacity, transform;
-  flex-shrink: 0;
 }
 .brd-eyebrow {
   font-family: 'Inter', system-ui, sans-serif;
@@ -1198,31 +1183,20 @@ onBeforeUnmount(() => {
   text-shadow: 0 1px 12px rgba(0,0,0,0.8);
 }
 
-/* Orb zone — spacer so the physical orb appears between header and callouts */
-.brd-orb-zone { flex: 1; }
-
-/* Callouts row */
-.brd-callouts {
-  display: flex; align-items: flex-end;
-  gap: 0; flex-shrink: 0;
-  padding-bottom: 4px;
-}
-.brd-col-left, .brd-col-right {
-  flex: 1; display: flex; flex-direction: column; gap: 8px;
-}
-.brd-col-left { align-items: flex-end; padding-right: 8px; }
-.brd-col-right { align-items: flex-start; padding-left: 8px; }
-.brd-centre-gap { width: 100px; flex-shrink: 0; } /* gap for orb */
-
 /* Stat button */
 .brd-stat {
+  position: absolute;
   display: flex; flex-direction: column; align-items: flex-start; gap: 1px;
   background: none; border: none; cursor: pointer;
-  padding: 0; width: 100%;
+  padding: 0; width: max-content;
   opacity: 0; will-change: opacity, transform;
   transition: opacity 0.3s, transform 0.2s;
   text-align: left;
 }
+#stat0 { left: 15%; top: 56%; }
+#stat1 { right: 15%; top: 56%; }
+#stat2 { left: 15%; top: 76%; }
+#stat3 { right: 15%; top: 76%; }
 .brd-stat.active { transform: scale(1.02); }
 .brd-stat.faded { opacity: 0.35 !important; }
 
