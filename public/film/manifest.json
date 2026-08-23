@@ -5,9 +5,9 @@
   "sequences": {
     "scene1-3": {
       "landscape": {
-        "frames": 156,
-        "tiers": [1280],
-        "size": [1280, 720],
+        "frames": 85,
+        "tiers": [1920],
+        "size": [1920, 1080],
         "pattern": "frames/scene1-3/landscape/{tier}/f_{frame}.webp"
       },
       "portrait": { "reuse": "landscape" }

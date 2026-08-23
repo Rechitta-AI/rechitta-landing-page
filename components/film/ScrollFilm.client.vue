@@ -470,7 +470,6 @@ onMounted(() => {
         else { skyGrad('#0E2233', '#8A5636', '#E8A24B', 0.7); skyline(1 + easeF(p) * 2.6, 0.62, 0.62, 0.8, 0.85, 1) }
       }
       vignette(0.22)
-      if (p > 0.88) { const q = (p - 0.88) / 0.12; cx.fillStyle = `rgba(255,232,196,${q * q * 0.95})`; cx.fillRect(0, 0, W, H) }
     },
     boardroom(p) {
       if (s13Imgs) {
@@ -486,7 +485,6 @@ onMounted(() => {
         drawCover(S.kf3, boardZoom)
       }
       vignette(0.34)
-      if (p < 0.05) { cx.fillStyle = `rgba(255,232,196,${(1 - p / 0.05) * 0.95})`; cx.fillRect(0, 0, W, H) }
     },
     descend(p) {
       const real = seq('transit-b', 5)
