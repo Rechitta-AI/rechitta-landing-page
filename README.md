@@ -1,2 +1,2 @@
-# Rechitta — Landing Page (v2)
+Rechitta — Landing Page
 
