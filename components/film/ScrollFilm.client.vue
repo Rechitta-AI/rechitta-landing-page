@@ -1,7 +1,9 @@
 <template>
   <div class="film-root">
     <div ref="spacerEl" class="spacer"></div>
+    <FilmEarthGlobe :progress="montProgress" :dash-progress="dashProgress" @orb-target="onOrbTarget" />
     <canvas ref="stageEl" id="film-stage"></canvas>
+    <div class="flash-burn" :style="{ opacity: flashOpacity, pointerEvents: flashOpacity > 0 ? 'auto' : 'none' }"></div>
 
     <div ref="loaderEl" class="loader">
       <div class="mono">RECHITTA — LOADING FILM <span ref="ldEl">0%</span></div>
@@ -61,32 +63,6 @@
       </div>
     </div>
 
-    <div ref="ovBrokerEl" class="ov ov-broker">
-      <div class="chat">
-        <div class="bubble user"><span class="wave"><i></i><i></i><i></i><i></i></span>“Client budget AED 2.1M — one-bed, marina view, handover before 2028.”</div>
-        <div class="bubble ai">Two matches in live inventory. Strongest fit:
-          <div class="unit-card">
-            <div class="name">Vela Bay Tower · Unit 1404</div>
-            <div class="meta">1BR · 812 sqft · AED 2.05M<br>Marina-facing · Handover Q4 2027 · 60/40 plan</div>
-            <div class="live">Available · confirmed 2 min ago</div>
-          </div>
-          <button class="btn" @click="onSendClient">Send briefing to client →</button>
-        </div>
-      </div>
-    </div>
-
-    <div ref="ovBuyerEl" class="ov ov-buyer">
-      <div class="brief">
-        <div class="langs">
-          <button v-for="l in Object.keys(L)" :key="l" class="lang" :class="{ sel: lang === l }"
-            @click="onLang(l)">{{ l.toUpperCase() }}</button>
-        </div>
-        <h3 class="display">{{ L[lang].t }}</h3>
-        <p>{{ L[lang].b }}</p>
-        <div class="live">{{ L[lang].l }}</div>
-      </div>
-    </div>
-
     <div ref="ovMontEl" class="ov ov-montage">
       <div class="mont-caption"><span ref="mCityEl" class="m-city">MUMBAI</span><span ref="mTimeEl">09:41 local · the same moment</span></div>
       <div class="mont-screen">
@@ -98,7 +74,7 @@
     <div ref="ovDashEl" class="ov ov-dash">
       <div class="dash">
         <div class="eyebrow">The same screen · later that day</div>
-        <div class="mapgrid">
+        <div class="mapgrid" style="display: none;">
           <span v-for="(d, i) in DOTS" :key="i" class="dot" :class="{ hub: d.hub }"
             :style="{ left: d.x + '%', top: d.y + '%', '--d': d.d + 's' }"></span>
         </div>
@@ -139,6 +115,7 @@ import {
   createFilmLoader, resolveVariant, pickTier, frameUrl,
   type FilmManifest, type SeqVariant, type Orientation
 } from '~/utils/filmLoader'
+import gsap from 'gsap'
 
 const props = defineProps<{ manifest: FilmManifest; filmBase: string }>()
 const { track } = useTrack()
@@ -151,8 +128,8 @@ const orbAnchorEl = ref<HTMLElement>()
 const hudSceneEl = ref<HTMLElement>()
 const chapterDotEl = ref<HTMLElement>()
 const chapterEls = ref<HTMLElement[]>([])
-const ovHeroEl = ref<HTMLElement>(); const ovBoardEl = ref<HTMLElement>(); const ovBrokerEl = ref<HTMLElement>()
-const ovBuyerEl = ref<HTMLElement>(); const ovMontEl = ref<HTMLElement>(); const ovDashEl = ref<HTMLElement>()
+const ovHeroEl = ref<HTMLElement>(); const ovBoardEl = ref<HTMLElement>()
+const ovMontEl = ref<HTMLElement>(); const ovDashEl = ref<HTMLElement>()
 const ovFinaleEl = ref<HTMLElement>(); const floatCtaEl = ref<HTMLElement>()
 const mCityEl = ref<HTMLElement>(); const mTimeEl = ref<HTMLElement>()
 const mTxtEl = ref<HTMLElement>(); const mSubEl = ref<HTMLElement>()
@@ -188,10 +165,8 @@ const SEGS: SegDef[] = [
   { id: 'hero', type: 'hold', w: 0.9, scene: 'sky', label: 'SCENE 01 · THE SKY', shortLabel: 'HERO', a: 0, b: 0 },
   { id: 'tA', type: 'transit', w: 1.3, scene: 'approach', label: 'TRANSIT A · THE DESCENT', a: 0, b: 0 },
   { id: 'rest1', type: 'rest', w: 1.6, scene: 'boardroom', label: 'SCENE 03 · THE BOARDROOM', shortLabel: 'BOARDROOM', a: 0, b: 0 },
-  { id: 'tB', type: 'transit', w: 1.3, scene: 'descend', label: 'TRANSIT B · OUT & DOWN', a: 0, b: 0 },
-  { id: 'rest2', type: 'rest', w: 1.6, scene: 'brokerPhone', label: 'SCENE 05 · THE BROKER', shortLabel: 'BROKER', a: 0, b: 0 },
-  { id: 'tC', type: 'transit', w: 1.1, scene: 'toBeach', label: 'TRANSIT C · THROUGH THE SCREEN', a: 0, b: 0 },
-  { id: 'rest3', type: 'rest', w: 1.3, scene: 'buyerPhone', label: 'SCENE 07 · THE BUYER', shortLabel: 'BUYER', a: 0, b: 0 },
+  { id: 'tB', type: 'transit', w: 2.5, scene: 'descend', label: 'SCENE 05 · THE BROKER', shortLabel: 'BROKER', a: 0, b: 0 },
+  { id: 'tC', type: 'transit', w: 1.5, scene: 'toBeach', label: 'SCENE 07 · THE BUYER', shortLabel: 'BUYER', a: 0, b: 0 },
   { id: 'mont', type: 'transit', w: 1.3, scene: 'montage', label: 'SCENE 08 · ONE MOMENT, EVERY MARKET', shortLabel: 'WORLD', a: 0, b: 0 },
   { id: 'tD', type: 'transit', w: 1.5, scene: 'ret', label: 'TRANSIT D · THE RETURN', a: 0, b: 0 },
   { id: 'finale', type: 'hold', w: 1.0, scene: 'finale', label: 'SCENE 09 · ONE SOURCE OF TRUTH', shortLabel: 'RETURN', a: 0, b: 0 },
@@ -203,17 +178,25 @@ const TOTAL = acc
 
 const CHAPTERS = [
   { id: 'hero', label: '01 HERO', map: ['hero', 'tA'] },
-  { id: 'rest1', label: '02 BOARDROOM', map: ['rest1', 'tB'] },
-  { id: 'rest2', label: '03 BROKER', map: ['rest2', 'tC'] },
-  { id: 'rest3', label: '04 BUYER', map: ['rest3'] },
+  { id: 'rest1', label: '02 BOARDROOM', map: ['rest1'] },
+  { id: 'rest2', label: '03 BROKER', map: ['tB'] },
+  { id: 'rest3', label: '04 BUYER', map: ['tC'] },
   { id: 'mont', label: '05 WORLD', map: ['mont', 'tD', 'finale', 'loop'] }
 ]
 const activeChapter = ref(0)
 
+const montProgress = ref(-1)
+const dashProgress = ref(-1)
+const flashOpacity = ref(0)
+const earthOrbTarget = ref<{x: number, y: number, s: number, visible: boolean} | null>(null)
+function onOrbTarget(val: any) {
+  earthOrbTarget.value = val
+}
+
 function onSendClient() {
   track('send_to_client_clicked')
-  const target = SEGS.find((s) => s.id === 'rest3')!
-  window.scrollTo({ top: (target.a + 0.35) * vh, behavior: 'smooth' })
+  const target = SEGS.find((s) => s.id === 'tC')!
+  window.scrollTo({ top: (target.a + 0.1) * vh, behavior: 'smooth' })
 }
 function onCta(cta: string) {
   track('cta_clicked', { cta, scene: currentSegId })
@@ -233,6 +216,10 @@ onMounted(() => {
   const cx = cv.getContext('2d')!
   const orb = orbEl.value!
   const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches
+
+  /* ---- scroll proxy (GSAP) ---- */
+  const scrollProxy = { t: 0 }
+  const updateScroll = gsap.quickTo(scrollProxy, "t", { duration: 0.8, ease: "power2.out" })
 
   /* ---- orientation & tier (portrait is a first-class dimension) ---- */
   const orientation = (): Orientation => (window.innerHeight > window.innerWidth ? 'portrait' : 'landscape')
@@ -297,8 +284,7 @@ onMounted(() => {
   /* approach-based priority boost: current segment −3, next −2, after −1 */
   const SEG_ASSETS: Record<string, string[]> = {
     hero: s13Imgs ? ['seq:scene1-3'] : ['still:kf-01'], tA: s13Imgs ? ['seq:scene1-3'] : ['seq:transit-a'], rest1: s13Imgs ? ['seq:scene1-3'] : ['still:kf-03'],
-    tB: ['seq:transit-b', 'still:kf-04'], rest2: ['still:kf-05'],
-    tC: ['seq:transit-c', 'still:kf-06'], rest3: ['still:kf-06'],
+    tB: ['seq:transit-b'], tC: ['seq:transit-c'],
     mont: ['plate:', 'sprite:hand'], tD: ['seq:transit-d'],
     finale: ['still:kf-01'], loop: ['still:kf-01']
   }
@@ -517,10 +503,7 @@ onMounted(() => {
         vignette(0.3)
       }
     },
-    brokerPhone(p) {
-      drawCover(S.kf5, 1 + Math.sin(p * Math.PI) * 0.012)
-      vignette(0.28)
-    },
+
     toBeach(p) {
       const real = seq('transit-c', 5)
       if (real && ready(real[0])) {
@@ -541,36 +524,19 @@ onMounted(() => {
         if (q < 0.25) { cx.fillStyle = `rgba(244,250,252,${1 - q / 0.25})`; cx.fillRect(0, 0, W, H) }
       }
     },
-    buyerPhone(p) {
-      drawCover(S.kf6, 1 + Math.sin(p * Math.PI) * 0.012)
-    },
+
     montage(p) {
-      const st = Math.min(5.999, p * 6), idx = Math.floor(st), f = st - idx, Mc = MONT[idx]
-      if (ready(PIM[Mc.k])) {
-        drawCover(PIM[Mc.k], 1.03 + f * 0.03)
-        cx.fillStyle = 'rgba(6,10,16,.22)'; cx.fillRect(0, 0, W, H)
-      } else {
-        const g = cx.createLinearGradient(0, 0, 0, H)
-        g.addColorStop(0, Mc.g[0]); g.addColorStop(0.6, Mc.g[1]); g.addColorStop(1, Mc.g[2])
-        cx.fillStyle = g; cx.fillRect(0, 0, W, H)
-        cx.globalAlpha = 0.45; cx.fillStyle = 'rgba(10,16,24,.85)'
-        FAR.forEach((b) => cx.fillRect(((b.x + idx * 0.137) % 1) * W, H * 0.78 - b.h * H * 0.8, b.w * W, b.h * H + H * 0.3))
-        cx.globalAlpha = 1
+      // The canvas fades to transparent so the EarthGlobe handles the visual
+      const q = clamp(p * 8, 0, 1) // Quick fade out in first 12% of the montage
+      cx.clearRect(0, 0, W, H) // Clear previous drawings
+      if (q < 1) {
+        const real = seq('transit-c', 5)
+        if (real && ready(real[real.length - 1])) {
+          cx.globalAlpha = 1 - q
+          drawCover(real[real.length - 1], 1)
+          cx.globalAlpha = 1
+        }
       }
-      if (ready(S.hand)) {
-        /* Vision-matted sprite: screen centre (0.3554, 0.4561); wrist flush to
-           frame bottom; dh=0.855H puts the screen centre at ~0.535H (matches
-           .mont-screen). Per-city tint sells the light. */
-        const sc = M.sprites.hand.screenCenter ?? [0.3554, 0.4561]
-        const dh = H * 0.855, dw = dh * (S.hand.naturalWidth / S.hand.naturalHeight)
-        cx.drawImage(tintedHand(Mc.k), W * 0.5 - dw * sc[0], H - dh, dw, dh)
-      } else {
-        phoneFrame(0.5, 0.54, H * 0.62, true, 1)
-        cx.fillStyle = 'rgba(18,13,10,.88)'
-        cx.beginPath(); cx.ellipse(W * 0.5, H * 1.03, W * 0.22, H * 0.13, 0, Math.PI, 0); cx.fill()
-      }
-      if (f < 0.1) { cx.fillStyle = `rgba(255,255,255,${(1 - f / 0.1) * 0.3})`; cx.fillRect(0, 0, W, H) }
-      vignette(0.3)
     },
     ret(p, t) {
       const real = seq('transit-d', 5)
@@ -774,11 +740,24 @@ onMounted(() => {
 
   function frame(now: number) {
     raf = requestAnimationFrame(frame)
-    if (scrollY >= TOTAL * vh - 2) { window.scrollTo(0, 0); dT = 0; track('loop_completed') }
+    if (scrollY >= TOTAL * vh - 2) { 
+      window.scrollTo(0, 0)
+      scrollProxy.t = 0
+      updateScroll(0)
+      track('loop_completed') 
+    }
+    
     T = clamp(scrollY / vh, 0, TOTAL)
     maxT = Math.max(maxT, T)
-    dT = reduced ? T : dT + (T - dT) * 0.07
-    const t = Math.abs(T - dT) < 0.0005 ? T : dT; dT = t
+    
+    if (reduced) {
+      scrollProxy.t = T
+    } else {
+      updateScroll(T)
+    }
+    
+    const t = scrollProxy.t
+    dT = t // Keep dT synced for state debugger
 
     let seg = SEGS[0], segIdx = 0
     for (let i = 0; i < SEGS.length; i++) { const s = SEGS[i]; if (t >= s.a && t <= s.b) { seg = s; segIdx = i; break } if (t > s.b) { seg = s; segIdx = i } }
@@ -802,21 +781,22 @@ onMounted(() => {
     // Smoothly blend the dynamic anchor position into the script trajectory between T=0.7 and T=1.1
     if (t < 1.1 && orbAnchorEl.value) {
       const rect = orbAnchorEl.value.getBoundingClientRect()
-      // Center of the placeholder letter 'O'
       const anchorX = rect.left + rect.width / 2
       const anchorY = rect.top + rect.height / 2
-      // The orb's visual core is slightly offset from its container center depending on Spline setup,
-      // but assuming the container center is the core:
       const blend = t < 0.7 ? 1 : 1 - clamp((t - 0.7) / 0.4, 0, 1)
-      
-      // The orb graphic fills most of its container.
-      // A small multiplier ensures the core perfectly matches the optical size of 'O'.
       const targetSize = Math.max(rect.width, rect.height) * 1.15 
       const targetScale = targetSize / 300
       
       ox = lerp(ox, anchorX, blend)
       oy = lerp(oy, anchorY, blend)
       ok = lerp(ok, targetScale, blend)
+    }
+
+    // Hijack Orb for WebGPU Earth
+    if (earthOrbTarget.value && earthOrbTarget.value.visible) {
+      ox = (W * earthOrbTarget.value.x) / 100
+      oy = (H * earthOrbTarget.value.y) / 100
+      ok = (os / 300) * earthOrbTarget.value.s
     }
 
     const bob = reduced ? 0 : Math.sin(now * 0.0016) * 6
@@ -828,7 +808,7 @@ onMounted(() => {
       // Synthetic bands choreographed to the film (constant low breathing; pulse
       // on chip absorb; "speech" cadence docked over the broker phone).
       const pulse = Math.max(0, 1 - (now - pulseT) / 900)
-      const talking = seg.id === 'rest2' && restO(p) > 0.3
+      const talking = seg.id === 'tB' && p > 0.8
       const breathe = 0.06 + 0.05 * Math.abs(Math.sin(now * 0.0016))
       const speech = talking ? 0.22 + 0.18 * Math.abs(Math.sin(now * 0.0061)) * Math.abs(Math.sin(now * 0.0023)) : 0
       const amp = clamp(breathe + speech + pulse * 0.7, 0, 1)
@@ -846,17 +826,52 @@ onMounted(() => {
     setO(ovHeroEl.value, seg.id === 'hero' ? 1 - clamp((p - 0.3) / 0.5, 0, 1) : t < SEGS[0].b ? 1 : 0)
     setO(ovBoardEl.value, seg.id === 'rest1' ? restO(p) : 0)
     if (seg.id === 'rest1') applyBoardAnchor()
-    setO(ovBrokerEl.value, seg.id === 'rest2' ? restO(p) : 0)
-    setO(ovBuyerEl.value, seg.id === 'rest3' ? restO(p) : 0)
     setO(ovFinaleEl.value, seg.id === 'finale' ? clamp((p - 0.12) / 0.3, 0, 1) : seg.id === 'loop' ? 1 - clamp(p * 2.2, 0, 1) : 0)
     setO(ovDashEl.value, seg.id === 'tD' ? clamp((p - 0.32) / 0.08, 0, 1) * clamp((0.6 - p) / 0.08, 0, 1) : 0)
     setO(ovMontEl.value, seg.id === 'mont' ? clamp(p * 12, 0, 1) * clamp((0.98 - p) * 12, 0, 1) : 0)
     if (seg.id === 'mont') {
-      const idx = Math.min(5, Math.floor(p * 6))
-      if (idx !== mIdx) {
-        mIdx = idx; const Mc = MONT[idx]
-        mCityEl.value!.textContent = Mc.city; mTimeEl.value!.textContent = Mc.t + ' local · the same moment'
-        mTxtEl.value!.textContent = Mc.txt; mSubEl.value!.textContent = Mc.sub + ' · live data'
+      montProgress.value = clamp(p, 0, 1)
+      dashProgress.value = -1
+      const cIdx = Math.min(6, Math.max(0, Math.floor((p - 0.15) / 0.12)))
+      const mCities = ['MUMBAI', 'MOSCOW', 'SHANGHAI', 'RIYADH', 'PARIS', 'LONDON', 'DUBAI']
+      if (mCityEl.value) mCityEl.value.textContent = mCities[cIdx] || ''
+      
+      // Flash Burn Effect
+      flashOpacity.value = p < 0.15 ? 1 - (p / 0.15) : 0
+      
+      if (stageEl.value) {
+        stageEl.value.style.webkitMaskImage = 'none'
+        stageEl.value.style.maskImage = 'none'
+        // Canvas fades out instantly behind the flash
+        stageEl.value.style.opacity = p < 0.05 ? '1' : '0'
+      }
+    } else if (seg.id === 'tD') {
+      montProgress.value = 1
+      dashProgress.value = clamp(p, 0, 1)
+      flashOpacity.value = 0
+      if (stageEl.value) {
+        stageEl.value.style.webkitMaskImage = 'none'
+        stageEl.value.style.maskImage = 'none'
+        // Fade the canvas (starry sky) back in over the globe at the end of the dashboard scene
+        stageEl.value.style.opacity = p < 0.62 ? '0' : String(clamp((p - 0.62) / 0.15, 0, 1))
+      }
+    } else if (seg.id === 'finale' || seg.id === 'loop') {
+      montProgress.value = 1
+      dashProgress.value = -1
+      flashOpacity.value = 0
+      if (stageEl.value) {
+        stageEl.value.style.webkitMaskImage = 'none'
+        stageEl.value.style.maskImage = 'none'
+        stageEl.value.style.opacity = '1'
+      }
+    } else {
+      montProgress.value = -1
+      dashProgress.value = -1
+      flashOpacity.value = 0
+      if (stageEl.value) {
+        stageEl.value.style.webkitMaskImage = 'none'
+        stageEl.value.style.maskImage = 'none'
+        stageEl.value.style.opacity = '1'
       }
     }
 
@@ -1065,5 +1080,16 @@ onBeforeUnmount(() => {
 @media (prefers-reduced-motion: reduce) {
   .orb .ring, .ov-hero .hint, .wave i, .live::before, .dot::after { animation: none; }
   .chip { transition: opacity .3s; }
+}
+
+.flash-burn {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  background: radial-gradient(circle at 55% 45%, #FFFFFF 10%, #E8A24B 50%, transparent 90%);
+  mix-blend-mode: screen;
+  z-index: 4;
+  pointer-events: none;
 }
 </style>

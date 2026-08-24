@@ -5,7 +5,7 @@
   "sequences": {
     "scene1-3": {
       "landscape": {
-        "frames": 85,
+        "frames": 785,
         "tiers": [1920],
         "size": [1920, 1080],
         "pattern": "frames/scene1-3/landscape/{tier}/f_{frame}.webp"
@@ -21,8 +21,24 @@
       },
       "portrait": { "reuse": "landscape" }
     },
-    "transit-b": null,
-    "transit-c": null,
+    "transit-b": {
+      "landscape": {
+        "frames": 1020,
+        "tiers": [1920],
+        "size": [1920, 1080],
+        "pattern": "frames/transit-b/landscape/{tier}/f_{frame}.webp"
+      },
+      "portrait": { "reuse": "landscape" }
+    },
+    "transit-c": {
+      "landscape": {
+        "frames": 480,
+        "tiers": [1920],
+        "size": [1920, 1080],
+        "pattern": "frames/transit-c/landscape/{tier}/f_{frame}.webp"
+      },
+      "portrait": { "reuse": "landscape" }
+    },
     "transit-d": null
   },
   "stills": {
