@@ -1,2 +1,2 @@
-Rechitta — Landing Page
+Rechitta — 3D Landing Page
 
