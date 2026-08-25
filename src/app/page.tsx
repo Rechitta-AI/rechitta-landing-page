@@ -127,6 +127,7 @@ export default function ExperiencePage() {
            startProgress={0}
            endProgress={0.5}
            reportsProgress
+           priority
          />
       </div>
 

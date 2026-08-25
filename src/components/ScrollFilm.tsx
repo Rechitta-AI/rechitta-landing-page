@@ -11,6 +11,9 @@ interface ScrollFilmProps {
   endProgress: number;
   /** Whether this film's loading counts toward the loader's number. */
   reportsProgress?: boolean;
+  /** The film the visitor lands on. Its first clip loads immediately; every
+   *  other clip waits so it isn't competing for bandwidth. */
+  priority?: boolean;
 }
 
 /** How long the film takes to catch up to the scroll position, in seconds. */
@@ -34,7 +37,10 @@ function makeVideo(src: string): HTMLVideoElement {
   v.muted = true;
   v.defaultMuted = true;
   v.playsInline = true;
-  v.preload = 'auto';
+  // Metadata only to begin with — enough to learn the clip's duration, which
+  // the scrub maths needs, without pulling the whole file. Clips are promoted
+  // to full download as the visitor approaches them.
+  v.preload = 'metadata';
   v.setAttribute('aria-hidden', 'true');
   Object.assign(v.style, {
     position: 'absolute',
@@ -63,6 +69,7 @@ export default function ScrollFilm({
   startProgress,
   endProgress,
   reportsProgress = false,
+  priority = false,
 }: ScrollFilmProps) {
   const stageRef = useRef<HTMLDivElement>(null);
 
@@ -88,6 +95,17 @@ export default function ScrollFilm({
       stage.append(proxy, full);
       return { proxy, full, duration: ASSUMED_DURATION };
     });
+
+    const promote = (v: HTMLVideoElement) => {
+      if (v.preload !== 'auto') v.preload = 'auto';
+    };
+
+    // Only the first clip of the landing film downloads up front. Everything
+    // else would be competing with it for the same bandwidth.
+    if (priority && clips.length > 0) {
+      promote(clips[0].proxy);
+      promote(clips[0].full);
+    }
 
     const readDurations = () => {
       clips.forEach((clip) => {
@@ -130,6 +148,7 @@ export default function ScrollFilm({
     let lastTime = performance.now();
     let frame: number;
     let shown: HTMLVideoElement | null = null;
+    let proxiesPromoted = false;
 
     const seek = (v: HTMLVideoElement, time: number) => {
       if (v.readyState < HTMLMediaElement.HAVE_METADATA) return;
@@ -149,6 +168,14 @@ export default function ScrollFilm({
       const span = to - from || 1;
       const local = Math.max(0, Math.min((eased - from) / span, 1));
 
+      // A film still well before its own window (the finale, at the top of the
+      // page) stays at metadata so it never competes with what's on screen.
+      const approaching = priority || eased >= from - 0.08;
+      if (!approaching) {
+        frame = requestAnimationFrame(render);
+        return;
+      }
+
       // Walk the clips to find which one this moment belongs to.
       const totalDuration = clips.reduce((sum, c) => sum + c.duration, 0);
       let remaining = local * totalDuration;
@@ -156,6 +183,23 @@ export default function ScrollFilm({
       while (index < clips.length - 1 && remaining > clips[index].duration) {
         remaining -= clips[index].duration;
         index += 1;
+      }
+
+      // The proxies are small, and one of them is what covers a chapter change
+      // before its 4K version lands. On the landing film they wait until the
+      // first 4K clip can render, so nothing competes with it; a film reached
+      // later pulls them the moment it comes into range.
+      const proxiesDue = priority
+        ? clips[0]?.full.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA
+        : true;
+      if (!proxiesPromoted && proxiesDue) {
+        proxiesPromoted = true;
+        clips.forEach((c) => promote(c.proxy));
+      }
+
+      // Full quality is fetched for the clip in view and the one after it.
+      for (let i = 0; i < clips.length; i++) {
+        if (i === index || i === index + 1) promote(clips[i].full);
       }
 
       const clip = clips[index];
@@ -196,7 +240,7 @@ export default function ScrollFilm({
     };
     // sequenceKeys is a literal array in the parent; compare by contents.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scrollData, sequenceKeys.join('|'), reportsProgress]);
+  }, [scrollData, sequenceKeys.join('|'), reportsProgress, priority]);
 
   return (
     <div

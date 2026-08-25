@@ -3,7 +3,7 @@
   top: 50%;
   right: clamp(1.25rem, 3vw, 3rem);
   transform: translateY(-50%);
-  height: 58vh;
+  height: 30vh;
   width: 1px;
   z-index: 40;
   pointer-events: none;
@@ -41,7 +41,7 @@
 
 @media (max-width: 900px) {
   .rail {
-    height: 34vh;
+    height: 22vh;
   }
   .label {
     display: none;
