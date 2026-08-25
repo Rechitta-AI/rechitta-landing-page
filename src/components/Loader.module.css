@@ -1,0 +1,90 @@
+.shell {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  background: var(--ink);
+  padding: 0 6vw;
+}
+
+/* A very slow amber bloom, as if the film is already burning behind the panel. */
+.shell::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    60% 50% at 50% 58%,
+    rgba(232, 162, 75, 0.09) 0%,
+    transparent 70%
+  );
+  animation: breathe 6s ease-in-out infinite;
+}
+
+@keyframes breathe {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+.panel {
+  position: relative;
+  width: min(560px, 100%);
+  text-align: center;
+}
+
+.wordmark {
+  font-family: var(--font-marcellus), serif;
+  font-size: clamp(1.5rem, 3.4vw, 2.125rem);
+  letter-spacing: 0.42em;
+  /* Tracking adds space after the final letter too; pull it back so the
+     wordmark reads as optically centred. */
+  text-indent: 0.42em;
+  color: var(--bone);
+  margin: 0;
+}
+
+.rule {
+  position: relative;
+  height: 1px;
+  margin: 2.75rem 0 1.25rem;
+  background: var(--hairline);
+  overflow: hidden;
+}
+
+.fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 100%;
+  background: var(--amber);
+  transform: scaleX(0);
+  transform-origin: left center;
+}
+
+.readout {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1.5rem;
+  font-size: 0.6875rem;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--mute);
+}
+
+.phase {
+  text-align: left;
+  /* Hold the row's height while phrases swap, so nothing shifts. */
+  min-height: 1em;
+}
+
+.count {
+  font-variant-numeric: tabular-nums;
+  color: var(--bone);
+}
+
+@media (max-width: 480px) {
+  .readout {
+    font-size: 0.625rem;
+    letter-spacing: 0.2em;
+  }
+}

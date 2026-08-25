@@ -1,27 +1,53 @@
 @import "tailwindcss";
 
-@theme {
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Palette pulled from the film itself — the orb's amber core and cold
+     blue-black sky. Amber is the only accent; everything else is neutral. */
+  --ink: #070a10;
+  --ink-raise: #0d131c;
+  --bone: #e8e4dc;
+  --mute: #6b7684;
+  --amber: #e8a24b;
+  --hairline: rgba(232, 228, 220, 0.14);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@theme inline {
+  --font-display: var(--font-marcellus);
+  --font-body: var(--font-sora);
+  --color-ink: var(--ink);
+  --color-bone: var(--bone);
+  --color-amber: var(--amber);
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--ink);
+  color: var(--bone);
+  font-family: var(--font-sora), system-ui, sans-serif;
+  overflow-x: hidden;
+}
+
+/* The custom cursor replaces the system one, but only where there is a real
+   pointer to replace. Touch devices and keyboard users keep the default. */
+@media (hover: hover) and (pointer: fine) {
+  body[data-cursor-active="true"],
+  body[data-cursor-active="true"] * {
+    cursor: none;
   }
 }
 
-body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
-  margin: 0;
-  padding: 0;
-  overflow-x: hidden;
+:focus-visible {
+  outline: 1px solid var(--amber);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }

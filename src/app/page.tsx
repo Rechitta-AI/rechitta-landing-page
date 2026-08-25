@@ -4,6 +4,10 @@ import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import ScrollFilm from '@/components/ScrollFilm';
 import TexturedGlobe from '@/components/TexturedGlobe';
+import Loader from '@/components/Loader';
+import ScrollRail from '@/components/ScrollRail';
+import Cursor from '@/components/Cursor';
+import { setLoadProgress } from '@/utils/loadProgress';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -18,6 +22,7 @@ export default function ExperiencePage() {
   const heroRef = useRef<HTMLDivElement>(null);
   
   const [activeChapter, setActiveChapter] = useState('hero');
+  const [ready, setReady] = useState(false);
   const scrollData = useRef({ progress: 0 });
 
   // Math helper for scroll interpolation
@@ -32,6 +37,24 @@ export default function ExperiencePage() {
     }
     return 0;
   };
+
+  useEffect(() => {
+    // Coarse signal for now: the page's own assets are in. The film player
+    // reports finer progress once it takes over from the frame sequence.
+    if (document.readyState === 'complete') {
+      setLoadProgress(1);
+      return;
+    }
+    const done = () => setLoadProgress(1);
+    window.addEventListener('load', done);
+    return () => window.removeEventListener('load', done);
+  }, []);
+
+  useEffect(() => {
+    // Nothing should scroll while the loader is up — the film isn't there yet.
+    document.documentElement.style.overflow = ready ? '' : 'hidden';
+    if (ready) ScrollTrigger.refresh();
+  }, [ready]);
 
   useEffect(() => {
     const ctx = gsap.context(() => {
@@ -91,6 +114,11 @@ export default function ExperiencePage() {
 
   return (
     <div ref={containerRef} className="h-screen w-full relative bg-[#070A10]">
+
+      <Cursor />
+      <Loader onDone={() => setReady(true)} />
+      <ScrollRail scrollData={scrollData} />
+
       
       {/* LAYER 1: The Background Globe */}
       <div className="absolute inset-0 z-0 flex items-center justify-center">

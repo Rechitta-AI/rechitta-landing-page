@@ -1,0 +1,49 @@
+.layer {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.visible {
+  opacity: 1;
+}
+
+.ring,
+.dot {
+  position: absolute;
+  top: 0;
+  left: 0;
+  border-radius: 50%;
+  will-change: transform;
+}
+
+.ring {
+  width: 30px;
+  height: 30px;
+  margin: -15px 0 0 -15px;
+  border: 1px solid rgba(232, 228, 220, 0.45);
+  transition: border-color 0.3s ease, background 0.3s ease;
+}
+
+.dot {
+  width: 4px;
+  height: 4px;
+  margin: -2px 0 0 -2px;
+  background: var(--bone);
+}
+
+/* Over anything clickable the reticle opens up and takes the film's amber. */
+.ringActive {
+  border-color: var(--amber);
+  background: rgba(232, 162, 75, 0.1);
+}
+
+/* Where there is no fine pointer there is nothing to replace. */
+@media not all and (hover: hover) and (pointer: fine) {
+  .layer {
+    display: none;
+  }
+}
