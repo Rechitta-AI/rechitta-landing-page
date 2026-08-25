@@ -100,11 +100,40 @@ export default function ScrollFilm({
       if (v.preload !== 'auto') v.preload = 'auto';
     };
 
+    let isWarmedUp = !priority;
+
     // Only the first clip of the landing film downloads up front. Everything
     // else would be competing with it for the same bandwidth.
     if (priority && clips.length > 0) {
       promote(clips[0].proxy);
       promote(clips[0].full);
+
+      // HARDWARE WARM-UP (THE "GPU PUMP")
+      // Secretly play and immediately pause the videos behind the loading screen.
+      // This forces the browser's hardware decoder to allocate memory and process 
+      // the first frames into the GPU buffer before the user ever touches the scroll wheel,
+      // completely eliminating the initial scroll stutter.
+      const warmup = async (v: HTMLVideoElement) => {
+        try {
+          await v.play();
+          v.pause();
+          v.currentTime = 0;
+        } catch (err) {
+          // Browsers sometimes block programmatic play, but since it's muted it usually passes.
+        }
+      };
+      
+
+
+      // Safety net: force resolution after 3 seconds just in case the browser hangs the promise
+      const fallbackTimeout = new Promise(resolve => setTimeout(resolve, 3000));
+      
+      Promise.race([
+        Promise.all([warmup(clips[0].proxy), warmup(clips[0].full)]),
+        fallbackTimeout
+      ]).then(() => {
+        isWarmedUp = true;
+      });
     }
 
     const readDurations = () => {
@@ -138,7 +167,15 @@ export default function ScrollFilm({
           first.full.readyState >= HTMLMediaElement.HAVE_ENOUGH_DATA
             ? 1
             : bufferedFraction(first.full);
-        setLoadProgress(0.5 * proxyPart + 0.5 * fullPart);
+            
+        let total = 0.5 * proxyPart + 0.5 * fullPart;
+        
+        // HARDWARE LOCK: Never report 100% until the GPU has fully warmed up
+        if (total >= 1 && !isWarmedUp) {
+          total = 0.99;
+        }
+        
+        setLoadProgress(total);
       };
       const events = ['progress', 'canplay', 'canplaythrough', 'loadeddata'] as const;
       events.forEach((e) => {

@@ -27,6 +27,24 @@ body {
   color: var(--bone);
   font-family: var(--font-sora), system-ui, sans-serif;
   overflow-x: hidden;
+  
+  /* Permanently hide scrollbars to keep a cinematic feel */
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+::-webkit-scrollbar {
+  display: none;
+}
+
+/* 
+ * BULLETPROOF MODAL SCROLL LOCK
+ * When the modal is open, this overrides page.tsx inline styles and absolutely forbids native scrolling. 
+ */
+html[data-modal-open="true"],
+html[data-modal-open="true"] body {
+  overflow: hidden !important;
 }
 
 /* The custom cursor replaces the system one, but only where there is a real

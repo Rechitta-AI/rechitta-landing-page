@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react';
 import Lenis from 'lenis';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { useDemoModal } from '@/contexts/DemoModalContext';
 
 /**
  * Smooth scrolling, driven off GSAP's ticker so Lenis and ScrollTrigger share
@@ -15,6 +16,7 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
  */
 export function useSmoothScroll(enabled: boolean) {
   const lenisRef = useRef<Lenis | null>(null);
+  const { isOpen } = useDemoModal();
 
   useEffect(() => {
     // Honour the OS setting: no inertia for anyone who asked for less motion.
@@ -46,7 +48,7 @@ export function useSmoothScroll(enabled: boolean) {
 
   useEffect(() => {
     if (!lenisRef.current) return;
-    if (enabled) lenisRef.current.start();
+    if (enabled && !isOpen) lenisRef.current.start();
     else lenisRef.current.stop();
-  }, [enabled]);
+  }, [enabled, isOpen]);
 }

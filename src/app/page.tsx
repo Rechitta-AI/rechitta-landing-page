@@ -23,6 +23,7 @@ export default function ExperiencePage() {
   const heroRef = useRef<HTMLDivElement>(null);
   
   const [activeChapter, setActiveChapter] = useState('hero');
+  const currentChapterRef = useRef('hero');
   const [ready, setReady] = useState(false);
 
   // Lenis inertia, paused until the loader clears.
@@ -46,10 +47,12 @@ export default function ExperiencePage() {
           // 1. Update the master scroll tracker
           scrollData.current.progress = self.progress;
 
-          // 2. Determine what chapter we are in
-          if (self.progress < 0.5) setActiveChapter('video');
-          else if (self.progress >= 0.5 && self.progress < 0.85) setActiveChapter('globe');
-          else setActiveChapter('finale');
+          // 2. Determine what chapter we are in and ONLY update React if it changed
+          const newChapter = self.progress < 0.5 ? 'video' : self.progress < 0.85 ? 'globe' : 'finale';
+          if (currentChapterRef.current !== newChapter) {
+            currentChapterRef.current = newChapter;
+            setActiveChapter(newChapter);
+          }
 
           // 3. The Match-Cut: White Flash to Globe
           if (self.progress >= 0.5 && self.progress < 0.85) {
