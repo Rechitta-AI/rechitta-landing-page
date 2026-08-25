@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import SplineOrb from './SplineOrb';
+import TheOrb from './TheOrb';
 import { multiMap } from '@/utils/multiMap';
 import styles from './OrbStage.module.css';
 
@@ -54,42 +54,23 @@ export default function OrbStage({
       let xPx: number, yVh: number, scale: number, opacity: number;
 
       if (tv <= DRIFT_START) {
-        /* Journey: hero (centre, raised) → right → left */
-        let xVw: number;
-        if (isMobile) {
-          xVw = 0;
-          yVh = multiMap(tv, [0, 0.12], [-16, 0]);
-          scale = multiMap(tv, [0, 0.12, 0.2], [1.05, 0.8, 0.62]);
-          opacity = multiMap(tv, [0, 0.1, 0.22, DRIFT_START], [0.9, 0.7, 0.3, 0.3]);
-        } else {
-          xVw = multiMap(
-            tv,
-            [0, 0.1, 0.2, 0.42, 0.62, 0.7, DRIFT_START],
-            [0, 0, 22, 22, 22, -22, -22]
-          );
-          yVh = multiMap(tv, [0, 0.1, 0.2], [-14, -14, 0]);
-          scale = multiMap(tv, [0, 0.1, 0.2], [1.18, 1.18, 1]);
-          opacity = multiMap(tv, [0, 0.16, 0.24], [0.9, 0.9, 0.62]);
-        }
-        xPx = (xVw / 100) * viewportWidth;
-      } else if (tv <= DRIFT_END) {
-        /* v1 investor phase 2: drift into the demo phone */
-        const e = easeInOut((tv - DRIFT_START) / (DRIFT_END - DRIFT_START));
-        const startXPx = ((isMobile ? 0 : -22) / 100) * viewportWidth;
-        const end = phoneTarget();
-        const startScale = isMobile ? 0.62 : 1;
-        const startOpacity = isMobile ? 0.3 : 0.62;
-
-        xPx = startXPx + (end.xPx - startXPx) * e;
-        yVh = end.yVh * e;
-        scale = startScale * (1 - e);
-        opacity = startOpacity * (1 - e);
-      } else {
-        /* Fully absorbed into the demo */
+        /* FIXED POSITION (Choreography Temporarily Disabled) */
         xPx = 0;
-        yVh = 0;
-        scale = 0;
-        opacity = 0;
+        yVh = isMobile ? -12 : -10;
+        scale = isMobile ? 1.05 : 1.18;
+        opacity = 0.9;
+      } else if (tv <= DRIFT_END) {
+        /* FIXED POSITION */
+        xPx = 0;
+        yVh = isMobile ? -12 : -10;
+        scale = isMobile ? 1.05 : 1.18;
+        opacity = 0.9;
+      } else {
+        /* FIXED POSITION */
+        xPx = 0;
+        yVh = isMobile ? -12 : -10;
+        scale = isMobile ? 1.05 : 1.18;
+        opacity = 0.9;
       }
 
       if (holderRef.current) {
@@ -113,7 +94,7 @@ export default function OrbStage({
   return (
     <div ref={stageRef} className={styles.stage} aria-hidden="true">
       <div ref={holderRef} className={styles.holder}>
-        <SplineOrb />
+        <TheOrb />
       </div>
     </div>
   );

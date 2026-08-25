@@ -135,8 +135,7 @@ export default function ScrollFilm({
       if (v.readyState < HTMLMediaElement.HAVE_METADATA) return;
       const clamped = Math.max(0, Math.min(time, (v.duration || 0) - 0.001));
       if (Math.abs(v.currentTime - clamped) < SEEK_EPSILON) return;
-      if (typeof v.fastSeek === 'function') v.fastSeek(clamped);
-      else v.currentTime = clamped;
+      v.currentTime = clamped;
     };
 
     const render = (now: number) => {
