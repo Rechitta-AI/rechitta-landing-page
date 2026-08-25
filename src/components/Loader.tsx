@@ -36,11 +36,15 @@ export default function Loader({ onDone }: { onDone: () => void }) {
     let frame: number;
     let finishing = false;
 
+    let forced = false;
+
     const stopListening = onLoadProgress((value) => {
-      actual = value;
+      // Never let a later report walk back past the safety hatch.
+      actual = forced ? 1 : value;
     });
 
     const safety = window.setTimeout(() => {
+      forced = true;
       actual = 1;
     }, SAFETY_TIMEOUT_MS);
 

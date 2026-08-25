@@ -126,8 +126,19 @@ export default function ScrollFilm({
     if (reportsProgress && clips.length > 0) {
       const first = clips[0];
       const report = () => {
-        const value = 0.5 * bufferedFraction(first.proxy) + 0.5 * bufferedFraction(first.full);
-        setLoadProgress(value);
+        // Readiness, not bytes. A browser decides for itself when it has
+        // buffered enough and then stops, so waiting for 100% never arrives.
+        // HAVE_FUTURE_DATA means the proxy can render and keep going;
+        // HAVE_ENOUGH_DATA is the browser's own "this will play through".
+        const proxyPart =
+          first.proxy.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA
+            ? 1
+            : bufferedFraction(first.proxy);
+        const fullPart =
+          first.full.readyState >= HTMLMediaElement.HAVE_ENOUGH_DATA
+            ? 1
+            : bufferedFraction(first.full);
+        setLoadProgress(0.5 * proxyPart + 0.5 * fullPart);
       };
       const events = ['progress', 'canplay', 'canplaythrough', 'loadeddata'] as const;
       events.forEach((e) => {
