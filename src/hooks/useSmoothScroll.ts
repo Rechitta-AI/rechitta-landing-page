@@ -21,7 +21,7 @@ export function useSmoothScroll(enabled: boolean) {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
     const lenis = new Lenis({
-      duration: 1.1,
+      duration: 0.9,
       smoothWheel: true,
       // Touch devices already have native inertia; overriding it feels wrong.
       syncTouch: false,

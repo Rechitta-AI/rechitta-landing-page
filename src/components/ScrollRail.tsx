@@ -4,16 +4,17 @@ import { useEffect, useRef } from 'react';
 import styles from './ScrollRail.module.css';
 
 /**
- * Chapter starts are the film's real cut points: the four film sequences are
- * spread across the 0–0.5 span in proportion to their frame counts, then the
- * globe and the finale follow.
+ * Chapter starts, read off the footage itself rather than clip boundaries —
+ * the visual beats fall inside clips, not between them. Each is the moment
+ * described, converted to a fraction of the film's 44.1s across the 0–0.5
+ * span the film occupies.
  */
 const CHAPTERS = [
   { at: 0.0, label: 'I · Dawn' },
-  { at: 0.148, label: 'II · The boardroom' },
-  { at: 0.341, label: 'III · The broker' },
-  { at: 0.432, label: 'IV · The buyer' },
-  { at: 0.5, label: 'V · Worldwide' },
+  { at: 0.051, label: 'II · The boardroom' },
+  { at: 0.197, label: 'III · The broker' },
+  { at: 0.396, label: 'IV · The buyer' },
+  { at: 0.477, label: 'V · Worldwide' },
   { at: 0.85, label: 'VI · Dusk' },
 ];
 

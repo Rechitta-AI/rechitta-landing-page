@@ -17,7 +17,7 @@ interface ScrollFilmProps {
 }
 
 /** How long the film takes to catch up to the scroll position, in seconds. */
-const CATCH_UP = 0.18;
+const CATCH_UP = 0.1;
 
 /** Don't re-seek for less than half a frame of difference. */
 const SEEK_EPSILON = 1 / 48;
@@ -163,6 +163,9 @@ export default function ScrollFilm({
 
     const seek = (v: HTMLVideoElement, time: number) => {
       if (v.readyState < HTMLMediaElement.HAVE_METADATA) return;
+      // A seek already in flight will land on a stale target if we queue
+      // another on top of it. Waiting is what keeps scrubbing smooth.
+      if (v.seeking) return;
       const clamped = Math.max(0, Math.min(time, (v.duration || 0) - 0.001));
       if (Math.abs(v.currentTime - clamped) < SEEK_EPSILON) return;
       v.currentTime = clamped;
@@ -220,11 +223,13 @@ export default function ScrollFilm({
         const useFull = full.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA;
         const active = useFull ? full : clip.proxy;
 
+        // Only the visible element is seeked. Driving both was decoding every
+        // frame twice — at 4K that is the difference between smooth and not.
         seek(active, remaining);
-        // Keep the proxy in step so the swap between them is invisible.
-        if (useFull) seek(clip.proxy, remaining);
 
-        if (active !== shown) {
+        // Swapping mid-seek would flash whatever frame the incoming element
+        // happens to be parked on, so wait until it has landed.
+        if (active !== shown && !active.seeking) {
           if (shown) shown.style.opacity = '0';
           active.style.opacity = '1';
           shown = active;
