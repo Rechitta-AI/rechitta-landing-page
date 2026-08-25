@@ -8,9 +8,11 @@ import styles from './OrbStage.module.css';
 /**
  * Scroll-driven orb journey, ported from the Vue build (components/OrbStage.vue,
  * itself a port of v1's updateOrb): the orb lives in a fixed full-viewport
- * layer, starts greyscale at the top and absorbs its colour by t=0.20,
- * journeys right then left past the content, and finally drifts into the demo
- * phone (#investor-phone) to be absorbed by the product.
+ * layer, journeys right then left past the content, and finally drifts into
+ * the demo phone (#investor-phone) to be absorbed by the product.
+ *
+ * v1's greyscale-to-colour absorption is deliberately dropped — the orb reads
+ * blue from the first frame rather than fading up from black.
  */
 const DRIFT_START = 0.8;
 const DRIFT_END = 0.96;
@@ -40,11 +42,9 @@ export default function OrbStage({
 }) {
   const stageRef = useRef<HTMLDivElement>(null);
   const holderRef = useRef<HTMLDivElement>(null);
-  const innerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let frame: number;
-    let lastFilter = '';
 
     const tick = () => {
       const tv = scrollData.current?.progress ?? 0;
@@ -103,15 +103,6 @@ export default function OrbStage({
         stageRef.current.style.zIndex = tv >= DRIFT_START ? '27' : '25';
       }
 
-      /* v1: greyscale at top, full colour by t=0.20 */
-      const grey = Math.max(0, 1 - tv / 0.2);
-      const bright = 0.78 + (1 - grey) * 0.22;
-      const next = `grayscale(${grey.toFixed(3)}) brightness(${bright.toFixed(3)})`;
-      if (next !== lastFilter && innerRef.current) {
-        lastFilter = next;
-        innerRef.current.style.filter = next;
-      }
-
       frame = requestAnimationFrame(tick);
     };
     frame = requestAnimationFrame(tick);
@@ -122,7 +113,7 @@ export default function OrbStage({
   return (
     <div ref={stageRef} className={styles.stage} aria-hidden="true">
       <div ref={holderRef} className={styles.holder}>
-        <SplineOrb innerRef={innerRef} />
+        <SplineOrb />
       </div>
     </div>
   );

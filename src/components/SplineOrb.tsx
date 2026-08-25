@@ -9,14 +9,13 @@ import styles from './SplineOrb.module.css';
  * wrapper, NO mask of any kind. The scene's glow periodically fills the whole
  * frame, so any frame-edge fade reads as a visible square.
  *
- * The scroll-driven grayscale must land on the SAME element that carries
- * mix-blend-mode — a filter on any wrapper would create a new blending
- * context and break the screen blend against the page. `innerRef` hands that
- * element to the stage so it can be driven per frame without re-rendering.
+ * The blend lives on the stage above, not here — z-index and mix-blend-mode
+ * must share an element or the blend is isolated and the scene's dark
+ * background shows as a solid blob.
  */
 const SPLINE_URL = 'https://my.spline.design/meeet-K190VICHbClCgQyBKYguhj6F/';
 
-export default function SplineOrb({ innerRef }: { innerRef?: React.Ref<HTMLDivElement> }) {
+export default function SplineOrb() {
   const [revealed, setRevealed] = useState(false);
 
   // The iframe `load` event is unreliable — it can fire from cache before the
@@ -29,7 +28,7 @@ export default function SplineOrb({ innerRef }: { innerRef?: React.Ref<HTMLDivEl
 
   return (
     <div className={`${styles.orb} ${revealed ? styles.revealed : ''}`} aria-hidden="true">
-      <div ref={innerRef} className={styles.inner}>
+      <div className={styles.inner}>
         <iframe
           src={SPLINE_URL}
           title="Rechitta orb"

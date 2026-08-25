@@ -8,7 +8,7 @@ import Loader from '@/components/Loader';
 import ScrollRail from '@/components/ScrollRail';
 import Cursor from '@/components/Cursor';
 import OrbStage from '@/components/OrbStage';
-import { setLoadProgress } from '@/utils/loadProgress';
+import { useSmoothScroll } from '@/hooks/useSmoothScroll';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -24,19 +24,10 @@ export default function ExperiencePage() {
   
   const [activeChapter, setActiveChapter] = useState('hero');
   const [ready, setReady] = useState(false);
-  const scrollData = useRef({ progress: 0 });
 
-  useEffect(() => {
-    // Coarse signal for now: the page's own assets are in. The film player
-    // reports finer progress once it takes over from the frame sequence.
-    if (document.readyState === 'complete') {
-      setLoadProgress(1);
-      return;
-    }
-    const done = () => setLoadProgress(1);
-    window.addEventListener('load', done);
-    return () => window.removeEventListener('load', done);
-  }, []);
+  // Lenis inertia, paused until the loader clears.
+  useSmoothScroll(ready);
+  const scrollData = useRef({ progress: 0 });
 
   useEffect(() => {
     // Nothing should scroll while the loader is up — the film isn't there yet.
@@ -101,19 +92,28 @@ export default function ExperiencePage() {
   }, []);
 
   return (
-    <div ref={containerRef} className="h-screen w-full relative bg-[#070A10]">
-
+    <>
+      {/* Overlays live outside the pinned container: ScrollTrigger wraps that
+          container in a pin-spacer, and React mutating nodes inside it while
+          GSAP restructures the DOM throws insertBefore errors. */}
       <Cursor />
       <Loader onDone={() => setReady(true)} />
       <ScrollRail scrollData={scrollData} />
 
-      
+      <div ref={containerRef} className="h-screen w-full relative bg-[#070A10]">
+
       {/* LAYER 1: The Background Globe */}
-      <div className="absolute inset-0 z-0 flex items-center justify-center">
-        {/* Only render/animate the globe when we are near its chapter to save GPU */}
-        {['video', 'globe', 'finale'].includes(activeChapter) && (
-           <TexturedGlobe scrollData={scrollData} />
-        )}
+      <div
+        className="absolute inset-0 z-0 flex items-center justify-center"
+        style={{
+          // Hidden rather than unmounted: mounting a node inside the pinned
+          // container mid-scroll races with ScrollTrigger's DOM surgery.
+          visibility: ['video', 'globe', 'finale'].includes(activeChapter)
+            ? 'visible'
+            : 'hidden',
+        }}
+      >
+        <TexturedGlobe scrollData={scrollData} />
       </div>
 
       {/* LAYER 1.5: The White Flash Match-Cut Overlay */}
@@ -126,6 +126,7 @@ export default function ExperiencePage() {
            sequenceKeys={['scene1-3', 'transit-b', 'transit-c', 'transit-d']}
            startProgress={0}
            endProgress={0.5}
+           reportsProgress
          />
       </div>
 
@@ -163,6 +164,7 @@ export default function ExperiencePage() {
 
       </div>
 
-    </div>
+      </div>
+    </>
   );
 }

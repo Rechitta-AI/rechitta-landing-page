@@ -1,86 +1,208 @@
 'use client';
+
 import { useEffect, useRef } from 'react';
-import { createSequence } from '@/utils/FilmLoader';
-import { manageMemory } from '@/utils/MemoryManager';
-import manifest from '../../public/film/manifest.json';
+import { pickTier, proxyUrl, fullUrl } from '@/utils/videoTier';
+import { setLoadProgress } from '@/utils/loadProgress';
 
 interface ScrollFilmProps {
-  scrollData: React.MutableRefObject<{ progress: number }>;
+  scrollData: React.RefObject<{ progress: number }>;
   sequenceKeys: string[];
   startProgress: number;
   endProgress: number;
+  /** Whether this film's loading counts toward the loader's number. */
+  reportsProgress?: boolean;
 }
 
-export default function ScrollFilm({ scrollData, sequenceKeys, startProgress, endProgress }: ScrollFilmProps) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+/** How long the film takes to catch up to the scroll position, in seconds. */
+const CATCH_UP = 0.18;
+
+/** Don't re-seek for less than half a frame of difference. */
+const SEEK_EPSILON = 1 / 48;
+
+/** Fallback until a clip reports its real duration (24fps sources). */
+const ASSUMED_DURATION = 8;
+
+type Clip = {
+  proxy: HTMLVideoElement;
+  full: HTMLVideoElement;
+  duration: number;
+};
+
+function makeVideo(src: string): HTMLVideoElement {
+  const v = document.createElement('video');
+  v.src = src;
+  v.muted = true;
+  v.defaultMuted = true;
+  v.playsInline = true;
+  v.preload = 'auto';
+  v.setAttribute('aria-hidden', 'true');
+  Object.assign(v.style, {
+    position: 'absolute',
+    inset: '0',
+    width: '100%',
+    height: '100%',
+    objectFit: 'cover',
+    opacity: '0',
+  });
+  return v;
+}
+
+/** How much of a clip has arrived, 0–1. */
+function bufferedFraction(v: HTMLVideoElement): number {
+  if (!v.duration || !Number.isFinite(v.duration)) return 0;
+  let total = 0;
+  for (let i = 0; i < v.buffered.length; i++) {
+    total += v.buffered.end(i) - v.buffered.start(i);
+  }
+  return Math.min(1, total / v.duration);
+}
+
+export default function ScrollFilm({
+  scrollData,
+  sequenceKeys,
+  startProgress,
+  endProgress,
+  reportsProgress = false,
+}: ScrollFilmProps) {
+  const stageRef = useRef<HTMLDivElement>(null);
+
+  // Props are read inside a long-lived rAF loop; keep them current without
+  // tearing down the videos on every render.
+  const rangeRef = useRef({ startProgress, endProgress });
+  useEffect(() => {
+    rangeRef.current = { startProgress, endProgress };
+  }, [startProgress, endProgress]);
 
   useEffect(() => {
-    const canvas = canvasRef.current;
-    const ctx = canvas?.getContext('2d');
-    if (!canvas || !ctx) return;
+    const stage = stageRef.current;
+    if (!stage) return;
 
-    // Handle high DPI displays for crisp rendering
-    const dpr = window.devicePixelRatio || 1;
-    
-    const resize = () => {
-      canvas.width = window.innerWidth * dpr;
-      canvas.height = window.innerHeight * dpr;
-      ctx.scale(dpr, dpr);
+    const tier = pickTier();
+
+    // Built imperatively rather than through JSX: these nodes live inside the
+    // ScrollTrigger-pinned container, and letting React insert them mid-scroll
+    // races with GSAP's DOM surgery.
+    const clips: Clip[] = sequenceKeys.map((key) => {
+      const proxy = makeVideo(proxyUrl(key));
+      const full = makeVideo(fullUrl(key, tier));
+      stage.append(proxy, full);
+      return { proxy, full, duration: ASSUMED_DURATION };
+    });
+
+    const readDurations = () => {
+      clips.forEach((clip) => {
+        const d = clip.full.duration || clip.proxy.duration;
+        if (d && Number.isFinite(d)) clip.duration = d;
+      });
     };
-    resize();
-    window.addEventListener('resize', resize);
 
-    // 1. Initialize the sequence arrays and combine them dynamically
-    const sequence = sequenceKeys.flatMap(key => createSequence(manifest, key));
+    const onMeta = () => readDurations();
+    clips.forEach(({ proxy, full }) => {
+      proxy.addEventListener('loadedmetadata', onMeta);
+      full.addEventListener('loadedmetadata', onMeta);
+    });
 
-    // 2. The Central Render Loop (Runs 60fps)
-    let animationFrameId: number;
-    
-    // We keep track of the smoothed progress ourselves since ScrollTrigger is upstream
-    let currentProgress = scrollData.current.progress;
+    // The loader's number: the low-res proxy of the first clip gets the film
+    // moving, the full-quality version finishes the job.
+    let stopReporting = () => {};
+    if (reportsProgress && clips.length > 0) {
+      const first = clips[0];
+      const report = () => {
+        const value = 0.5 * bufferedFraction(first.proxy) + 0.5 * bufferedFraction(first.full);
+        setLoadProgress(value);
+      };
+      const events = ['progress', 'canplay', 'canplaythrough', 'loadeddata'] as const;
+      events.forEach((e) => {
+        first.proxy.addEventListener(e, report);
+        first.full.addEventListener(e, report);
+      });
+      const poll = window.setInterval(report, 250);
+      stopReporting = () => {
+        window.clearInterval(poll);
+        events.forEach((e) => {
+          first.proxy.removeEventListener(e, report);
+          first.full.removeEventListener(e, report);
+        });
+      };
+    }
 
-    const renderLoop = () => {
-      // Lerp the progress for smoothness (mimics GSAP quickTo)
-      const targetProgress = scrollData.current.progress;
-      currentProgress += (targetProgress - currentProgress) * 0.1;
+    let eased = scrollData.current?.progress ?? 0;
+    let lastTime = performance.now();
+    let frame: number;
+    let shown: HTMLVideoElement | null = null;
 
-      // The sequence finishes exactly at the defined endProgress
-      // Normalize progress within this component's active window
-      const range = endProgress - startProgress;
-      const localProgress = (currentProgress - startProgress) / range;
-      const videoProgress = Math.max(0, Math.min(localProgress, 1));
-      
-      const targetIndex = Math.max(0, Math.min(Math.round(videoProgress * (sequence.length - 1)), sequence.length - 1));
-      
-      // Run the memory manager
-      const activeFrame = manageMemory(sequence, targetIndex);
+    const seek = (v: HTMLVideoElement, time: number) => {
+      if (v.readyState < HTMLMediaElement.HAVE_METADATA) return;
+      const clamped = Math.max(0, Math.min(time, (v.duration || 0) - 0.001));
+      if (Math.abs(v.currentTime - clamped) < SEEK_EPSILON) return;
+      if (typeof v.fastSeek === 'function') v.fastSeek(clamped);
+      else v.currentTime = clamped;
+    };
 
-      if (activeFrame) {
-        // Draw the frame scaled to cover the screen
-        const scale = Math.max(window.innerWidth / activeFrame.naturalWidth, window.innerHeight / activeFrame.naturalHeight);
-        const w = activeFrame.naturalWidth * scale;
-        const h = activeFrame.naturalHeight * scale;
-        
-        ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
-        ctx.drawImage(activeFrame, (window.innerWidth - w) / 2, (window.innerHeight - h) / 2, w, h);
+    const render = (now: number) => {
+      const dt = Math.min((now - lastTime) / 1000, 0.1);
+      lastTime = now;
+
+      const { startProgress: from, endProgress: to } = rangeRef.current;
+      const target = scrollData.current?.progress ?? 0;
+      eased += (target - eased) * (1 - Math.exp(-dt / CATCH_UP));
+
+      const span = to - from || 1;
+      const local = Math.max(0, Math.min((eased - from) / span, 1));
+
+      // Walk the clips to find which one this moment belongs to.
+      const totalDuration = clips.reduce((sum, c) => sum + c.duration, 0);
+      let remaining = local * totalDuration;
+      let index = 0;
+      while (index < clips.length - 1 && remaining > clips[index].duration) {
+        remaining -= clips[index].duration;
+        index += 1;
       }
 
-      animationFrameId = requestAnimationFrame(renderLoop);
+      const clip = clips[index];
+      if (clip) {
+        // Prefer full quality; fall back to the proxy until it can render.
+        const full = clip.full;
+        const useFull = full.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA;
+        const active = useFull ? full : clip.proxy;
+
+        seek(active, remaining);
+        // Keep the proxy in step so the swap between them is invisible.
+        if (useFull) seek(clip.proxy, remaining);
+
+        if (active !== shown) {
+          if (shown) shown.style.opacity = '0';
+          active.style.opacity = '1';
+          shown = active;
+        }
+      }
+
+      frame = requestAnimationFrame(render);
     };
-    
-    renderLoop();
+    frame = requestAnimationFrame(render);
 
     return () => {
-      window.removeEventListener('resize', resize);
-      cancelAnimationFrame(animationFrameId);
+      cancelAnimationFrame(frame);
+      stopReporting();
+      clips.forEach(({ proxy, full }) => {
+        proxy.removeEventListener('loadedmetadata', onMeta);
+        full.removeEventListener('loadedmetadata', onMeta);
+        [proxy, full].forEach((v) => {
+          v.pause();
+          v.removeAttribute('src');
+          v.load();
+          v.remove();
+        });
+      });
     };
-  }, [scrollData]);
+    // sequenceKeys is a literal array in the parent; compare by contents.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scrollData, sequenceKeys.join('|'), reportsProgress]);
 
   return (
-    <canvas 
-      ref={canvasRef} 
-      className="absolute top-0 left-0 w-full h-full pointer-events-none" 
-      style={{ width: '100%', height: '100%' }}
+    <div
+      ref={stageRef}
+      className="absolute top-0 left-0 w-full h-full pointer-events-none overflow-hidden"
     />
   );
 }

@@ -90,8 +90,6 @@ export default function Loader({ onDone }: { onDone: () => void }) {
     };
   }, []);
 
-  if (gone) return null;
-
   const phase = PHASES.find((p) => shown < p.until) ?? PHASES[PHASES.length - 1];
   const percent = String(Math.round(shown * 100)).padStart(3, '0');
 
@@ -99,6 +97,7 @@ export default function Loader({ onDone }: { onDone: () => void }) {
     <div
       ref={shellRef}
       className={styles.shell}
+      style={gone ? { display: 'none' } : undefined}
       role="progressbar"
       aria-label="Loading the Rechitta film"
       aria-valuemin={0}
