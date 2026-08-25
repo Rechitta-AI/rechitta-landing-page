@@ -1,10 +1,10 @@
 export function manageMemory(imgs: HTMLImageElement[], currentIndex: number) {
-  // 1. Keep a window of 40 frames loaded in memory
+  // 1. Keep a heavily restricted window of 10 frames loaded in memory to prevent Vercel/Netlify network throttling
   for (let i = 0; i < imgs.length; i++) {
     const img = imgs[i];
     const distance = Math.abs(i - currentIndex);
     
-    if (distance <= 40) {
+    if (distance <= 10) {
       // Load it if it's not loaded
       if (!img.getAttribute('src') && img.dataset.url) {
         img.setAttribute('src', img.dataset.url);

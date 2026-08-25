@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Marcellus, Sora } from "next/font/google";
+import SmoothScroller from "@/components/SmoothScroller";
 import "./globals.css";
 
 const marcellus = Marcellus({
@@ -25,7 +26,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       lang="en"
       className={`${marcellus.variable} ${sora.variable} antialiased`}
     >
-      <body>{children}</body>
+      <body>
+        <SmoothScroller>
+          {children}
+        </SmoothScroller>
+      </body>
     </html>
   );
 }
