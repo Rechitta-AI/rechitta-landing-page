@@ -14,13 +14,14 @@ export default function AppHeader() {
       
       {/* Logo Area */}
       <div className="flex items-center gap-3">
-        {/* We can use a text logo or real SVG here. Using text styled beautifully for now */}
-        <span 
-          className="text-xl tracking-widest text-white uppercase font-light drop-shadow-md" 
-          style={{ fontFamily: 'var(--font-marcellus)' }}
-        >
-          Rechitta
-        </span>
+        <Image 
+          src="/brand/rechitta-wordmark.svg" 
+          alt="Rechitta" 
+          width={146} 
+          height={22} 
+          className="w-auto h-5 md:h-6 drop-shadow-md"
+          priority
+        />
       </div>
 
       {/* Try Demo Button */}
