@@ -38,23 +38,48 @@ export default function TheOrb({ innerFilter }: TheOrbProps) {
         app.setZoom(0.9);
 
         // Force transparent background using the hacks from ScrollFilm.client.vue
+        // Wrapped in a polling loop to guarantee it works on slower Vercel production networks!
         const forceTransparent = () => {
-          try {
-            // @ts-ignore - accessing internal Spline properties
-            const pg = app._scene?.activePage;
-            if (pg?.bgColor) pg.bgColor.a = 0;
-          } catch {}
+          let attempts = 0;
+          const interval = setInterval(() => {
+            attempts++;
+            if (!isMounted || attempts > 100) {
+              clearInterval(interval); // Give up after 10 seconds
+              return;
+            }
+            try {
+              // @ts-ignore - accessing internal Spline properties
+              const pg = app._scene?.activePage;
+              if (pg && pg.bgColor) {
+                pg.bgColor.a = 0;
+                clearInterval(interval); // Success!
+              }
+            } catch {}
+          }, 100);
         };
         forceTransparent();
 
-        try {
-          // @ts-ignore
-          const orig = app._renderer?.setClearColor?.bind(app._renderer);
-          if (orig) {
-            // @ts-ignore
-            app._renderer.setClearColor = (color: any, _a: number) => orig(color, 0);
-          }
-        } catch {}
+        const patchRenderer = () => {
+          let attempts = 0;
+          const interval = setInterval(() => {
+            attempts++;
+            if (!isMounted || attempts > 100) {
+              clearInterval(interval);
+              return;
+            }
+            try {
+              // @ts-ignore
+              if (app._renderer && app._renderer.setClearColor) {
+                // @ts-ignore
+                const orig = app._renderer.setClearColor.bind(app._renderer);
+                // @ts-ignore
+                app._renderer.setClearColor = (color: any, _a: number) => orig(color, 0);
+                clearInterval(interval); // Success!
+              }
+            } catch {}
+          }, 100);
+        };
+        patchRenderer();
         
         app.play();
         
