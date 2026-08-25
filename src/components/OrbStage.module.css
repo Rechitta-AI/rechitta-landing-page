@@ -9,11 +9,8 @@
   align-items: center;
   justify-content: center;
   pointer-events: none;
-  mix-blend-mode: screen;
 }
 
 .holder {
-  width: clamp(60px, 4vw, 90px);
-  aspect-ratio: 1;
   will-change: transform, opacity;
 }

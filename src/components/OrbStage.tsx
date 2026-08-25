@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import TheOrb from './TheOrb';
+import SplineOrb from './SplineOrb';
 import { multiMap } from '@/utils/multiMap';
 import styles from './OrbStage.module.css';
 
@@ -94,7 +94,7 @@ export default function OrbStage({
   return (
     <div ref={stageRef} className={styles.stage} aria-hidden="true">
       <div ref={holderRef} className={styles.holder}>
-        <TheOrb />
+        <SplineOrb />
       </div>
     </div>
   );
