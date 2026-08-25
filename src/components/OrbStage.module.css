@@ -1,3 +1,7 @@
+/* mix-blend-mode and z-index must sit on the SAME element. Any wrapper that
+   carries a z-index of its own forms a stacking context, which isolates the
+   blend — the orb then composites against an empty layer and the Spline
+   scene's black background shows as a solid blob over the film. */
 .stage {
   position: fixed;
   inset: 0;
@@ -5,6 +9,7 @@
   align-items: center;
   justify-content: center;
   pointer-events: none;
+  mix-blend-mode: screen;
 }
 
 .holder {

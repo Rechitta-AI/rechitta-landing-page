@@ -97,9 +97,10 @@ export default function OrbStage({
         holderRef.current.style.opacity = String(opacity);
       }
 
-      /* Slide under the finale content once the drift begins */
+      /* Above both film layers, below the HUD. Keeps v1's relative ordering:
+         the orb slides up a step once the drift begins. */
       if (stageRef.current) {
-        stageRef.current.style.zIndex = tv >= DRIFT_START ? '4' : '2';
+        stageRef.current.style.zIndex = tv >= DRIFT_START ? '27' : '25';
       }
 
       /* v1: greyscale at top, full colour by t=0.20 */

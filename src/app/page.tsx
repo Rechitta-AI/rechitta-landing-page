@@ -143,9 +143,7 @@ export default function ExperiencePage() {
       </div>
 
       {/* LAYER 3.5: The Spline orb, blending over the film */}
-      <div className="absolute inset-0 z-[25] pointer-events-none">
-        <OrbStage scrollData={scrollData} />
-      </div>
+      <OrbStage scrollData={scrollData} />
 
       {/* LAYER 4: Framer Motion HUD / UI */}
       <div className="absolute inset-0 z-[30] pointer-events-none">
