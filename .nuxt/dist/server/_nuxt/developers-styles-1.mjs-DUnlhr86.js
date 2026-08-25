@@ -1,0 +1,5 @@
+const SectionDeveloper_vue_vue_type_style_index_0_scoped_e5d20b7d_inline_used_lang = ".developer[data-v-e5d20b7d]{align-items:center;display:grid;gap:64px;grid-template-columns:1fr 1fr}.developer h2[data-v-e5d20b7d]{font-size:clamp(34px,4.5vw,56px);margin:18px 0 16px}.body[data-v-e5d20b7d]{color:var(--text-secondary);line-height:1.65;max-width:440px}.lead-form[data-v-e5d20b7d]{background:#fafaf905;border:1px solid hsla(60,9%,98%,.1);border-radius:18px;display:flex;flex-direction:column;gap:18px;padding:32px}.lead-form .btn[data-v-e5d20b7d]{justify-content:center;margin-top:6px}.form-error[data-v-e5d20b7d]{color:#e57373;font-size:13px}.lead-done[data-v-e5d20b7d]{text-align:center}.lead-done .display[data-v-e5d20b7d]{font-size:34px;margin-bottom:10px}@media(max-width:860px){.developer[data-v-e5d20b7d]{gap:40px;grid-template-columns:1fr}}";
+export {
+  SectionDeveloper_vue_vue_type_style_index_0_scoped_e5d20b7d_inline_used_lang as default
+};
+//# sourceMappingURL=developers-styles-1.mjs-DUnlhr86.js.map

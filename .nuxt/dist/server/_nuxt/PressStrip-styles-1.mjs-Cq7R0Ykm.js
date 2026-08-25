@@ -1,0 +1,5 @@
+const PressStrip_vue_vue_type_style_index_0_scoped_b1d887d0_inline_used_lang = ".press[data-v-b1d887d0]{border-bottom:1px solid hsla(60,9%,98%,.06);border-top:1px solid hsla(60,9%,98%,.06);padding:36px 24px 56px;text-align:center}.kicker[data-v-b1d887d0]{color:var(--text-dim);font-size:12px;letter-spacing:.18em;margin-bottom:22px;text-transform:uppercase}.outlets[data-v-b1d887d0]{color:var(--text-secondary);display:flex;flex-wrap:wrap;font-family:var(--font-display);font-size:19px;gap:18px 40px;justify-content:center;list-style:none}";
+export {
+  PressStrip_vue_vue_type_style_index_0_scoped_b1d887d0_inline_used_lang as default
+};
+//# sourceMappingURL=PressStrip-styles-1.mjs-Cq7R0Ykm.js.map
