@@ -7,6 +7,7 @@ import TexturedGlobe from '@/components/TexturedGlobe';
 import Loader from '@/components/Loader';
 import ScrollRail from '@/components/ScrollRail';
 import Cursor from '@/components/Cursor';
+import OrbStage from '@/components/OrbStage';
 import { setLoadProgress } from '@/utils/loadProgress';
 
 gsap.registerPlugin(ScrollTrigger);
@@ -24,19 +25,6 @@ export default function ExperiencePage() {
   const [activeChapter, setActiveChapter] = useState('hero');
   const [ready, setReady] = useState(false);
   const scrollData = useRef({ progress: 0 });
-
-  // Math helper for scroll interpolation
-  const multiMap = (val: number, stopsX: number[], stopsY: number[]) => {
-    if (val <= stopsX[0]) return stopsY[0];
-    if (val >= stopsX[stopsX.length - 1]) return stopsY[stopsY.length - 1];
-    for (let i = 0; i < stopsX.length - 1; i++) {
-      if (val >= stopsX[i] && val <= stopsX[i + 1]) {
-        const p = (val - stopsX[i]) / (stopsX[i + 1] - stopsX[i]);
-        return stopsY[i] + p * (stopsY[i + 1] - stopsY[i]);
-      }
-    }
-    return 0;
-  };
 
   useEffect(() => {
     // Coarse signal for now: the page's own assets are in. The film player
@@ -152,6 +140,11 @@ export default function ExperiencePage() {
            startProgress={0.85}
            endProgress={1.0}
          />
+      </div>
+
+      {/* LAYER 3.5: The Spline orb, blending over the film */}
+      <div className="absolute inset-0 z-[25] pointer-events-none">
+        <OrbStage scrollData={scrollData} />
       </div>
 
       {/* LAYER 4: Framer Motion HUD / UI */}
