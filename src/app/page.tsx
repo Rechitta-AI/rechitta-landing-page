@@ -156,7 +156,7 @@ export default function ExperiencePage() {
                 : 'hidden',
             }}
           >
-            <TexturedGlobe scrollData={scrollData} />
+            {/* <TexturedGlobe scrollData={scrollData} /> */}
           </div>
 
           {/* LAYER 2: The Intro 4K Video Sequence */}
