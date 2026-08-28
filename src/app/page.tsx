@@ -3,6 +3,7 @@ import { useRef, useState, useEffect } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import ScrollFilm from '@/components/ScrollFilm';
+import BoardroomPresentation from '@/components/BoardroomPresentation';
 import TexturedGlobe from '@/components/TexturedGlobe';
 import Loader from '@/components/Loader';
 import ScrollRail from '@/components/ScrollRail';
@@ -24,17 +25,37 @@ export default function ExperiencePage() {
   
   const [activeChapter, setActiveChapter] = useState('hero');
   const currentChapterRef = useRef('hero');
-  const [ready, setReady] = useState(false);
+  
+  // Cinematic Intro Choreography
+  const [introPhase, setIntroPhase] = useState<'loading' | 'moving' | 'revealing' | 'done'>('loading');
+  const [orbReady, setOrbReady] = useState(false);
+  const revealTextRef = useRef<HTMLDivElement>(null);
 
-  // Lenis inertia, paused until the loader clears.
-  useSmoothScroll(ready);
+  // Lenis inertia, paused until the intro sequence completely finishes.
+  useSmoothScroll(introPhase === 'done');
   const scrollData = useRef({ progress: 0 });
+  const holdData = useRef({ clipIndex: -1, progress: 0 });
 
   useEffect(() => {
-    // Nothing should scroll while the loader is up — the film isn't there yet.
-    document.documentElement.style.overflow = ready ? '' : 'hidden';
-    if (ready) ScrollTrigger.refresh();
-  }, [ready]);
+    // Nothing should scroll while the cinematic intro is playing.
+    document.documentElement.style.overflow = introPhase === 'done' ? '' : 'hidden';
+    if (introPhase === 'done') ScrollTrigger.refresh();
+  }, [introPhase]);
+
+  // Handle the text reveal phase
+  useEffect(() => {
+    if (introPhase === 'revealing' && revealTextRef.current) {
+      gsap.to(revealTextRef.current, {
+        clipPath: 'inset(0 0% 0 0)',
+        opacity: 1,
+        x: 0,
+        filter: 'blur(0px)',
+        duration: 1.5,
+        ease: 'power3.inOut',
+        onComplete: () => setIntroPhase('done')
+      });
+    }
+  }, [introPhase]);
 
   useEffect(() => {
     const ctx = gsap.context(() => {
@@ -96,79 +117,127 @@ export default function ExperiencePage() {
 
   return (
     <>
-      {/* Overlays live outside the pinned container: ScrollTrigger wraps that
-          container in a pin-spacer, and React mutating nodes inside it while
-          GSAP restructures the DOM throws insertBefore errors. */}
       <Cursor />
-      <Loader onDone={() => setReady(true)} />
-      <ScrollRail scrollData={scrollData} />
+      
+      {/* 
+        The loader now acts purely as the circular progress ring. 
+        When it finishes loading the videos AND the 3D Orb is ready, it moves on.
+      */}
+      {introPhase === 'loading' && (
+        <Loader onDone={() => setIntroPhase('moving')} orbReady={orbReady} />
+      )}
 
-      <div ref={containerRef} className="h-screen w-full relative bg-[#070A10]">
-
-      {/* LAYER 1: The Background Globe */}
-      <div
-        className="absolute inset-0 z-0 flex items-center justify-center"
-        style={{
-          // Hidden rather than unmounted: mounting a node inside the pinned
-          // container mid-scroll races with ScrollTrigger's DOM surgery.
-          visibility: ['video', 'globe', 'finale'].includes(activeChapter)
-            ? 'visible'
-            : 'hidden',
-        }}
+      {/* LAYER 1: Scroll Rail UI */}
+      <div 
+        className="fixed left-0 top-0 bottom-0 z-50 pointer-events-none transition-opacity duration-1000"
+        style={{ opacity: introPhase === 'done' ? 1 : 0 }}
       >
-        <TexturedGlobe scrollData={scrollData} />
+        <ScrollRail scrollData={scrollData} />
       </div>
 
-      {/* LAYER 1.5: The White Flash Match-Cut Overlay */}
-      <div ref={whiteFlashRef} className="absolute inset-0 z-[5] w-full h-full bg-white opacity-0 pointer-events-none" />
-
-      {/* LAYER 2: The Intro 4K Video Sequence */}
-      <div ref={filmContainerRef} className="absolute inset-0 z-10 w-full h-full">
-         <ScrollFilm 
-           scrollData={scrollData} 
-           sequenceKeys={['scene1-3', 'transit-b', 'transit-c', 'transit-d']}
-           startProgress={0}
-           endProgress={0.5}
-           reportsProgress
-           priority
-         />
-      </div>
-
-      {/* LAYER 2.5: The Finale White Flash */}
-      <div ref={finaleWhiteFlashRef} className="absolute inset-0 z-[15] w-full h-full bg-white opacity-0 pointer-events-none" />
-
-      {/* LAYER 3: The Finale Video Sequence */}
-      <div ref={finaleFilmContainerRef} className="absolute inset-0 z-20 w-full h-full">
-         <ScrollFilm 
-           scrollData={scrollData} 
-           sequenceKeys={['transit-e']}
-           startProgress={0.85}
-           endProgress={1.0}
-         />
-      </div>
-
-      {/* LAYER 3.5: The Spline orb, blending over the film */}
-      <OrbStage scrollData={scrollData} />
-
-      {/* LAYER 4: Framer Motion HUD / UI */}
-      <div className="absolute inset-0 z-[30] pointer-events-none">
+      <div ref={containerRef} className="relative w-full h-screen bg-[#070A10] overflow-hidden">
         
-        {/* The Hero Content */}
-        <div 
-          ref={heroRef} 
-          className="absolute inset-0 flex flex-col items-center justify-center text-center px-4 pt-16"
-        >
-          <h1 className="text-5xl md:text-[6rem] leading-none text-white tracking-tight" style={{ fontFamily: 'var(--font-marcellus)' }}>
-            One source of truth.
-          </h1>
-          <p className="mt-6 text-lg md:text-xl text-gray-300 max-w-3xl leading-relaxed" style={{ fontFamily: 'var(--font-sora)' }}>
-            Live developer inventory, translated into conversation — so every broker and every buyer speaks the same language.
-          </p>
+        {/* The White Flash overlays for smooth transitions */}
+        <div ref={whiteFlashRef} className="absolute inset-0 z-[15] w-full h-full bg-white opacity-0 pointer-events-none" />
+        <div ref={finaleWhiteFlashRef} className="absolute inset-0 z-[15] w-full h-full bg-white opacity-0 pointer-events-none" />
+
+        {/* 
+          Keep videos invisible during both 'loading' and 'moving' phases so the glowing 
+          Orb can shine against the pure dark background while it glides. It will fade in when it lands.
+        */}
+        <div className="absolute inset-0 w-full h-full" style={{ opacity: (introPhase === 'loading' || introPhase === 'moving') ? 0 : 1, transition: 'opacity 1s ease-in-out' }}>
+          
+          {/* LAYER 1: The Background Globe */}
+          <div
+            className="absolute inset-0 z-0 flex items-center justify-center"
+            style={{
+              visibility: ['video', 'globe', 'finale'].includes(activeChapter)
+                ? 'visible'
+                : 'hidden',
+            }}
+          >
+            <TexturedGlobe scrollData={scrollData} />
+          </div>
+
+          {/* LAYER 2: The Intro 4K Video Sequence */}
+          <div ref={filmContainerRef} className="absolute inset-0 z-10 w-full h-full">
+             
+             {/* The Scroll-Locked UI Overlay */}
+             <BoardroomPresentation holdData={holdData} />
+
+             <ScrollFilm 
+               scrollData={scrollData} 
+               holdData={holdData}
+               sequenceKeys={[
+                 { key: 'scene1-3', in: 2, out: 11, holdWeight: 8 }, // Holds here for 8 durations of video to slow down presentation scroll!
+                 { key: 'transit-b', in: 2 },
+                 'transit-c',
+                 'transit-d'
+               ]}
+               startProgress={0}
+               endProgress={0.5}
+               reportsProgress
+               priority
+             />
+          </div>
+
+          {/* LAYER 3: The Finale Video Sequence */}
+          <div ref={finaleFilmContainerRef} className="absolute inset-0 z-20 w-full h-full">
+             <ScrollFilm 
+               scrollData={scrollData} 
+               sequenceKeys={['transit-e']}
+               startProgress={0.85}
+               endProgress={1.0}
+             />
+          </div>
+        </div>
+
+        <div className="absolute inset-0 z-[30] pointer-events-none">
+          
+          {/* The Hero Content */}
+          <div 
+            ref={heroRef} 
+            className="absolute inset-0 flex flex-col items-center justify-center text-center px-4 pt-16"
+          >
+            <div 
+              ref={revealTextRef} 
+              style={{ 
+                clipPath: 'inset(0 100% 0 0)', 
+                opacity: 0, 
+                filter: 'blur(10px)', 
+                transform: 'translateX(-20px)' 
+              }}
+            >
+              <h1 className="text-5xl md:text-[6rem] leading-none text-white tracking-tight flex items-center justify-center" style={{ fontFamily: 'var(--font-marcellus)' }}>
+                {/* Invisible anchor for the Orb to land on */}
+                <span id="hero-o-anchor" className="invisible">O</span>
+                ne source of truth.
+              </h1>
+            </div>
+            <p 
+              className="mt-6 text-lg md:text-xl text-gray-300 max-w-3xl leading-relaxed transition-all duration-1000" 
+              style={{ 
+                fontFamily: 'var(--font-sora)',
+                opacity: introPhase === 'done' ? 1 : 0,
+                transform: introPhase === 'done' ? 'translateY(0)' : 'translateY(20px)'
+              }}
+            >
+              Live developer inventory, translated into conversation — so every broker and every buyer speaks the same language.
+            </p>
+          </div>
+
         </div>
 
       </div>
 
-      </div>
+      {/* LAYER 3.5: The Spline orb, blending over the film */}
+      {/* Moved OUTSIDE containerRef to prevent ScrollTrigger DOM-surgery from reloading the iframe! */}
+      <OrbStage 
+        scrollData={scrollData} 
+        introPhase={introPhase}
+        onOrbLanded={() => setIntroPhase('revealing')}
+        onOrbLoaded={() => setOrbReady(true)}
+      />
     </>
   );
 }

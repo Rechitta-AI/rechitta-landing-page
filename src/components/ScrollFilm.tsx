@@ -4,11 +4,14 @@ import { useEffect, useRef } from 'react';
 import { pickTier, proxyUrl, fullUrl } from '@/utils/videoTier';
 import { setLoadProgress } from '@/utils/loadProgress';
 
+export type SequenceClip = string | { key: string; in?: number; out?: number; holdWeight?: number };
+
 interface ScrollFilmProps {
   scrollData: React.RefObject<{ progress: number }>;
-  sequenceKeys: string[];
+  sequenceKeys: SequenceClip[];
   startProgress: number;
   endProgress: number;
+  holdData?: React.RefObject<{ clipIndex: number; progress: number }>;
   /** Whether this film's loading counts toward the loader's number. */
   reportsProgress?: boolean;
   /** The film the visitor lands on. Its first clip loads immediately; every
@@ -28,7 +31,10 @@ const ASSUMED_DURATION = 8;
 type Clip = {
   proxy: HTMLVideoElement;
   full: HTMLVideoElement;
-  duration: number;
+  duration: number; // Playable duration (trimOut - trimIn)
+  trimIn: number;
+  trimOut: number;
+  holdWeight: number;
 };
 
 function makeVideo(src: string): HTMLVideoElement {
@@ -68,6 +74,7 @@ export default function ScrollFilm({
   sequenceKeys,
   startProgress,
   endProgress,
+  holdData,
   reportsProgress = false,
   priority = false,
 }: ScrollFilmProps) {
@@ -89,11 +96,19 @@ export default function ScrollFilm({
     // Built imperatively rather than through JSX: these nodes live inside the
     // ScrollTrigger-pinned container, and letting React insert them mid-scroll
     // races with GSAP's DOM surgery.
-    const clips: Clip[] = sequenceKeys.map((key) => {
+    const clips: Clip[] = sequenceKeys.map((item) => {
+      const key = typeof item === 'string' ? item : item.key;
       const proxy = makeVideo(proxyUrl(key));
       const full = makeVideo(fullUrl(key, tier));
       stage.append(proxy, full);
-      return { proxy, full, duration: ASSUMED_DURATION };
+      return { 
+        proxy, 
+        full, 
+        duration: ASSUMED_DURATION,
+        trimIn: 0,
+        trimOut: ASSUMED_DURATION,
+        holdWeight: 0
+      };
     });
 
     const promote = (v: HTMLVideoElement) => {
@@ -137,9 +152,22 @@ export default function ScrollFilm({
     }
 
     const readDurations = () => {
-      clips.forEach((clip) => {
+      clips.forEach((clip, i) => {
         const d = clip.full.duration || clip.proxy.duration;
-        if (d && Number.isFinite(d)) clip.duration = d;
+        if (d && Number.isFinite(d)) {
+          const conf = sequenceKeys[i];
+          const trimIn = (typeof conf === 'object' && conf.in !== undefined) ? conf.in : 0;
+          let trimOut = (typeof conf === 'object' && conf.out !== undefined) ? conf.out : d;
+          const holdWeight = (typeof conf === 'object' && conf.holdWeight !== undefined) ? conf.holdWeight : 0;
+          
+          // clamp trimOut to actual video duration just in case
+          trimOut = Math.min(trimOut, d);
+          
+          clip.trimIn = trimIn;
+          clip.trimOut = trimOut;
+          clip.holdWeight = holdWeight;
+          clip.duration = Math.max(0.1, trimOut - trimIn); // Prevent 0 duration
+        }
       });
     };
 
@@ -228,18 +256,55 @@ export default function ScrollFilm({
       }
 
       // Walk the clips to find which one this moment belongs to.
-      const totalDuration = clips.reduce((sum, c) => sum + c.duration, 0);
+      let totalDuration = 0;
+      clips.forEach((c) => {
+        totalDuration += c.duration + c.holdWeight;
+      });
+
       let remaining = local * totalDuration;
-      let index = 0;
-      while (index < clips.length - 1 && remaining > clips[index].duration) {
-        remaining -= clips[index].duration;
-        index += 1;
+      let activeIndex = 0;
+      let isHolding = false;
+      let holdProgress = 0;
+
+      for (let i = 0; i < clips.length; i++) {
+        const c = clips[i];
+        
+        // 1. Check if we fall within the playable video duration of this clip
+        if (remaining < c.duration) {
+          activeIndex = i;
+          break;
+        }
+        remaining -= c.duration;
+        
+        // 2. Check if we fall within the HOLD duration of this clip
+        if (c.holdWeight > 0) {
+          if (remaining <= c.holdWeight) {
+            activeIndex = i;
+            isHolding = true;
+            holdProgress = remaining / c.holdWeight; // 0.0 to 1.0 progress inside the hold window
+            // Park the video at the end of its playable duration!
+            remaining = c.duration; 
+            break;
+          }
+          remaining -= c.holdWeight;
+        }
+
+        if (i === clips.length - 1) {
+          activeIndex = i;
+          remaining = c.duration; // Clamp to very end
+        }
       }
 
-      // The proxies are small, and one of them is what covers a chapter change
-      // before its 4K version lands. On the landing film they wait until the
-      // first 4K clip can render, so nothing competes with it; a film reached
-      // later pulls them the moment it comes into range.
+      // 3. Expose the hold state to the parent via Ref for performant UI tracking
+      if (holdData?.current) {
+        holdData.current.clipIndex = isHolding ? activeIndex : -1;
+        holdData.current.progress = isHolding ? holdProgress : 0;
+      }
+
+      // Hide all other videos, show only the active one. The proxies are small, and one
+      // of them is what covers a chapter change before its 4K version lands.
+      // On the landing film they wait until the first 4K clip can render, so nothing 
+      // competes with it; a film reached later pulls them the moment it comes into range.
       const proxiesDue = priority
         ? clips[0]?.full.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA
         : true;
@@ -250,10 +315,10 @@ export default function ScrollFilm({
 
       // Full quality is fetched for the clip in view and the one after it.
       for (let i = 0; i < clips.length; i++) {
-        if (i === index || i === index + 1) promote(clips[i].full);
+        if (i === activeIndex || i === activeIndex + 1) promote(clips[i].full);
       }
 
-      const clip = clips[index];
+      const clip = clips[activeIndex];
       if (clip) {
         // Prefer full quality; fall back to the proxy until it can render.
         const full = clip.full;
@@ -262,7 +327,7 @@ export default function ScrollFilm({
 
         // Only the visible element is seeked. Driving both was decoding every
         // frame twice — at 4K that is the difference between smooth and not.
-        seek(active, remaining);
+        seek(active, clip.trimIn + remaining);
 
         // Swapping mid-seek would flash whatever frame the incoming element
         // happens to be parked on, so wait until it has landed.
@@ -293,7 +358,7 @@ export default function ScrollFilm({
     };
     // sequenceKeys is a literal array in the parent; compare by contents.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scrollData, sequenceKeys.join('|'), reportsProgress, priority]);
+  }, [scrollData, JSON.stringify(sequenceKeys), reportsProgress, priority]);
 
   return (
     <div

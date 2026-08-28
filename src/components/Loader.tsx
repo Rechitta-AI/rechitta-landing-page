@@ -14,10 +14,10 @@ const PHASES = [
   { until: 1.01, label: 'Establishing the source of truth' },
 ];
 
-export default function Loader({ onDone }: { onDone: () => void }) {
+export default function Loader({ onDone, orbReady = true }: { onDone: () => void, orbReady?: boolean }) {
   const shellRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
-  const fillRef = useRef<HTMLDivElement>(null);
+  const fillRef = useRef<SVGCircleElement>(null);
 
   const [shown, setShown] = useState(0);
   const [gone, setGone] = useState(false);
@@ -27,6 +27,12 @@ export default function Loader({ onDone }: { onDone: () => void }) {
   useEffect(() => {
     onDoneRef.current = onDone;
   }, [onDone]);
+
+  // Keep latest orbReady value to prevent stale closures in the tick loop
+  const orbReadyRef = useRef(orbReady);
+  useEffect(() => {
+    orbReadyRef.current = orbReady;
+  }, [orbReady]);
 
   useEffect(() => {
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -58,28 +64,32 @@ export default function Loader({ onDone }: { onDone: () => void }) {
         return;
       }
 
-      gsap
-        .timeline({
-          delay: 0.35,
-          onComplete: () => {
-            setGone(true);
-            onDoneRef.current();
-          },
-        })
-        .to(panelRef.current, { opacity: 0, y: -14, duration: 0.5, ease: 'power2.in' })
-        .to(shellRef.current, { opacity: 0, duration: 0.7, ease: 'power2.inOut' }, '-=0.15');
+      // Smoothly fade out the loader ring, then fire onDone so the cinematic hero reveal can begin
+      gsap.to(shellRef.current, { 
+        opacity: 0, 
+        duration: 1, 
+        ease: 'power2.inOut',
+        onComplete: () => {
+          setGone(true);
+          onDoneRef.current();
+        }
+      });
     };
 
     const tick = () => {
-      // Chase the real number rather than snapping to it, so the counter
-      // always reads as motion even when a large file lands at once.
+      // Chase the real number rather than snapping to it
       eased += (actual - eased) * (reduced ? 1 : 0.08);
       if (actual - eased < 0.001) eased = actual;
 
       setShown(eased);
-      if (fillRef.current) fillRef.current.style.transform = `scaleX(${eased})`;
+      
+      // Update SVG circle stroke-dashoffset (circumference = 282.743)
+      if (fillRef.current) {
+        const offset = 282.743 * (1 - eased);
+        fillRef.current.style.strokeDashoffset = String(offset);
+      }
 
-      if (eased >= 0.999) {
+      if (eased >= 0.999 && orbReadyRef.current) {
         finish();
         return;
       }
@@ -109,13 +119,16 @@ export default function Loader({ onDone }: { onDone: () => void }) {
       aria-valuenow={Math.round(shown * 100)}
     >
       <div ref={panelRef} className={styles.panel}>
-        <p className={styles.wordmark}>RECHITTA</p>
-        <div className={styles.rule}>
-          <div ref={fillRef} className={styles.fill} />
-        </div>
+        
+        {/* Massive Glowing Cyan SVG Ring */}
+        <svg viewBox="0 0 100 100" className={styles.ringSvg}>
+          <circle cx="50" cy="50" r="45" className={styles.track} />
+          <circle ref={fillRef} cx="50" cy="50" r="45" className={styles.fill} />
+        </svg>
+
         <div className={styles.readout}>
           <span className={styles.phase}>{phase.label}</span>
-          <span className={styles.count}>{percent}</span>
+          <span className={styles.count}>{percent}%</span>
         </div>
       </div>
     </div>
