@@ -42,4 +42,11 @@ next-env.d.ts
 
 # Audio
 *.ogg
-public/upscaled-ones/master-sequence.mp4
+
+# Unused / Backup Public Assets
+public/upscaled-ones/
+public/film/video/backup/
+public/film/places/backup/
+public/demo-cities/
+public/textures/
+public/globe_stitch_frame.png
