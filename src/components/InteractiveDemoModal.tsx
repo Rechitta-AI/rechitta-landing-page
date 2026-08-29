@@ -67,7 +67,7 @@ export default function InteractiveDemoModal() {
                       >
                         <span 
                           className="text-2xl text-white/90 tracking-[0.2em] uppercase font-light drop-shadow-[0_0_15px_rgba(255,255,255,0.2)] animate-pulse" 
-                          style={{ fontFamily: 'var(--font-marcellus)' }}
+                          style={{ fontFamily: 'var(--font-monument)' }}
                         >
                           Rechitta
                         </span>
@@ -80,7 +80,7 @@ export default function InteractiveDemoModal() {
                               transition={{ repeat: Infinity, duration: 1.5, ease: 'linear' }}
                             />
                           </div>
-                          <span className="text-[10px] text-white/40 uppercase tracking-widest" style={{ fontFamily: 'var(--font-sora)' }}>
+                          <span className="text-[10px] text-white/40 uppercase tracking-widest" style={{ fontFamily: 'var(--font-space-mono)' }}>
                             Initializing Experience...
                           </span>
                         </div>

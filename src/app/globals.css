@@ -12,8 +12,8 @@
 }
 
 @theme inline {
-  --font-display: var(--font-marcellus);
-  --font-body: var(--font-sora);
+  --font-display: var(--font-monument);
+  --font-body: var(--font-space-mono);
   --color-ink: var(--ink);
   --color-bone: var(--bone);
   --color-amber: var(--amber);
@@ -25,7 +25,7 @@ body {
   padding: 0;
   background: var(--ink);
   color: var(--bone);
-  font-family: var(--font-sora), system-ui, sans-serif;
+  font-family: var(--font-space-mono), system-ui, sans-serif;
   overflow-x: hidden;
   
   /* Permanently hide scrollbars to keep a cinematic feel */

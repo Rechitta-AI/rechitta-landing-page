@@ -22,9 +22,11 @@ export default function ExperiencePage() {
 
   const multilingualContainerRef = useRef<HTMLDivElement>(null);
   const cityBgRef = useRef<HTMLDivElement>(null);
+  const whiteFlashRef = useRef<HTMLDivElement>(null);
   const handTrackerRef = useRef<HTMLDivElement>(null);
   const matchCutTl = useRef<gsap.core.Timeline | null>(null);
   const handSlidRef = useRef(false);
+  const heroExitedRef = useRef(false);
 
   const heroRef = useRef<HTMLDivElement>(null);
 
@@ -66,15 +68,25 @@ export default function ExperiencePage() {
   // Handle the text reveal phase
   useEffect(() => {
     if (introPhase === 'revealing' && revealTextRef.current) {
-      gsap.to(revealTextRef.current, {
+      const tl = gsap.timeline({ onComplete: () => setIntroPhase('done') });
+      
+      tl.to(revealTextRef.current, {
         clipPath: 'inset(0 0% 0 0)',
         opacity: 1,
         x: 0,
         filter: 'blur(0px)',
         duration: 1.5,
         ease: 'power3.inOut',
-        onComplete: () => setIntroPhase('done')
-      });
+      }, 0);
+
+      // Staggered reveal for the subheading words! Starts 0.5s into the main heading reveal.
+      tl.to('.subheading-word', {
+        opacity: 1,
+        y: 0,
+        duration: 0.8,
+        stagger: 0.035,
+        ease: 'power3.out'
+      }, 0.5);
     }
   }, [introPhase]);
 
@@ -92,7 +104,7 @@ export default function ExperiencePage() {
 
           // 3. Cinematic Chapter Transitions
           const oldChapter = currentChapterRef.current;
-          const newChapter = self.progress < 0.5 ? 'video' : self.progress < 0.85 ? 'globe' : 'finale';
+          const newChapter = self.progress < 0.5 ? 'video' : self.progress < 0.95 ? 'globe' : 'finale';
 
           // MANUAL SCRUBBER: Bind the Match Cut to the scrollbar (0.50 to 0.60)
           if (matchCutTl.current) {
@@ -112,7 +124,7 @@ export default function ExperiencePage() {
           if (p > 0.60 && !handSlidRef.current) {
             handSlidRef.current = true;
             // Overwrite: true ensures it smoothly reverses course if the user quickly scrolls back and forth!
-            gsap.to(handTrackerRef.current, { x: '-25%', y: '1%', duration: 1.2, ease: 'power2.inOut', overwrite: true });
+            gsap.to(handTrackerRef.current, { x: '-25%', y: '1%', duration: 0.6, ease: 'power2.out', overwrite: true });
           } else if (p <= 0.60 && handSlidRef.current) {
             handSlidRef.current = false;
             gsap.to(handTrackerRef.current, { x: '0%', y: '0%', duration: 0.8, ease: 'power2.inOut', overwrite: true });
@@ -142,31 +154,57 @@ export default function ExperiencePage() {
               } else {
                 // Backward transition from Finale
                 const tl = gsap.timeline();
-                tl.to(finaleFilmContainerRef.current, { opacity: 0, duration: 1.5, ease: 'power2.inOut' }, 0);
-                tl.to(multilingualContainerRef.current, { opacity: 1, duration: 1.5, ease: 'power2.inOut' }, 0);
-                if (handTrackerRef.current) {
-                  gsap.set(handTrackerRef.current, { x: '-25%', y: '1%' });
-                }
+                tl.to(whiteFlashRef.current, { opacity: 1, duration: 0.8, ease: 'power2.inOut' });
+                tl.add(() => {
+                  gsap.set(finaleFilmContainerRef.current, { opacity: 0 });
+                  gsap.set(multilingualContainerRef.current, { opacity: 1, visibility: 'visible' });
+                  if (handTrackerRef.current) {
+                    gsap.set(handTrackerRef.current, { x: '-25%', y: '1%' });
+                  }
+                });
+                tl.to(whiteFlashRef.current, { opacity: 0, duration: 0.8, ease: 'power2.inOut' });
               }
             } else if (newChapter === 'finale') {
               // Entering Finale (scrolling down from Multilingual)
               const tl = gsap.timeline();
-              tl.to(multilingualContainerRef.current, {
-                opacity: 0, duration: 1.5, ease: 'power2.inOut', onComplete: () => {
-                  if (currentChapterRef.current === 'finale') {
-                    gsap.set(multilingualContainerRef.current, { visibility: 'hidden' });
-                  }
-                }
-              }, 0);
-              tl.to(finaleFilmContainerRef.current, { opacity: 1, duration: 1.5, ease: 'power2.inOut' }, 0);
-              gsap.set(filmContainerRef.current, { opacity: 0 });
+              tl.to(whiteFlashRef.current, { opacity: 1, duration: 0.8, ease: 'power2.inOut' });
+              tl.add(() => {
+                gsap.set(multilingualContainerRef.current, { opacity: 0, visibility: 'hidden' });
+                gsap.set(finaleFilmContainerRef.current, { opacity: 1 });
+                gsap.set(filmContainerRef.current, { opacity: 0 });
+              });
+              tl.to(whiteFlashRef.current, { opacity: 0, duration: 0.8, ease: 'power2.inOut' });
             }
           }
 
-          // 4. Fade out Hero Text as user scrolls past 15%
-          const tv = self.progress;
-          const heroOpacity = Math.max(0, 1 - tv / 0.15);
-          gsap.set(heroRef.current, { opacity: heroOpacity });
+          // 4. Autonomous Fast Stagger-Out for Hero Text at the glass facade
+          const pScroll = self.progress;
+          const HERO_EXIT_THRESHOLD = 0.03; // Adjusted to match the exact glass facade timing
+          
+          if (heroRef.current) {
+            const words = heroRef.current.querySelectorAll('.hero-word, .subheading-word');
+            if (pScroll >= HERO_EXIT_THRESHOLD && !heroExitedRef.current) {
+              heroExitedRef.current = true;
+              gsap.to(words, { 
+                y: 60, 
+                opacity: 0, 
+                stagger: 0.015, 
+                duration: 0.3, 
+                ease: 'power3.in',
+                overwrite: true
+              });
+            } else if (pScroll < HERO_EXIT_THRESHOLD && heroExitedRef.current) {
+              heroExitedRef.current = false;
+              gsap.to(words, { 
+                y: 0, 
+                opacity: 1, 
+                stagger: -0.015, 
+                duration: 0.4, 
+                ease: 'power3.out',
+                overwrite: true
+              });
+            }
+          }
         }
       });
     }, containerRef);
@@ -222,6 +260,15 @@ export default function ExperiencePage() {
             {/* The auto-playing drone shot canvas (Mumbai -> Moscow -> etc) */}
             <div ref={cityBgRef} className="absolute inset-0 w-full h-full">
               <CityDroneBackground scrollData={scrollData} />
+              
+              {/* Radial Vignette Blur Layer - Keeps the phone sharp, blurs the edges */}
+              <div 
+                className="absolute inset-0 backdrop-blur-[6px] bg-black/40 pointer-events-none" 
+                style={{ 
+                  maskImage: 'radial-gradient(ellipse at 35% center, transparent 15%, black 60%)', 
+                  WebkitMaskImage: 'radial-gradient(ellipse at 35% center, transparent 15%, black 60%)' 
+                }} 
+              />
             </div>
 
             {/* The hand anchored on the left side */}
@@ -247,7 +294,7 @@ export default function ExperiencePage() {
               scrollData={scrollData}
               holdData={holdData}
               sequenceKeys={[
-                { key: 'scene1-3', in: 2, out: 11, holdWeight: 8 }, // Holds here for 8 durations of video to slow down presentation scroll!
+                { key: 'scene1-3', out: 11, holdWeight: 8 }, // Holds here for 8 durations of video to slow down presentation scroll!
                 { key: 'transit-b', in: 2 },
                 'transit-c',
                 { key: 'transit-d', out: 2 }
@@ -259,12 +306,15 @@ export default function ExperiencePage() {
             />
           </div>
 
+          {/* LAYER 2.5: The White Crossfade Layer */}
+          <div ref={whiteFlashRef} className="absolute inset-0 z-[20] w-full h-full bg-white opacity-0 pointer-events-none" />
+
           {/* LAYER 3: The Finale Video Sequence */}
-          <div ref={finaleFilmContainerRef} className="absolute inset-0 z-20 w-full h-full">
+          <div ref={finaleFilmContainerRef} className="absolute inset-0 z-[25] w-full h-full opacity-0">
             <ScrollFilm
               scrollData={scrollData}
               sequenceKeys={['transit-e']}
-              startProgress={0.85}
+              startProgress={0.95}
               endProgress={1.0}
             />
           </div>
@@ -286,22 +336,34 @@ export default function ExperiencePage() {
                 transform: 'translateX(-20px)'
               }}
             >
-              <h1 className="text-5xl md:text-[6rem] leading-none text-white tracking-tight flex items-center justify-center" style={{ fontFamily: 'var(--font-marcellus)' }}>
-                {/* Invisible anchor for the Orb to land on */}
-                <span id="hero-o-anchor" className="invisible">O</span>
-                ne source of truth.
+              <h1 className="text-4xl md:text-[4.5rem] leading-none text-white tracking-tight flex flex-wrap items-center justify-center gap-x-[0.3em]" style={{ fontFamily: 'var(--font-monument)' }}>
+                {/* Invisible anchor for the Orb to land on must remain intact! */}
+                <span className="hero-word inline-block">
+                  <span id="hero-o-anchor" className="invisible">O</span>ne
+                </span>
+                <span className="hero-word inline-block">source</span>
+                <span className="hero-word inline-block">of</span>
+                <span className="hero-word inline-block">truth.</span>
               </h1>
             </div>
-            <p
-              className="mt-6 text-lg md:text-xl text-gray-300 max-w-3xl leading-relaxed transition-all duration-1000"
-              style={{
-                fontFamily: 'var(--font-sora)',
-                opacity: introPhase === 'done' ? 1 : 0,
-                transform: introPhase === 'done' ? 'translateY(0)' : 'translateY(20px)'
-              }}
-            >
-              Live developer inventory, translated into conversation — so every broker and every buyer speaks the same language.
-            </p>
+              <p
+                className="mt-6 text-base md:text-lg text-gray-300 max-w-2xl leading-relaxed flex flex-wrap justify-center gap-x-[0.4em] gap-y-2"
+                style={{ fontFamily: 'var(--font-space-mono)' }}
+              >
+                {"Live developer inventory, translated into conversation — so every broker and every buyer speaks the same language.".split(' ').map((word, i) => (
+                  <span key={i} className="inline-flex overflow-hidden">
+                    <span 
+                      className="subheading-word inline-block" 
+                      style={{ 
+                        opacity: 0, 
+                        transform: 'translateY(100%)',
+                      }}
+                    >
+                      {word}
+                    </span>
+                  </span>
+                ))}
+              </p>
 
             {/* Scroll Indicator */}
             <div

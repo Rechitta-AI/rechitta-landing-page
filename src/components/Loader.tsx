@@ -42,17 +42,9 @@ export default function Loader({ onDone, orbReady = true }: { onDone: () => void
     let frame: number;
     let finishing = false;
 
-    let forced = false;
-
     const stopListening = onLoadProgress((value) => {
-      // Never let a later report walk back past the safety hatch.
-      actual = forced ? 1 : value;
+      actual = value;
     });
-
-    const safety = window.setTimeout(() => {
-      forced = true;
-      actual = 1;
-    }, SAFETY_TIMEOUT_MS);
 
     const finish = () => {
       if (finishing) return;
@@ -99,7 +91,6 @@ export default function Loader({ onDone, orbReady = true }: { onDone: () => void
 
     return () => {
       cancelAnimationFrame(frame);
-      window.clearTimeout(safety);
       stopListening();
     };
   }, []);

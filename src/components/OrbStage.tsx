@@ -90,7 +90,6 @@ export default function OrbStage({
     let frame: number;
 
     const tick = () => {
-      // If we are in the intro, don't let scroll data override the GSAP animation!
       if (introPhase !== 'done') {
         frame = requestAnimationFrame(tick);
         return;

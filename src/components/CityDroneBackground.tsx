@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import gsap from 'gsap';
 
 const CITIES = [
   { key: 'mumbai',   src: '/film/places/mumbai.mp4' },
@@ -22,6 +23,7 @@ export default function CityDroneBackground({
   scrollData: React.MutableRefObject<{ progress: number }>;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const textRef = useRef<HTMLHeadingElement>(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -125,7 +127,7 @@ export default function CityDroneBackground({
       // Do absolutely nothing until the exact millisecond of the match-cut (50% down the page).
       // This prevents the heavy drone videos from stealing bandwidth and GPU 
       // from the initial cinematic intro (especially transit-d).
-      if (p < 0.499 || p > 0.90) {
+      if (p < 0.499 || p > 0.96) {
         // If we are far away, pause the current video to save CPU
         if (currentVideo && !currentVideo.paused) currentVideo.pause();
         frame = requestAnimationFrame(render);
@@ -141,11 +143,11 @@ export default function CityDroneBackground({
 
       // Which city should be showing?
       // CUSTOM TIMING: Give Mumbai (index 0) 15% of the scrollbar (from 0.50 to 0.65)
-      // to ensure it stays locked in during the crossfade transition.
-      // The remaining 5 cities share the remaining 20% (from 0.65 to 0.85).
+      // to ensure it stays locked in during the crossfade transition and while the phone slides in.
+      // The remaining 5 cities share the remaining 30% (from 0.65 to 0.95).
       let targetIndex = 0;
       if (p >= 0.65) {
-        const remainingP = Math.max(0, Math.min(1, (p - 0.65) / 0.20));
+        const remainingP = Math.max(0, Math.min(1, (p - 0.65) / 0.30));
         const numRemainingCities = CITIES.length - 1; // 5 cities
         // Math.floor(remainingP * 5) yields 0, 1, 2, 3, 4
         let segmentIndex = Math.floor(remainingP * numRemainingCities);
@@ -168,6 +170,24 @@ export default function CityDroneBackground({
           isFading = true;
           fadeStart = now;
           fadeProgress = 0;
+
+          // Trigger GSAP Focus Pull for Typography
+          if (textRef.current) {
+            gsap.to(textRef.current, {
+              opacity: 0,
+              filter: 'blur(20px)',
+              duration: 0.4,
+              onComplete: () => {
+                if (textRef.current) {
+                  textRef.current.innerText = CITIES[targetIndex].key.toUpperCase();
+                  gsap.fromTo(textRef.current,
+                    { opacity: 0, filter: 'blur(20px)' },
+                    { opacity: 1, filter: 'blur(0px)', duration: 0.4 }
+                  );
+                }
+              }
+            });
+          }
         }
       }
 
@@ -226,10 +246,20 @@ export default function CityDroneBackground({
   }, [scrollData]);
 
   return (
-    <canvas
-      ref={canvasRef}
-      className="absolute inset-0 w-full h-full"
-      style={{ objectFit: 'cover' }}
-    />
+    <>
+      <canvas
+        ref={canvasRef}
+        className="absolute inset-0 w-full h-full"
+        style={{ objectFit: 'cover' }}
+      />
+      {/* The Dynamic City Title (Positioned on the Right) */}
+      <h1 
+        ref={textRef}
+        className="absolute top-1/2 -translate-y-1/2 right-[10%] text-6xl md:text-[6rem] text-white tracking-tighter"
+        style={{ fontFamily: 'var(--font-monument)', zIndex: 20 }}
+      >
+        MUMBAI
+      </h1>
+    </>
   );
 }

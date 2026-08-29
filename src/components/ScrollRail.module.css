@@ -17,13 +17,13 @@
 
 .dot {
   position: absolute;
-  left: 50%;
-  width: 5px;
-  height: 5px;
-  margin: -2px 0 0 -2.5px;
-  border-radius: 50%;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%; /* Full height, scaled down via JS */
   background: #fff;
   will-change: transform;
+  transform-origin: top;
 }
 
 /* The current chapter, sitting above the top of the rail. */

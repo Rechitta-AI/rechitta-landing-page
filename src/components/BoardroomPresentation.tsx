@@ -11,6 +11,8 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
   const containerRef = useRef<HTMLDivElement>(null);
   const slidesRef = useRef<HTMLDivElement>(null);
 
+  const isVisibleRef = useRef(false);
+
   useEffect(() => {
     let frame: number;
 
@@ -21,12 +23,36 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
       }
 
       const { clipIndex, progress } = holdData.current;
+      const isNowVisible = clipIndex === 0;
 
-      // clipIndex 0 is 'scene1-3'. When we are holding there, fade in the UI.
-      if (clipIndex === 0) {
-        // Fade in
+      // Detect Entrance
+      if (isNowVisible && !isVisibleRef.current) {
+        isVisibleRef.current = true;
+        gsap.killTweensOf(containerRef.current);
         gsap.set(containerRef.current, { autoAlpha: 1 });
+        
+        // CRT Glitch In
+        const tl = gsap.timeline();
+        tl.fromTo(containerRef.current, { opacity: 0, skewX: 30, scale: 1.05 }, { opacity: 0.8, skewX: -15, scale: 0.98, duration: 0.05 })
+          .to(containerRef.current, { opacity: 0.3, skewX: 20, scale: 1.02, duration: 0.05 })
+          .to(containerRef.current, { opacity: 1, skewX: 0, scale: 1, duration: 0.1 });
+      } 
+      // Detect Exit
+      else if (!isNowVisible && isVisibleRef.current) {
+        isVisibleRef.current = false;
+        gsap.killTweensOf(containerRef.current);
+        
+        // CRT Glitch Out
+        const tl = gsap.timeline();
+        tl.to(containerRef.current, { opacity: 0.8, skewX: -20, scale: 1.05, duration: 0.05 })
+          .to(containerRef.current, { opacity: 0.3, skewX: 30, scale: 0.95, duration: 0.05 })
+          .to(containerRef.current, { opacity: 0, skewX: 0, scale: 1, duration: 0.05, onComplete: () => {
+            gsap.set(containerRef.current, { autoAlpha: 0 });
+          }});
+      }
 
+      // clipIndex 0 is 'scene1-3'. When we are holding there, slide the UI horizontally.
+      if (isNowVisible) {
         // Map the 0->1 progress across the 4 slides.
         // If we have 4 slides, we have 3 transitions.
         // We can just slide the container left horizontally.
@@ -40,10 +66,6 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
           ease: 'none',
           overwrite: 'auto'
         });
-
-      } else {
-        // Fade out when not holding on the TV
-        gsap.set(containerRef.current, { autoAlpha: 0 });
       }
 
       frame = requestAnimationFrame(render);
@@ -75,41 +97,41 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
 
           {/* Slide 1 */}
           <div className="w-1/4 h-full flex flex-col items-center justify-center p-8">
-            <h2 className="text-5xl md:text-6xl text-black font-bold mb-6 text-center leading-tight" style={{ fontFamily: 'var(--font-marcellus)' }}>
+            <h2 className="text-4xl md:text-[4.5rem] text-black font-bold mb-6 text-center leading-tight" style={{ fontFamily: 'var(--font-monument)' }}>
               Slide 1: Overview
             </h2>
-            <p className="text-xl md:text-2xl text-black text-center font-medium max-w-2xl" style={{ fontFamily: 'var(--font-sora)' }}>
+            <p className="text-lg md:text-xl text-black text-center font-medium max-w-2xl" style={{ fontFamily: 'var(--font-space-mono)' }}>
               Welcome to the boardroom. Scroll down to advance the slides.
             </p>
           </div>
 
           {/* Slide 2 */}
           <div className="w-1/4 h-full flex flex-col items-center justify-center p-8">
-            <h2 className="text-5xl md:text-6xl text-black font-bold mb-6 text-center leading-tight" style={{ fontFamily: 'var(--font-marcellus)' }}>
+            <h2 className="text-4xl md:text-[4.5rem] text-black font-bold mb-6 text-center leading-tight" style={{ fontFamily: 'var(--font-monument)' }}>
               Slide 2: Data
             </h2>
-            <p className="text-xl md:text-2xl text-black text-center font-medium max-w-2xl" style={{ fontFamily: 'var(--font-sora)' }}>
+            <p className="text-lg md:text-xl text-black text-center font-medium max-w-2xl" style={{ fontFamily: 'var(--font-space-mono)' }}>
               We track everything. No dropped frames.
             </p>
           </div>
 
           {/* Slide 3 */}
           <div className="w-1/4 h-full flex flex-col items-center justify-center p-8">
-            <h2 className="text-5xl md:text-6xl text-black font-bold mb-6 text-center leading-tight" style={{ fontFamily: 'var(--font-marcellus)' }}>
+            <h2 className="text-4xl md:text-[4.5rem] text-black font-bold mb-6 text-center leading-tight" style={{ fontFamily: 'var(--font-monument)' }}>
               Slide 3: Growth
             </h2>
-            <p className="text-xl md:text-2xl text-black text-center font-medium max-w-2xl" style={{ fontFamily: 'var(--font-sora)' }}>
-              Scaling infinitely with React and GSAP.
+            <p className="text-lg md:text-xl text-black text-center font-medium max-w-2xl" style={{ fontFamily: 'var(--font-space-mono)' }}>
+              Visualizing the infrastructure scale worldwide.
             </p>
           </div>
 
           {/* Slide 4 */}
           <div className="w-1/4 h-full flex flex-col items-center justify-center p-8">
-            <h2 className="text-5xl md:text-6xl text-black font-bold mb-6 text-center leading-tight" style={{ fontFamily: 'var(--font-marcellus)' }}>
+            <h2 className="text-4xl md:text-[4.5rem] text-black font-bold mb-6 text-center leading-tight" style={{ fontFamily: 'var(--font-monument)' }}>
               Slide 4: End
             </h2>
-            <p className="text-xl md:text-2xl text-black text-center font-medium max-w-2xl" style={{ fontFamily: 'var(--font-sora)' }}>
-              Keep scrolling to resume the video.
+            <p className="text-lg md:text-xl text-black text-center font-medium max-w-2xl" style={{ fontFamily: 'var(--font-space-mono)' }}>
+              Prepare for the global rollout sequence.
             </p>
           </div>
 

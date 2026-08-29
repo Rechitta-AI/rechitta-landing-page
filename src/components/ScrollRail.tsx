@@ -46,7 +46,7 @@ export default function ScrollRail({
       eased += (target - eased) * (reduced ? 1 : 1 - Math.exp(-dt / 0.2));
 
       if (dotRef.current && railRef.current) {
-        dotRef.current.style.transform = `translateY(${eased * railRef.current.offsetHeight}px)`;
+        dotRef.current.style.transform = `scaleY(${eased})`;
       }
 
       let next = 0;

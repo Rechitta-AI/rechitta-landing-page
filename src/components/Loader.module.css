@@ -53,7 +53,7 @@
   text-transform: uppercase;
   color: #00ffff;
   text-shadow: 0 0 8px rgba(0, 255, 255, 0.5);
-  font-family: var(--font-sora);
+  font-family: var(--font-space-mono);
 }
 
 .phase {
