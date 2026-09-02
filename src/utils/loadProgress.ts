@@ -5,19 +5,36 @@
  */
 type Listener = (value: number) => void;
 
-let value = 0;
+let totalValue = 0;
+const progressMap = new Map<string, number>();
 const listeners = new Set<Listener>();
 
-export function setLoadProgress(next: number) {
+export function registerLoadTask(id: string) {
+  if (!progressMap.has(id)) {
+    progressMap.set(id, 0);
+  }
+}
+
+export function setLoadProgress(next: number, id: string = 'default') {
   const clamped = Math.max(0, Math.min(1, next));
-  if (clamped <= value) return;
-  value = clamped;
-  listeners.forEach((listener) => listener(value));
+  const current = progressMap.get(id) || 0;
+  if (clamped <= current) return;
+
+  progressMap.set(id, clamped);
+
+  let sum = 0;
+  progressMap.forEach(val => sum += val);
+  const newTotal = sum / Math.max(1, progressMap.size);
+
+  if (newTotal > totalValue) {
+    totalValue = newTotal;
+    listeners.forEach((listener) => listener(totalValue));
+  }
 }
 
 export function onLoadProgress(listener: Listener) {
   listeners.add(listener);
-  listener(value);
+  listener(totalValue);
   return () => {
     listeners.delete(listener);
   };

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import { pickTier, proxyUrl, fullUrl } from '@/utils/videoTier';
-import { setLoadProgress } from '@/utils/loadProgress';
+import { setLoadProgress, registerLoadTask } from '@/utils/loadProgress';
 
 export type SequenceClip = string | { key: string; in?: number; out?: number; holdWeight?: number };
 
@@ -11,11 +11,10 @@ interface ScrollFilmProps {
   sequenceKeys: SequenceClip[];
   startProgress: number;
   endProgress: number;
-  holdData?: React.RefObject<{ clipIndex: number; progress: number }>;
-  /** Whether this film's loading counts toward the loader's number. */
-  reportsProgress?: boolean;
-  /** The film the visitor lands on. Its first clip loads immediately; every
-   *  other clip waits so it isn't competing for bandwidth. */
+  holdData?: React.RefObject<{ clipIndex: number; progress: number; startProgress?: number; endProgress?: number }>;
+  /** Whether this film's loading counts toward the loader's number. Pass an ID string to register. */
+  reportsProgress?: string | boolean;
+  /** The film the visitor lands on. Its first full clip loads immediately. */
   priority?: boolean;
 }
 
@@ -115,41 +114,40 @@ export default function ScrollFilm({
       if (v.preload !== 'auto') v.preload = 'auto';
     };
 
-    let isWarmedUp = !priority;
+    let isWarmedUp = false;
 
-    // Only the first clip of the landing film downloads up front. Everything
-    // else would be competing with it for the same bandwidth.
-    if (priority && clips.length > 0) {
-      promote(clips[0].proxy);
-      promote(clips[0].full);
+    // Promote ALL proxies and ALL 4K videos to download immediately
+    clips.forEach(clip => {
+      promote(clip.proxy);
+      promote(clip.full);
+    });
 
-      // HARDWARE WARM-UP (THE "GPU PUMP")
-      // Secretly play and immediately pause the videos behind the loading screen.
-      // This forces the browser's hardware decoder to allocate memory and process 
-      // the first frames into the GPU buffer before the user ever touches the scroll wheel,
-      // completely eliminating the initial scroll stutter.
-      const warmup = async (v: HTMLVideoElement) => {
-        try {
-          await v.play();
-          v.pause();
-          v.currentTime = 0;
-        } catch (err) {
-          // Browsers sometimes block programmatic play, but since it's muted it usually passes.
-        }
-      };
-      
+    // HARDWARE WARM-UP (THE "GPU PUMP")
+    const warmup = async (v: HTMLVideoElement) => {
+      try {
+        await v.play();
+        v.pause();
+        v.currentTime = 0;
+      } catch (err) {
+        // Ignored
+      }
+    };
 
+    const warmups: Promise<void>[] = [];
+    clips.forEach(clip => {
+      warmups.push(warmup(clip.proxy));
+      warmups.push(warmup(clip.full));
+    });
 
-      // Safety net: force resolution after 3 seconds just in case the browser hangs the promise
-      const fallbackTimeout = new Promise(resolve => setTimeout(resolve, 3000));
-      
-      Promise.race([
-        Promise.all([warmup(clips[0].proxy), warmup(clips[0].full)]),
-        fallbackTimeout
-      ]).then(() => {
-        isWarmedUp = true;
-      });
-    }
+    // Safety net: force resolution after 3 seconds
+    const fallbackTimeout = new Promise(resolve => setTimeout(resolve, 3000));
+    
+    Promise.race([
+      Promise.all(warmups),
+      fallbackTimeout
+    ]).then(() => {
+      isWarmedUp = true;
+    });
 
     const readDurations = () => {
       clips.forEach((clip, i) => {
@@ -177,45 +175,48 @@ export default function ScrollFilm({
       full.addEventListener('loadedmetadata', onMeta);
     });
 
-    // The loader's number: the low-res proxy of the first clip gets the film
-    // moving, the full-quality version finishes the job.
+    // The loader's number
     let stopReporting = () => {};
     if (reportsProgress && clips.length > 0) {
-      const first = clips[0];
+      const loadId = typeof reportsProgress === 'string' ? reportsProgress : 'main';
+      registerLoadTask(loadId);
+
       const report = () => {
-        // Readiness, not bytes. A browser decides for itself when it has
-        // buffered enough and then stops, so waiting for 100% never arrives.
-        // HAVE_FUTURE_DATA means the proxy can render and keep going;
-        // HAVE_ENOUGH_DATA is the browser's own "this will play through".
-        const proxyPart =
-          first.proxy.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA
-            ? 1
-            : bufferedFraction(first.proxy);
-        const fullPart =
-          first.full.readyState >= HTMLMediaElement.HAVE_ENOUGH_DATA
-            ? 1
-            : bufferedFraction(first.full);
-            
-        let total = 0.5 * proxyPart + 0.5 * fullPart;
+        let proxyTotal = 0;
+        let fullTotal = 0;
+        clips.forEach(clip => {
+          proxyTotal += clip.proxy.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA ? 1 : bufferedFraction(clip.proxy);
+          fullTotal += clip.full.readyState >= HTMLMediaElement.HAVE_ENOUGH_DATA ? 1 : bufferedFraction(clip.full);
+        });
+        proxyTotal /= clips.length;
+        fullTotal /= clips.length;
+
+        let total = 0.5 * proxyTotal + 0.5 * fullTotal;
         
         // HARDWARE LOCK: Never report 100% until the GPU has fully warmed up
         if (total >= 1 && !isWarmedUp) {
           total = 0.99;
         }
         
-        setLoadProgress(total);
+        setLoadProgress(total, loadId);
       };
+
       const events = ['progress', 'canplay', 'canplaythrough', 'loadeddata'] as const;
-      events.forEach((e) => {
-        first.proxy.addEventListener(e, report);
-        first.full.addEventListener(e, report);
+      clips.forEach(clip => {
+        events.forEach(e => {
+          clip.proxy.addEventListener(e, report);
+          clip.full.addEventListener(e, report);
+        });
       });
+
       const poll = window.setInterval(report, 250);
       stopReporting = () => {
         window.clearInterval(poll);
-        events.forEach((e) => {
-          first.proxy.removeEventListener(e, report);
-          first.full.removeEventListener(e, report);
+        clips.forEach(clip => {
+          events.forEach(e => {
+            clip.proxy.removeEventListener(e, report);
+            clip.full.removeEventListener(e, report);
+          });
         });
       };
     }
@@ -242,7 +243,12 @@ export default function ScrollFilm({
 
       const { startProgress: from, endProgress: to } = rangeRef.current;
       const target = scrollData.current?.progress ?? 0;
-      eased += (target - eased) * (1 - Math.exp(-dt / CATCH_UP));
+      // Instant snap when teleporting/looping to prevent reverse scrub glitch
+      if (Math.abs(target - eased) > 0.25) {
+        eased = target;
+      } else {
+        eased += (target - eased) * (1 - Math.exp(-dt / CATCH_UP));
+      }
 
       const span = to - from || 1;
       const local = Math.max(0, Math.min((eased - from) / span, 1));
@@ -265,6 +271,7 @@ export default function ScrollFilm({
       let activeIndex = 0;
       let isHolding = false;
       let holdProgress = 0;
+      let timeAccumulator = 0;
 
       for (let i = 0; i < clips.length; i++) {
         const c = clips[i];
@@ -275,6 +282,7 @@ export default function ScrollFilm({
           break;
         }
         remaining -= c.duration;
+        timeAccumulator += c.duration;
         
         // 2. Check if we fall within the HOLD duration of this clip
         if (c.holdWeight > 0) {
@@ -282,11 +290,21 @@ export default function ScrollFilm({
             activeIndex = i;
             isHolding = true;
             holdProgress = remaining / c.holdWeight; // 0.0 to 1.0 progress inside the hold window
+            
+            // Expose the global boundaries!
+            if (holdData?.current) {
+              const holdStartLocal = timeAccumulator / totalDuration;
+              const holdEndLocal = (timeAccumulator + c.holdWeight) / totalDuration;
+              holdData.current.startProgress = from + (holdStartLocal * span);
+              holdData.current.endProgress = from + (holdEndLocal * span);
+            }
+
             // Park the video at the end of its playable duration!
             remaining = c.duration; 
             break;
           }
           remaining -= c.holdWeight;
+          timeAccumulator += c.holdWeight;
         }
 
         if (i === clips.length - 1) {
@@ -301,22 +319,7 @@ export default function ScrollFilm({
         holdData.current.progress = isHolding ? holdProgress : 0;
       }
 
-      // Hide all other videos, show only the active one. The proxies are small, and one
-      // of them is what covers a chapter change before its 4K version lands.
-      // On the landing film they wait until the first 4K clip can render, so nothing 
-      // competes with it; a film reached later pulls them the moment it comes into range.
-      const proxiesDue = priority
-        ? clips[0]?.full.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA
-        : true;
-      if (!proxiesPromoted && proxiesDue) {
-        proxiesPromoted = true;
-        clips.forEach((c) => promote(c.proxy));
-      }
-
-      // Full quality is fetched for the clip in view and the one after it.
-      for (let i = 0; i < clips.length; i++) {
-        if (i === activeIndex || i === activeIndex + 1) promote(clips[i].full);
-      }
+      // Videos are now eagerly loaded upfront, so we no longer dynamically promote here.
 
       const clip = clips[activeIndex];
       if (clip) {

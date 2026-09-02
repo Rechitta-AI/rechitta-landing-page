@@ -3,15 +3,47 @@
 import React, { useEffect, useRef } from 'react';
 import gsap from 'gsap';
 
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+
 interface BoardroomPresentationProps {
-  holdData: React.RefObject<{ clipIndex: number; progress: number }>;
+  holdData: React.RefObject<{ clipIndex: number; progress: number; startProgress?: number; endProgress?: number }>;
 }
 
 export default function BoardroomPresentation({ holdData }: BoardroomPresentationProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const slidesRef = useRef<HTMLDivElement>(null);
+  const dotsRef = useRef<(HTMLButtonElement | null)[]>([]);
 
   const isVisibleRef = useRef(false);
+
+  const slideBy = (direction: -1 | 1) => {
+    if (!holdData.current) return;
+    const { progress } = holdData.current;
+    // progress is 0.0 to 1.0. 
+    // Slide 0: 0.0, Slide 1: 0.33, Slide 2: 0.66, Slide 3: 1.0
+    // We can derive the current slide by multiplying by 3 and rounding
+    const currentSlide = Math.round(progress * 3);
+    const nextSlide = Math.min(3, Math.max(0, currentSlide + direction));
+    scrollToSlide(nextSlide);
+  };
+
+  const scrollToSlide = (slideIndex: number) => {
+    if (!holdData.current || holdData.current.startProgress === undefined || holdData.current.endProgress === undefined) return;
+    const { startProgress, endProgress } = holdData.current;
+    
+    const numSlides = 4;
+    const progressRatio = slideIndex / (numSlides - 1);
+    const targetGlobalProgress = startProgress + (endProgress - startProgress) * progressRatio;
+    
+    const maxST = ScrollTrigger.maxScroll(window) || (document.documentElement.scrollHeight - window.innerHeight);
+    const targetPixel = targetGlobalProgress * maxST;
+
+    if ((window as any).lenis) {
+      (window as any).lenis.scrollTo(targetPixel, { duration: 1.2 });
+    } else {
+      window.scrollTo({ top: targetPixel, behavior: 'smooth' });
+    }
+  };
 
   useEffect(() => {
     let frame: number;
@@ -31,24 +63,39 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
         gsap.killTweensOf(containerRef.current);
         gsap.set(containerRef.current, { autoAlpha: 1 });
         
-        // CRT Glitch In
-        const tl = gsap.timeline();
-        tl.fromTo(containerRef.current, { opacity: 0, skewX: 30, scale: 1.05 }, { opacity: 0.8, skewX: -15, scale: 0.98, duration: 0.05 })
-          .to(containerRef.current, { opacity: 0.3, skewX: 20, scale: 1.02, duration: 0.05 })
-          .to(containerRef.current, { opacity: 1, skewX: 0, scale: 1, duration: 0.1 });
+        // Professional Smooth Fade & Scale In
+        gsap.fromTo(
+          containerRef.current,
+          { opacity: 0, scale: 0.96 },
+          { opacity: 1, scale: 1, duration: 0.8, ease: 'power3.out' }
+        );
       } 
       // Detect Exit
       else if (!isNowVisible && isVisibleRef.current) {
         isVisibleRef.current = false;
         gsap.killTweensOf(containerRef.current);
         
-        // CRT Glitch Out
-        const tl = gsap.timeline();
-        tl.to(containerRef.current, { opacity: 0.8, skewX: -20, scale: 1.05, duration: 0.05 })
-          .to(containerRef.current, { opacity: 0.3, skewX: 30, scale: 0.95, duration: 0.05 })
-          .to(containerRef.current, { opacity: 0, skewX: 0, scale: 1, duration: 0.05, onComplete: () => {
+        // Professional Smooth Fade Out
+        gsap.to(containerRef.current, {
+          opacity: 0,
+          scale: 0.96,
+          duration: 0.5,
+          ease: 'power2.inOut',
+          onComplete: () => {
             gsap.set(containerRef.current, { autoAlpha: 0 });
-          }});
+            if (slidesRef.current) gsap.set(slidesRef.current, { x: '0%' });
+            dotsRef.current.forEach((dot, i) => {
+              if (!dot) return;
+              if (i === 0) {
+                dot.style.opacity = '1';
+                dot.style.transform = 'scale(1.3)';
+              } else {
+                dot.style.opacity = '0.4';
+                dot.style.transform = 'scale(1)';
+              }
+            });
+          }
+        });
       }
 
       // clipIndex 0 is 'scene1-3'. When we are holding there, slide the UI horizontally.
@@ -66,6 +113,20 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
           ease: 'none',
           overwrite: 'auto'
         });
+
+        // Update dots
+        const activeSlide = Math.floor(progress * 4);
+        const clampedSlide = Math.min(3, Math.max(0, activeSlide));
+        dotsRef.current.forEach((dot, i) => {
+          if (!dot) return;
+          if (i === clampedSlide) {
+            dot.style.opacity = '1';
+            dot.style.transform = 'scale(1.3)';
+          } else {
+            dot.style.opacity = '0.4';
+            dot.style.transform = 'scale(1)';
+          }
+        });
       }
 
       frame = requestAnimationFrame(render);
@@ -76,18 +137,39 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
     return () => cancelAnimationFrame(frame);
   }, [holdData]);
 
+  // ==========================================
+  // FINAL CALIBRATED VALUES
+  // ==========================================
+  const TOP = 13;
+  const LEFT = 28.4;
+  const WIDTH = 44.5;
+  const HEIGHT = 48.6;
+  
+  const ROTATE_X = -1.7;
+  const ROTATE_Y = 1;
+  const ROTATE_Z = 0.3;
+  const SCALE = 1.03;
+  // ==========================================
+
   return (
     <div
       ref={containerRef}
-      className="absolute top-[20%] left-[28%] w-[44.5%] h-[30%] pointer-events-none opacity-0 invisible"
-      style={{ perspective: '1000px', zIndex: 50 }}
+      className="absolute pointer-events-none opacity-0 invisible"
+      style={{ 
+        top: `${TOP}%`, 
+        left: `${LEFT}%`, 
+        width: `${WIDTH}%`, 
+        height: `${HEIGHT}%`,
+        perspective: '1000px', 
+        zIndex: 50 
+      }}
     >
 
       {/* The 3D Skewed Container */}
       <div
-        className="w-full h-full overflow-hidden relative"
+        className="w-full h-[90%] overflow-hidden relative"
         style={{
-          transform: 'rotateY(0deg) rotateX(0deg) rotateZ(0deg)',
+          transform: `rotateY(${ROTATE_Y}deg) rotateX(${ROTATE_X}deg) rotateZ(${ROTATE_Z}deg) scale(${SCALE})`,
           transformStyle: 'preserve-3d',
         }}
       >
@@ -136,6 +218,43 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
           </div>
 
         </div>
+
+      </div>
+
+      {/* Manual Slide Dots and Arrows */}
+      <div className="w-full h-[10%] flex items-center justify-center gap-6 pointer-events-auto mt-4" style={{ zIndex: 100 }}>
+        
+        {/* Left Arrow */}
+        <button
+          onClick={() => slideBy(-1)}
+          className="p-2 rounded-full bg-black/50 text-white hover:bg-black transition-colors w-10 h-10 flex items-center justify-center font-bold"
+          aria-label="Previous slide"
+        >
+          ←
+        </button>
+
+        {/* Dots */}
+        <div className="flex items-center gap-4">
+          {[0, 1, 2, 3].map((i) => (
+            <button
+              key={i}
+              ref={(el) => { dotsRef.current[i] = el; }}
+              onClick={() => scrollToSlide(i)}
+              className="w-4 h-4 rounded-full bg-black transition-all duration-300"
+              style={{ opacity: 0.4 }}
+              aria-label={`Go to slide ${i + 1}`}
+            />
+          ))}
+        </div>
+
+        {/* Right Arrow */}
+        <button
+          onClick={() => slideBy(1)}
+          className="p-2 rounded-full bg-black/50 text-white hover:bg-black transition-colors w-10 h-10 flex items-center justify-center font-bold"
+          aria-label="Next slide"
+        >
+          →
+        </button>
 
       </div>
     </div>

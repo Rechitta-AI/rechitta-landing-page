@@ -29,6 +29,8 @@ export function useSmoothScroll(enabled: boolean) {
       syncTouch: false,
     });
     lenisRef.current = lenis;
+    // Expose globally for programmatic scrolling
+    (window as any).lenis = lenis;
     lenis.stop();
 
     lenis.on('scroll', ScrollTrigger.update);
@@ -43,6 +45,7 @@ export function useSmoothScroll(enabled: boolean) {
       gsap.ticker.lagSmoothing(500, 33);
       lenis.destroy();
       lenisRef.current = null;
+      delete (window as any).lenis;
     };
   }, []);
 

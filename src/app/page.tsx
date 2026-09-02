@@ -23,10 +23,8 @@ export default function ExperiencePage() {
   const multilingualContainerRef = useRef<HTMLDivElement>(null);
   const cityBgRef = useRef<HTMLDivElement>(null);
   const whiteFlashRef = useRef<HTMLDivElement>(null);
-  const handTrackerRef = useRef<HTMLDivElement>(null);
-  const matchCutTl = useRef<gsap.core.Timeline | null>(null);
-  const handSlidRef = useRef(false);
   const heroExitedRef = useRef(false);
+  const isLoopingRef = useRef(false);
 
   const heroRef = useRef<HTMLDivElement>(null);
 
@@ -49,27 +47,13 @@ export default function ExperiencePage() {
     if (introPhase === 'done') ScrollTrigger.refresh();
   }, [introPhase]);
 
-  // Create the Master Timeline for the Match Cut ONCE on mount
-  useEffect(() => {
-    if (!filmContainerRef.current || !cityBgRef.current || !handTrackerRef.current) return;
-
-    // We use ease: 'none' because the user's scroll speed provides the natural easing!
-    const tl = gsap.timeline({ paused: true });
-
-    // Phase 1: Dissolve background to drone footage (0.0 to 1.0 timeline progress)
-    // We removed Phase 2 from this timeline so that the Crossfade takes up 100% of the allocated scroll distance!
-    tl.fromTo(filmContainerRef.current, { opacity: 1 }, { opacity: 0, duration: 1.0, ease: 'none' }, 0);
-    tl.fromTo(cityBgRef.current, { opacity: 0, filter: 'blur(20px)' }, { opacity: 1, filter: 'blur(0px)', duration: 1.0, ease: 'none' }, 0);
-
-    matchCutTl.current = tl;
-    return () => { tl.kill(); };
-  }, []);
+  // UseEffect for matchCutTl removed.
 
   // Handle the text reveal phase
   useEffect(() => {
     if (introPhase === 'revealing' && revealTextRef.current) {
       const tl = gsap.timeline({ onComplete: () => setIntroPhase('done') });
-      
+
       tl.to(revealTextRef.current, {
         clipPath: 'inset(0 0% 0 0)',
         opacity: 1,
@@ -98,6 +82,56 @@ export default function ExperiencePage() {
         end: "+=15000", // Total height of the experience
         pin: true,
         onUpdate: (self) => {
+          // INFINITE LOOP: Clean, seamless teleport to top at the very end
+          if (self.progress >= 0.998 && !isLoopingRef.current) {
+            isLoopingRef.current = true;
+
+            // 1. Immediately kill all active tweens
+            gsap.killTweensOf(whiteFlashRef.current);
+            gsap.killTweensOf(finaleFilmContainerRef.current);
+            gsap.killTweensOf(filmContainerRef.current);
+            gsap.killTweensOf(multilingualContainerRef.current);
+
+            // 2. Snap containers directly to starting state with zero flashes or lingering blurs
+            gsap.set(whiteFlashRef.current, { opacity: 0 });
+            gsap.set(finaleFilmContainerRef.current, { opacity: 0, filter: 'blur(0px)', scale: 1 });
+            gsap.set(multilingualContainerRef.current, { opacity: 0, visibility: 'hidden', filter: 'blur(0px)', scale: 1 });
+            gsap.set(filmContainerRef.current, { opacity: 1, filter: 'blur(0px)', scale: 1 });
+
+            // 3. Reset Hero Text Words & Subheading Words immediately
+            heroExitedRef.current = false;
+            if (heroRef.current) {
+              const words = heroRef.current.querySelectorAll('.hero-word, .subheading-word');
+              gsap.killTweensOf(words);
+              gsap.set(words, {
+                y: 0,
+                opacity: 1,
+                overwrite: true
+              });
+            }
+
+            // 4. Reset chapter tracking
+            currentChapterRef.current = 'video';
+            setActiveChapter('video');
+            scrollData.current.progress = 0;
+
+            // 5. Instantly teleport scroll position and cancel residual wheel momentum
+            const lenis = (window as any).lenis;
+            if (lenis) {
+              lenis.scrollTo(0, { immediate: true, force: true });
+              if (typeof lenis.velocity !== 'undefined') lenis.velocity = 0;
+            }
+
+            // 6. Brief guard to swallow residual gesture ticks
+            setTimeout(() => {
+              isLoopingRef.current = false;
+            }, 120);
+
+            return;
+          }
+
+          if (isLoopingRef.current) return;
+
           // 1. Update the master scroll tracker
           scrollData.current.progress = self.progress;
           const p = self.progress;
@@ -106,100 +140,109 @@ export default function ExperiencePage() {
           const oldChapter = currentChapterRef.current;
           const newChapter = self.progress < 0.5 ? 'video' : self.progress < 0.95 ? 'globe' : 'finale';
 
-          // MANUAL SCRUBBER: Bind the Match Cut to the scrollbar (0.50 to 0.60)
-          if (matchCutTl.current) {
-            if (p >= 0.50 && p <= 0.60) {
-              const localP = (p - 0.50) / 0.10; // Converts 0.50-0.60 to 0-1
-              matchCutTl.current.progress(localP);
-              gsap.set(multilingualContainerRef.current, { visibility: 'visible', opacity: 1 });
-            } else if (p < 0.50) {
-              matchCutTl.current.progress(0);
-              gsap.set(multilingualContainerRef.current, { visibility: 'hidden' });
-            } else {
-              matchCutTl.current.progress(1);
-            }
-          }
-
-          // HYBRID SLIDE: Automatic time-based hand slide AFTER the crossfade (0.60)
-          if (p > 0.60 && !handSlidRef.current) {
-            handSlidRef.current = true;
-            // Overwrite: true ensures it smoothly reverses course if the user quickly scrolls back and forth!
-            gsap.to(handTrackerRef.current, { x: '-25%', y: '1%', duration: 0.6, ease: 'power2.out', overwrite: true });
-          } else if (p <= 0.60 && handSlidRef.current) {
-            handSlidRef.current = false;
-            gsap.to(handTrackerRef.current, { x: '0%', y: '0%', duration: 0.8, ease: 'power2.inOut', overwrite: true });
-          }
-
           if (oldChapter !== newChapter) {
             currentChapterRef.current = newChapter;
             setActiveChapter(newChapter);
 
-            // Removed killTweensOf because it permanently destroys the tweens inside matchCutTl
-            // The timeline's own .play() and .reverse() methods safely handle overlap natively.
             gsap.killTweensOf(finaleFilmContainerRef.current);
             gsap.killTweensOf(multilingualContainerRef.current);
+            gsap.killTweensOf(filmContainerRef.current);
+            gsap.killTweensOf(whiteFlashRef.current);
 
             if (newChapter === 'video') {
-              // Entering Intro (scrolling up from Multilingual)
-              gsap.set(finaleFilmContainerRef.current, { opacity: 0 });
+              // Entering Intro
+              gsap.set(finaleFilmContainerRef.current, { opacity: 0, filter: 'blur(0px)', scale: 1 });
+
+              if (oldChapter === 'globe') {
+                const tl = gsap.timeline();
+                tl.to(whiteFlashRef.current, { opacity: 1, duration: 0.4, ease: 'power2.inOut' });
+                tl.add(() => {
+                  gsap.set(multilingualContainerRef.current, { opacity: 0, visibility: 'hidden', filter: 'blur(0px)', scale: 1 });
+                  gsap.set(filmContainerRef.current, { opacity: 1 });
+                });
+                tl.to(whiteFlashRef.current, { opacity: 0, duration: 0.4, ease: 'power2.inOut' });
+              } else if (oldChapter === 'finale') {
+                // Direct loop reset from finale
+                gsap.set(multilingualContainerRef.current, { opacity: 0, visibility: 'hidden', filter: 'blur(0px)', scale: 1 });
+                gsap.set(filmContainerRef.current, { opacity: 1 });
+                gsap.set(whiteFlashRef.current, { opacity: 0 });
+              }
 
             } else if (newChapter === 'globe') {
               // Entering Multilingual (scrolling down from Intro, OR scrolling up from Finale)
               gsap.set(multilingualContainerRef.current, { visibility: 'visible' });
 
               if (oldChapter === 'video' || oldChapter === 'hero') {
-                // Forward transition from intro
-                // No time-based GSAP here anymore! The Manual Scrubber above handles it.
-                gsap.set(multilingualContainerRef.current, { opacity: 1 });
-              } else {
-                // Backward transition from Finale
+                // Forward transition from intro (White Flash)
                 const tl = gsap.timeline();
-                tl.to(whiteFlashRef.current, { opacity: 1, duration: 0.8, ease: 'power2.inOut' });
+                tl.to(whiteFlashRef.current, { opacity: 1, duration: 0.4, ease: 'power2.inOut' });
                 tl.add(() => {
-                  gsap.set(finaleFilmContainerRef.current, { opacity: 0 });
+                  gsap.set(filmContainerRef.current, { opacity: 0 });
                   gsap.set(multilingualContainerRef.current, { opacity: 1, visibility: 'visible' });
-                  if (handTrackerRef.current) {
-                    gsap.set(handTrackerRef.current, { x: '-25%', y: '1%' });
-                  }
                 });
-                tl.to(whiteFlashRef.current, { opacity: 0, duration: 0.8, ease: 'power2.inOut' });
+                tl.to(whiteFlashRef.current, { opacity: 0, duration: 0.4, ease: 'power2.inOut' });
+              } else {
+                // Backward transition from Finale to Multilingual: Cinematic Lens Focus Pull
+                gsap.set(multilingualContainerRef.current, { visibility: 'visible' });
+                const tl = gsap.timeline();
+                tl.to(finaleFilmContainerRef.current, {
+                  opacity: 0,
+                  filter: 'blur(20px)',
+                  scale: 0.97,
+                  duration: 0.45,
+                  ease: 'power2.in'
+                });
+                tl.fromTo(multilingualContainerRef.current,
+                  { opacity: 0, filter: 'blur(20px)', scale: 1.03 },
+                  { opacity: 1, filter: 'blur(0px)', scale: 1, duration: 0.45, ease: 'power2.out' },
+                  "-=0.2"
+                );
               }
             } else if (newChapter === 'finale') {
-              // Entering Finale (scrolling down from Multilingual)
+              // Entering Finale (scrolling down from Multilingual): Cinematic Lens Focus Pull
+              gsap.set(finaleFilmContainerRef.current, { visibility: 'visible' });
               const tl = gsap.timeline();
-              tl.to(whiteFlashRef.current, { opacity: 1, duration: 0.8, ease: 'power2.inOut' });
-              tl.add(() => {
-                gsap.set(multilingualContainerRef.current, { opacity: 0, visibility: 'hidden' });
-                gsap.set(finaleFilmContainerRef.current, { opacity: 1 });
-                gsap.set(filmContainerRef.current, { opacity: 0 });
+              tl.to(multilingualContainerRef.current, {
+                opacity: 0,
+                filter: 'blur(20px)',
+                scale: 1.03,
+                duration: 0.45,
+                ease: 'power2.in',
+                onComplete: () => {
+                  gsap.set(multilingualContainerRef.current, { visibility: 'hidden' });
+                }
               });
-              tl.to(whiteFlashRef.current, { opacity: 0, duration: 0.8, ease: 'power2.inOut' });
+              tl.fromTo(finaleFilmContainerRef.current,
+                { opacity: 0, filter: 'blur(20px)', scale: 0.97 },
+                { opacity: 1, filter: 'blur(0px)', scale: 1, duration: 0.45, ease: 'power2.out' },
+                "-=0.2"
+              );
             }
           }
 
           // 4. Autonomous Fast Stagger-Out for Hero Text at the glass facade
           const pScroll = self.progress;
           const HERO_EXIT_THRESHOLD = 0.03; // Adjusted to match the exact glass facade timing
-          
+
           if (heroRef.current) {
             const words = heroRef.current.querySelectorAll('.hero-word, .subheading-word');
             if (pScroll >= HERO_EXIT_THRESHOLD && !heroExitedRef.current) {
               heroExitedRef.current = true;
-              gsap.to(words, { 
-                y: 60, 
-                opacity: 0, 
-                stagger: 0.015, 
-                duration: 0.3, 
+              gsap.to(words, {
+                y: 60,
+                opacity: 0,
+                stagger: 0.015,
+                duration: 0.3,
                 ease: 'power3.in',
                 overwrite: true
               });
             } else if (pScroll < HERO_EXIT_THRESHOLD && heroExitedRef.current) {
               heroExitedRef.current = false;
-              gsap.to(words, { 
-                y: 0, 
-                opacity: 1, 
-                stagger: -0.015, 
-                duration: 0.4, 
+              gsap.to(words, {
+                y: 0,
+                opacity: 1,
+                stagger: -0.015,
+                duration: 0.4,
                 ease: 'power3.out',
                 overwrite: true
               });
@@ -260,30 +303,29 @@ export default function ExperiencePage() {
             {/* The auto-playing drone shot canvas (Mumbai -> Moscow -> etc) */}
             <div ref={cityBgRef} className="absolute inset-0 w-full h-full">
               <CityDroneBackground scrollData={scrollData} />
-              
+
               {/* Radial Vignette Blur Layer - Keeps the phone sharp, blurs the edges */}
-              <div 
-                className="absolute inset-0 backdrop-blur-[6px] bg-black/40 pointer-events-none" 
-                style={{ 
-                  maskImage: 'radial-gradient(ellipse at 35% center, transparent 15%, black 60%)', 
-                  WebkitMaskImage: 'radial-gradient(ellipse at 35% center, transparent 15%, black 60%)' 
-                }} 
+              <div
+                className="absolute inset-0 backdrop-blur-[6px] bg-black/40 pointer-events-none"
+                style={{
+                  maskImage: 'radial-gradient(ellipse at 35% center, transparent 15%, black 60%)',
+                  WebkitMaskImage: 'radial-gradient(ellipse at 35% center, transparent 15%, black 60%)'
+                }}
               />
             </div>
 
-            {/* The hand anchored on the left side */}
-            <div ref={handTrackerRef} className="absolute inset-0 w-full h-full pointer-events-none">
+            {/* Phone Mockup on the left side */}
+            <div className="absolute left-[5%] md:left-[18%] top-1/2 -translate-y-1/2 w-[380px] h-auto pointer-events-none">
               <img
-                src="/film/frames/multilingual/hand-transparent.png"
-                alt="Hand holding phone"
-                className="absolute inset-0 w-full h-full object-cover animate-idle-float"
-                style={{ transformOrigin: 'center center' }}
+                src="/film/frames/multilingual/phone-mockup.webp"
+                alt="Phone Mockup"
+                className="w-full h-auto object-contain animate-idle-float"
               />
             </div>
           </div>
 
           {/* LAYER 2: The Intro 4K Video Sequence */}
-          <div ref={filmContainerRef} className="absolute inset-0 z-10 w-full h-full">
+          <div ref={filmContainerRef} className="absolute inset-0 z-10 w-full h-full pointer-events-none">
             {/* Cinematic Vignette Pulse Overlay */}
             <div className="absolute inset-0 z-20 animate-vignette-pulse pointer-events-none" />
 
@@ -294,14 +336,14 @@ export default function ExperiencePage() {
               scrollData={scrollData}
               holdData={holdData}
               sequenceKeys={[
-                { key: 'scene1-3', out: 11, holdWeight: 8 }, // Holds here for 8 durations of video to slow down presentation scroll!
+                { key: 'scene1-3', in: 2, out: 11, holdWeight: 8 }, // Holds here for 8 durations of video to slow down presentation scroll!
                 { key: 'transit-b', in: 2 },
                 'transit-c',
-                { key: 'transit-d', out: 2 }
+                'transit-d'
               ]}
               startProgress={0}
               endProgress={0.5}
-              reportsProgress
+              reportsProgress="intro"
               priority
             />
           </div>
@@ -310,12 +352,13 @@ export default function ExperiencePage() {
           <div ref={whiteFlashRef} className="absolute inset-0 z-[20] w-full h-full bg-white opacity-0 pointer-events-none" />
 
           {/* LAYER 3: The Finale Video Sequence */}
-          <div ref={finaleFilmContainerRef} className="absolute inset-0 z-[25] w-full h-full opacity-0">
+          <div ref={finaleFilmContainerRef} className="absolute inset-0 z-[25] w-full h-full opacity-0 pointer-events-none">
             <ScrollFilm
               scrollData={scrollData}
-              sequenceKeys={['transit-e']}
+              sequenceKeys={['last-scene']}
               startProgress={0.95}
               endProgress={1.0}
+              reportsProgress="finale"
             />
           </div>
         </div>
@@ -346,24 +389,24 @@ export default function ExperiencePage() {
                 <span className="hero-word inline-block">truth.</span>
               </h1>
             </div>
-              <p
-                className="mt-6 text-base md:text-lg text-gray-300 max-w-2xl leading-relaxed flex flex-wrap justify-center gap-x-[0.4em] gap-y-2"
-                style={{ fontFamily: 'var(--font-space-mono)' }}
-              >
-                {"Live developer inventory, translated into conversation — so every broker and every buyer speaks the same language.".split(' ').map((word, i) => (
-                  <span key={i} className="inline-flex overflow-hidden">
-                    <span 
-                      className="subheading-word inline-block" 
-                      style={{ 
-                        opacity: 0, 
-                        transform: 'translateY(100%)',
-                      }}
-                    >
-                      {word}
-                    </span>
+            <p
+              className="mt-6 text-base md:text-lg text-gray-300 max-w-2xl leading-relaxed flex flex-wrap justify-center gap-x-[0.4em] gap-y-2"
+              style={{ fontFamily: 'var(--font-space-mono)' }}
+            >
+              {"Live developer inventory, translated into conversation — so every broker and every buyer speaks the same language.".split(' ').map((word, i) => (
+                <span key={i} className="inline-flex overflow-hidden">
+                  <span
+                    className="subheading-word inline-block"
+                    style={{
+                      opacity: 0,
+                      transform: 'translateY(100%)',
+                    }}
+                  >
+                    {word}
                   </span>
-                ))}
-              </p>
+                </span>
+              ))}
+            </p>
 
             {/* Scroll Indicator */}
             <div

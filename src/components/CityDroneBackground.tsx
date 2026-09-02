@@ -130,6 +130,18 @@ export default function CityDroneBackground({
       if (p < 0.499 || p > 0.96) {
         // If we are far away, pause the current video to save CPU
         if (currentVideo && !currentVideo.paused) currentVideo.pause();
+        // Clean reset to Mumbai if we scrolled back before the multilingual section
+        if (p < 0.499 && currentIndex !== 0 && !isFading) {
+          currentIndex = 0;
+          if (nextVideo) {
+            destroyVideo(nextVideo);
+            nextVideo = null;
+          }
+          if (textRef.current) {
+            textRef.current.innerText = 'MUMBAI';
+            gsap.set(textRef.current, { opacity: 1, filter: 'blur(0px)' });
+          }
+        }
         frame = requestAnimationFrame(render);
         return;
       } else {
