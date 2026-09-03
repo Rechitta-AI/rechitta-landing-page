@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react';
 import { pickTier, proxyUrl, fullUrl } from '@/utils/videoTier';
 import { setLoadProgress, registerLoadTask } from '@/utils/loadProgress';
 import { createClock, advanceClock } from '@/utils/filmClock';
+import type { FilmTiming } from '@/orb/types';
 
 export type SequenceClip = string | { key: string; in?: number; out?: number; holdWeight?: number };
 
@@ -17,6 +18,11 @@ interface ScrollFilmProps {
   reportsProgress?: string | boolean;
   /** The film the visitor lands on. Its first full clip loads immediately. */
   priority?: boolean;
+  /**
+   * Receives the measured clip timings. The orb's flight path anchors to clip
+   * time, so it needs the same duration table the scrub maths runs on.
+   */
+  timingRef?: React.RefObject<FilmTiming | null>;
 }
 
 /** Don't re-seek for less than half a frame of difference. */
@@ -74,6 +80,7 @@ export default function ScrollFilm({
   holdData,
   reportsProgress = false,
   priority = false,
+  timingRef,
 }: ScrollFilmProps) {
   const stageRef = useRef<HTMLDivElement>(null);
 
@@ -165,6 +172,36 @@ export default function ScrollFilm({
           clip.duration = Math.max(0.1, trimOut - trimIn); // Prevent 0 duration
         }
       });
+      publishTiming();
+    };
+
+    // Anything keyed to clip time — the orb's flight path — resolves through
+    // this. Durations arrive per clip and can be revised, so it is republished
+    // on every metadata event rather than computed once.
+    const publishTiming = () => {
+      if (!timingRef) return;
+      let offsetUnits = 0;
+      const table = clips.map((clip, i) => {
+        const conf = sequenceKeys[i];
+        const key = typeof conf === 'string' ? conf : conf.key;
+        const entry = {
+          key,
+          trimIn: clip.trimIn,
+          trimOut: clip.trimOut,
+          duration: clip.duration,
+          holdWeight: clip.holdWeight,
+          offsetUnits,
+        };
+        offsetUnits += clip.duration + clip.holdWeight;
+        return entry;
+      });
+      const { startProgress: from, endProgress: to } = rangeRef.current;
+      timingRef.current = {
+        clips: table,
+        totalUnits: offsetUnits,
+        startProgress: from,
+        endProgress: to,
+      };
     };
 
     const onMeta = () => readDurations();
@@ -354,7 +391,7 @@ export default function ScrollFilm({
     };
     // sequenceKeys is a literal array in the parent; compare by contents.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scrollData, JSON.stringify(sequenceKeys), reportsProgress, priority]);
+  }, [scrollData, JSON.stringify(sequenceKeys), reportsProgress, priority, timingRef]);
 
   return (
     <div

@@ -179,40 +179,40 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
 
           {/* Slide 1 */}
           <div className="w-1/4 h-full flex flex-col items-center justify-center p-8">
-            <h2 className="text-4xl md:text-[4.5rem] text-black font-bold mb-6 text-center leading-tight" style={{ fontFamily: 'var(--font-monument)' }}>
+            <h2 className="text-4xl md:text-[4.5rem] text-black font-bold mb-6 text-center leading-tight" style={{ fontFamily: 'var(--font-inter)' }}>
               Slide 1: Overview
             </h2>
-            <p className="text-lg md:text-xl text-black text-center font-medium max-w-2xl" style={{ fontFamily: 'var(--font-space-mono)' }}>
+            <p className="text-lg md:text-xl text-black text-center font-medium max-w-2xl" style={{ fontFamily: 'var(--font-inter)' }}>
               Welcome to the boardroom. Scroll down to advance the slides.
             </p>
           </div>
 
           {/* Slide 2 */}
           <div className="w-1/4 h-full flex flex-col items-center justify-center p-8">
-            <h2 className="text-4xl md:text-[4.5rem] text-black font-bold mb-6 text-center leading-tight" style={{ fontFamily: 'var(--font-monument)' }}>
+            <h2 className="text-4xl md:text-[4.5rem] text-black font-bold mb-6 text-center leading-tight" style={{ fontFamily: 'var(--font-inter)' }}>
               Slide 2: Data
             </h2>
-            <p className="text-lg md:text-xl text-black text-center font-medium max-w-2xl" style={{ fontFamily: 'var(--font-space-mono)' }}>
+            <p className="text-lg md:text-xl text-black text-center font-medium max-w-2xl" style={{ fontFamily: 'var(--font-inter)' }}>
               We track everything. No dropped frames.
             </p>
           </div>
 
           {/* Slide 3 */}
           <div className="w-1/4 h-full flex flex-col items-center justify-center p-8">
-            <h2 className="text-4xl md:text-[4.5rem] text-black font-bold mb-6 text-center leading-tight" style={{ fontFamily: 'var(--font-monument)' }}>
+            <h2 className="text-4xl md:text-[4.5rem] text-black font-bold mb-6 text-center leading-tight" style={{ fontFamily: 'var(--font-inter)' }}>
               Slide 3: Growth
             </h2>
-            <p className="text-lg md:text-xl text-black text-center font-medium max-w-2xl" style={{ fontFamily: 'var(--font-space-mono)' }}>
+            <p className="text-lg md:text-xl text-black text-center font-medium max-w-2xl" style={{ fontFamily: 'var(--font-inter)' }}>
               Visualizing the infrastructure scale worldwide.
             </p>
           </div>
 
           {/* Slide 4 */}
           <div className="w-1/4 h-full flex flex-col items-center justify-center p-8">
-            <h2 className="text-4xl md:text-[4.5rem] text-black font-bold mb-6 text-center leading-tight" style={{ fontFamily: 'var(--font-monument)' }}>
+            <h2 className="text-4xl md:text-[4.5rem] text-black font-bold mb-6 text-center leading-tight" style={{ fontFamily: 'var(--font-inter)' }}>
               Slide 4: End
             </h2>
-            <p className="text-lg md:text-xl text-black text-center font-medium max-w-2xl" style={{ fontFamily: 'var(--font-space-mono)' }}>
+            <p className="text-lg md:text-xl text-black text-center font-medium max-w-2xl" style={{ fontFamily: 'var(--font-inter)' }}>
               Prepare for the global rollout sequence.
             </p>
           </div>

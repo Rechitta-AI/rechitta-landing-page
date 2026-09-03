@@ -11,6 +11,7 @@ import Cursor from '@/components/Cursor';
 import OrbStage from '@/components/OrbStage';
 import CityDroneBackground from '@/components/CityDroneBackground';
 import { useSmoothScroll } from '@/hooks/useSmoothScroll';
+import type { FilmTiming } from '@/orb/types';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -40,6 +41,10 @@ export default function ExperiencePage() {
   useSmoothScroll(introPhase === 'done');
   const scrollData = useRef({ progress: 0 });
   const holdData = useRef({ clipIndex: -1, progress: 0 });
+
+  // Measured clip durations for the intro film. The orb's flight path anchors
+  // to clip time, so it resolves through this rather than hardcoded progress.
+  const filmTiming = useRef<FilmTiming | null>(null);
 
   useEffect(() => {
     // Nothing should scroll while the cinematic intro is playing.
@@ -345,6 +350,7 @@ export default function ExperiencePage() {
               endProgress={0.5}
               reportsProgress="intro"
               priority
+              timingRef={filmTiming}
             />
           </div>
 
@@ -379,7 +385,7 @@ export default function ExperiencePage() {
                 transform: 'translateX(-20px)'
               }}
             >
-              <h1 className="text-4xl md:text-[4.5rem] leading-none text-white tracking-tight flex flex-wrap items-center justify-center gap-x-[0.3em]" style={{ fontFamily: 'var(--font-monument)' }}>
+              <h1 className="text-4xl md:text-[4.5rem] leading-none text-white tracking-tight flex flex-wrap items-center justify-center gap-x-[0.3em]" style={{ fontFamily: 'var(--font-inter)' }}>
                 {/* Invisible anchor for the Orb to land on must remain intact! */}
                 <span className="hero-word inline-block">
                   <span id="hero-o-anchor" className="invisible">O</span>ne
@@ -391,7 +397,7 @@ export default function ExperiencePage() {
             </div>
             <p
               className="mt-6 text-base md:text-lg text-gray-300 max-w-2xl leading-relaxed flex flex-wrap justify-center gap-x-[0.4em] gap-y-2"
-              style={{ fontFamily: 'var(--font-space-mono)' }}
+              style={{ fontFamily: 'var(--font-inter)' }}
             >
               {"Live developer inventory, translated into conversation — so every broker and every buyer speaks the same language.".split(' ').map((word, i) => (
                 <span key={i} className="inline-flex overflow-hidden">
@@ -428,6 +434,7 @@ export default function ExperiencePage() {
       {/* Moved OUTSIDE containerRef to prevent ScrollTrigger DOM-surgery from reloading the iframe! */}
       <OrbStage
         scrollData={scrollData}
+        timingRef={filmTiming}
         introPhase={introPhase}
         onOrbLanded={() => setIntroPhase('revealing')}
         onOrbLoaded={() => setOrbReady(true)}

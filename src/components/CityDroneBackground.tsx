@@ -268,7 +268,7 @@ export default function CityDroneBackground({
       <h1 
         ref={textRef}
         className="absolute top-1/2 -translate-y-1/2 right-[10%] text-6xl md:text-[6rem] text-white tracking-tighter"
-        style={{ fontFamily: 'var(--font-monument)', zIndex: 20 }}
+        style={{ fontFamily: 'var(--font-inter)', zIndex: 20 }}
       >
         MUMBAI
       </h1>

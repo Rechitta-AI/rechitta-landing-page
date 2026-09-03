@@ -14,3 +14,81 @@
 .holder {
   will-change: transform, opacity;
 }
+
+/* The shadow pad. `screen` blending makes the orb invisible on white plates —
+   the transit-c whiteout, the beach, the clouds — because screen over white is
+   white. This darkens the plate locally just enough for the orb to read, and
+   sits at zero on dark footage, where it would otherwise be a smudge.
+
+   It lives in its own fixed layer rather than inside .stage so that it
+   multiplies against the film, not against the stage's own empty backdrop. */
+.padLayer {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  mix-blend-mode: multiply;
+  z-index: 24;
+}
+
+.pad {
+  width: clamp(260px, 32vw, 420px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  opacity: 0;
+  /* A long, smooth falloff. A short one reads as a grey disc laid over the
+     plate rather than as the plate darkening around the orb. */
+  background: radial-gradient(
+    circle,
+    rgba(14, 18, 32, 0.58) 0%,
+    rgba(15, 19, 33, 0.44) 18%,
+    rgba(17, 21, 35, 0.28) 34%,
+    rgba(19, 23, 37, 0.15) 50%,
+    rgba(21, 25, 39, 0.06) 66%,
+    rgba(22, 26, 40, 0.015) 82%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  will-change: transform, opacity;
+}
+
+/* The trail. It is what makes "leading" legible — without it a leading orb
+   just looks like an orb that is early. */
+.trailLayer {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  mix-blend-mode: screen;
+  z-index: 26;
+}
+
+.trailDot {
+  position: absolute;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  opacity: 0;
+  /* Matched to the Spline orb's own blue, not the warm gold of the storyboard
+     sketch — a trail in a different hue reads as a second object. */
+  background: radial-gradient(circle, rgba(214, 236, 255, 0.95) 0%, rgba(86, 141, 255, 0.5) 45%, rgba(40, 90, 220, 0) 72%);
+  /* Glow comes from box-shadow, never filter: blur(). Stacked blur filters
+     composited over 4K video playback is the one real perf risk here. */
+  box-shadow: 0 0 18px 6px rgba(90, 150, 255, 0.35);
+  will-change: transform, opacity;
+}
+
+/* The filament drawn from the orb toward the phone mockup on a city change. */
+.filament {
+  position: absolute;
+  height: 2px;
+  transform-origin: 0 50%;
+  border-radius: 2px;
+  opacity: 0;
+  background: linear-gradient(90deg, rgba(206, 230, 255, 0.85) 0%, rgba(110, 160, 255, 0.35) 55%, rgba(60, 110, 230, 0) 100%);
+  box-shadow: 0 0 12px 3px rgba(90, 150, 255, 0.25);
+  will-change: opacity;
+}

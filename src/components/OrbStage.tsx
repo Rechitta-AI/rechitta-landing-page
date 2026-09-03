@@ -1,157 +1,284 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import gsap from 'gsap';
 import SplineOrb from './SplineOrb';
 import styles from './OrbStage.module.css';
+import { createClock, advanceClock } from '@/utils/filmClock';
+import { ORB_PATH, EXCLUSION_ZONES } from '@/orb/path';
+import { findExclusionViolations, poseAt, resolvePath } from '@/orb/flight';
+import type { FilmTiming, Keyframe, ResolvedKeyframe } from '@/orb/types';
 
-const DRIFT_START = 0.8;
-const DRIFT_END = 0.96;
+/** How many past positions the trail replays. */
+const TRAIL_LENGTH = 8;
+
+/** Viewport-percent per frame below which the orb reads as settled, not flying. */
+const TRAIL_MIN_SPEED = 0.06;
+const TRAIL_MAX_SPEED = 1.1;
+
+/** How long a hand-off flare lasts, ms. */
+const PULSE_MS = 520;
+
+/** The orb's idle breathing while it is parked. */
+const BREATH_AMPLITUDE = 0.02;
+const BREATH_PERIOD_MS = 5200;
+
+type Sample = { x: number; y: number; scale: number };
 
 export default function OrbStage({
   scrollData,
+  timingRef,
   introPhase = 'done',
   onOrbLanded,
-  onOrbLoaded
+  onOrbLoaded,
 }: {
   scrollData: React.RefObject<{ progress: number }>;
+  timingRef?: React.RefObject<FilmTiming | null>;
   introPhase?: 'loading' | 'moving' | 'revealing' | 'done';
   onOrbLanded?: () => void;
   onOrbLoaded?: () => void;
 }) {
   const stageRef = useRef<HTMLDivElement>(null);
   const holderRef = useRef<HTMLDivElement>(null);
+  const padLayerRef = useRef<HTMLDivElement>(null);
+  const padRef = useRef<HTMLDivElement>(null);
+  const trailLayerRef = useRef<HTMLDivElement>(null);
+  const trailDotsRef = useRef<(HTMLDivElement | null)[]>([]);
 
-  // Track if we've already done the GSAP move so we don't repeat it
+  // The GSAP intro move runs once; the scroll path picks up where it lands.
   const hasMovedRef = useRef(false);
 
-  // Store the coordinates of the "O" so the scroll-engine can pick up exactly where GSAP left off
-  const oPositionRef = useRef({ xPx: 0, yVh: 0, scale: 1 });
+  /**
+   * The hero pose, measured from the "O" rather than authored. The first and
+   * last keyframes both resolve to it, which is what makes the loop back to
+   * the top invisible.
+   */
+  const heroPoseRef = useRef<Sample | null>(null);
 
-  useEffect(() => {
-    console.log('[DEBUG] OrbStage mounted!');
-    return () => console.log('[DEBUG] OrbStage UNMOUNTED!');
-  }, []);
+  const resolvedRef = useRef<ResolvedKeyframe[]>([]);
+  const lastTimingRef = useRef<FilmTiming | null>(null);
+  const pulseAtRef = useRef<number>(-Infinity);
+  const lastProgressRef = useRef<number>(0);
 
-  useEffect(() => {
-    if (holderRef.current) {
-      const observer = new MutationObserver((mutations) => {
-        mutations.forEach((mutation) => {
-          if (mutation.type === 'attributes') {
-            console.log(`[DEBUG] Holder attribute changed: ${mutation.attributeName}`, holderRef.current?.style.opacity, holderRef.current?.style.visibility);
-          }
-        });
-      });
-      observer.observe(holderRef.current, { attributes: true });
-      return () => observer.disconnect();
-    }
-  }, []);
+  /** Measures the hero "O" and returns its centre in viewport percent. */
+  const measureHeroPose = (): Sample | null => {
+    const target = document.getElementById('hero-o-anchor');
+    if (!target || typeof window === 'undefined') return null;
+    const rect = target.getBoundingClientRect();
+    if (rect.width === 0 && rect.height === 0) return null;
+    // The +15px matches the optical centring the intro move already applies.
+    return {
+      x: ((rect.left + rect.width / 2 + 15) / window.innerWidth) * 100,
+      y: ((rect.top + rect.height / 2) / window.innerHeight) * 100,
+      scale: 1.2,
+    };
+  };
 
-  useEffect(() => {
-    // If introPhase is 'moving' and we haven't animated yet, trigger the GSAP move!
-    if (introPhase === 'moving' && !hasMovedRef.current && holderRef.current) {
-      hasMovedRef.current = true;
+  /**
+   * Rebuilds the resolved path. Cheap, and only run when the film's measured
+   * timing changes or the viewport resizes — not per frame.
+   */
+  const rebuildPath = () => {
+    const timing = timingRef?.current ?? null;
+    const hero = heroPoseRef.current;
 
-      const targetEl = document.getElementById('hero-o-anchor');
-      if (targetEl) {
-        const targetRect = targetEl.getBoundingClientRect();
-        const holderRect = holderRef.current.getBoundingClientRect();
+    const path: Keyframe[] = hero
+      ? ORB_PATH.map((k) => (k.hero ? { ...k, x: hero.x, y: hero.y, scale: hero.scale } : k))
+      : ORB_PATH;
 
-        // Calculate how much we need to move the holder to land exactly on the target
-        // The holder is currently centered in the screen.
-        const deltaX = targetRect.left + (targetRect.width / 2) - (holderRect.left + (holderRect.width / 2)) + 15;
-        const deltaY = targetRect.top + (targetRect.height / 2) - (holderRect.top + (holderRect.height / 2));
-        // Save the destination for the scroll loop - preserve its original majestic size!
-        oPositionRef.current = {
-          xPx: deltaX,
-          yVh: (deltaY / window.innerHeight) * 100,
-          scale: 1.2
-        };
+    const resolved = resolvePath(path, timing);
+    resolvedRef.current = resolved;
+    lastTimingRef.current = timing;
 
-        gsap.to(holderRef.current, {
-          x: deltaX,
-          y: deltaY,
-          scale: 1.2, // preserve size
-          duration: 1.5,
-          ease: 'power3.inOut',
-          onUpdate: () => {
-            console.log('[DEBUG] GSAP Update. Transform:', holderRef.current?.style.transform);
-          },
-          onComplete: () => {
-            console.log('[DEBUG] GSAP Complete! Calling onOrbLanded.');
-            if (onOrbLanded) onOrbLanded();
-          }
-        });
+    if (process.env.NODE_ENV !== 'production') {
+      // A window onto the resolved path, for the calibration pass and for
+      // automated verification. Dev only.
+      (window as unknown as { __orb?: unknown }).__orb = {
+        hero,
+        timing,
+        resolved: resolved.map((k) => ({ progress: +k.progress.toFixed(4), x: k.x, y: k.y, note: k.note })),
+      };
+
+      const dropped = path.length - resolved.length;
+      if (timing && dropped > 0) {
+        console.warn(`[orb] ${dropped} keyframe(s) could not be placed — anchored outside a clip's trim range?`);
       }
+      findExclusionViolations(resolved, EXCLUSION_ZONES, timing).forEach((v) => {
+        console.error(`[orb] keyframe ${v.keyframeIndex} sits on "${v.zoneLabel}" — an app mockup goes there.\n       ${v.note}`);
+      });
     }
+  };
+
+  // ── The cinematic intro hand-off ──────────────────────────────────────
+  useEffect(() => {
+    if (introPhase !== 'moving' || hasMovedRef.current || !holderRef.current) return;
+    hasMovedRef.current = true;
+
+    const targetEl = document.getElementById('hero-o-anchor');
+    if (!targetEl) return;
+
+    const targetRect = targetEl.getBoundingClientRect();
+    const holderRect = holderRef.current.getBoundingClientRect();
+
+    const deltaX =
+      targetRect.left + targetRect.width / 2 - (holderRect.left + holderRect.width / 2) + 15;
+    const deltaY = targetRect.top + targetRect.height / 2 - (holderRect.top + holderRect.height / 2);
+
+    heroPoseRef.current = measureHeroPose();
+    rebuildPath();
+
+    gsap.to(holderRef.current, {
+      x: deltaX,
+      y: deltaY,
+      scale: 1.2,
+      duration: 1.5,
+      ease: 'power3.inOut',
+      onComplete: () => onOrbLanded?.(),
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [introPhase]);
 
+  // ── Re-measure the hero anchor when the viewport changes ──────────────
   useEffect(() => {
+    const onResize = () => {
+      const measured = measureHeroPose();
+      if (measured) heroPoseRef.current = measured;
+      rebuildPath();
+    };
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ── The flight ────────────────────────────────────────────────────────
+  useEffect(() => {
+    const reduceMotion =
+      typeof window !== 'undefined' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    const clock = createClock(scrollData.current?.progress ?? 0);
+    const history: Sample[] = [];
+    let lastTime = performance.now();
     let frame: number;
 
-    const tick = () => {
+    const tick = (now: number) => {
+      const dt = (now - lastTime) / 1000;
+      lastTime = now;
+
       if (introPhase !== 'done') {
         frame = requestAnimationFrame(tick);
         return;
       }
 
-      const tv = scrollData.current?.progress ?? 0;
-      const viewportWidth = window.innerWidth;
-      const isMobile = viewportWidth > 0 && viewportWidth <= 768;
+      // The film republishes its timing as clip metadata arrives.
+      if ((timingRef?.current ?? null) !== lastTimingRef.current) rebuildPath();
 
-      let xPx = oPositionRef.current.xPx;
-      let yVh = oPositionRef.current.yVh;
-      let scale = oPositionRef.current.scale;
-      let opacity = 0.9;
+      const target = scrollData.current?.progress ?? 0;
+      const progress = advanceClock(clock, target, dt);
+      const pose = poseAt(resolvedRef.current, progress);
 
-      // Fade out slightly when transitioning from hero to globe
-      if (tv > 0.15 && tv <= DRIFT_START) {
-        opacity = 0.9 - ((tv - 0.15) / 0.65) * 0.4;
+      // ── Hand-off flares ────────────────────────────────────────────
+      if (!reduceMotion) {
+        const previous = lastProgressRef.current;
+        for (const k of resolvedRef.current) {
+          if (!k.pulse) continue;
+          const crossed =
+            (previous < k.progress && progress >= k.progress) ||
+            (previous > k.progress && progress <= k.progress);
+          if (crossed) pulseAtRef.current = now;
+        }
       }
+      lastProgressRef.current = progress;
 
-      if (tv <= DRIFT_START) {
-        // Hold at the O's position
-      } else if (tv <= DRIFT_END) {
-        const p = (tv - DRIFT_START) / (DRIFT_END - DRIFT_START);
-        // ease in-out
-        const eased = p < 0.5 ? 2 * p * p : -1 + (4 - 2 * p) * p;
+      const sincePulse = now - pulseAtRef.current;
+      const pulse = sincePulse >= 0 && sincePulse < PULSE_MS ? 1 - sincePulse / PULSE_MS : 0;
+      const flare = pulse * pulse;
 
-        const endXPx = window.innerWidth * 0.05;
-        const endYVh = 25;
-        const endScale = 0.6;
+      // A parked orb should look alive, not frozen.
+      const breath = reduceMotion
+        ? 0
+        : Math.sin((now / BREATH_PERIOD_MS) * Math.PI * 2) * BREATH_AMPLITUDE;
 
-        xPx = oPositionRef.current.xPx + (endXPx - oPositionRef.current.xPx) * eased;
-        yVh = oPositionRef.current.yVh + (endYVh - oPositionRef.current.yVh) * eased;
-        scale = oPositionRef.current.scale + (endScale - oPositionRef.current.scale) * eased;
-        opacity = 0.5 + (0.4 * eased); // fade back up a bit during drift
-      } else {
-        xPx = window.innerWidth * 0.05;
-        yVh = 25;
-        scale = 0.6;
-        opacity = 0.9;
-      }
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      const px = vw * (pose.x / 100 - 0.5);
+      const py = vh * (pose.y / 100 - 0.5);
+      const scale = pose.scale * (1 + breath + flare * 0.22);
 
       if (holderRef.current) {
-        holderRef.current.style.transform = `translate(${xPx}px, ${yVh}vh) scale(${scale})`;
-        holderRef.current.style.opacity = opacity.toString();
+        holderRef.current.style.transform = `translate(${px}px, ${py}px) scale(${scale})`;
+        holderRef.current.style.opacity = String(Math.min(1, pose.opacity + flare * 0.3));
+        holderRef.current.style.filter = pose.blur > 0.05 ? `blur(${pose.blur}px)` : '';
       }
 
-      if (stageRef.current) {
-        stageRef.current.style.zIndex = tv >= DRIFT_START ? '27' : '25';
+      // ── The shadow pad ─────────────────────────────────────────────
+      if (padRef.current) {
+        padRef.current.style.transform = `translate(${px}px, ${py}px) scale(${scale * 1.9})`;
+        padRef.current.style.opacity = String(pose.pad * pose.opacity);
       }
+
+      // ── The trail ──────────────────────────────────────────────────
+      const previousSample = history[0];
+      const speed = previousSample
+        ? Math.hypot(pose.x - previousSample.x, pose.y - previousSample.y)
+        : 0;
+
+      history.unshift({ x: pose.x, y: pose.y, scale });
+      if (history.length > TRAIL_LENGTH + 1) history.pop();
+
+      const intensity = reduceMotion
+        ? 0
+        : Math.max(0, Math.min(1, (speed - TRAIL_MIN_SPEED) / (TRAIL_MAX_SPEED - TRAIL_MIN_SPEED)));
+
+      trailDotsRef.current.forEach((dot, i) => {
+        if (!dot) return;
+        const sample = history[i + 1];
+        if (!sample || intensity <= 0) {
+          dot.style.opacity = '0';
+          return;
+        }
+        const age = 1 - i / TRAIL_LENGTH;
+        const dx = vw * (sample.x / 100 - 0.5);
+        const dy = vh * (sample.y / 100 - 0.5);
+        dot.style.transform = `translate(${dx}px, ${dy}px) scale(${sample.scale * age})`;
+        dot.style.opacity = String(intensity * age * 0.5 * pose.opacity);
+      });
+
+      // Above the drifted-orb threshold the orb should sit over the film,
+      // below it the film's own overlays win.
+      if (stageRef.current) stageRef.current.style.zIndex = progress >= 0.5 ? '27' : '25';
 
       frame = requestAnimationFrame(tick);
     };
-    frame = requestAnimationFrame(tick);
 
+    frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
-  }, [scrollData, introPhase]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scrollData, introPhase, timingRef]);
 
   return (
-    <div ref={stageRef} className={styles.stage} aria-hidden="true">
-      <div ref={holderRef} className={styles.holder}>
-        <SplineOrb onLoaded={onOrbLoaded} />
+    <>
+      <div ref={padLayerRef} className={styles.padLayer} aria-hidden="true">
+        <div ref={padRef} className={styles.pad} />
       </div>
-    </div>
+
+      <div ref={trailLayerRef} className={styles.trailLayer} aria-hidden="true">
+        {Array.from({ length: TRAIL_LENGTH }).map((_, i) => (
+          <div
+            key={i}
+            ref={(el) => {
+              trailDotsRef.current[i] = el;
+            }}
+            className={styles.trailDot}
+          />
+        ))}
+      </div>
+
+      <div ref={stageRef} className={styles.stage} aria-hidden="true">
+        <div ref={holderRef} className={styles.holder}>
+          <SplineOrb onLoaded={onOrbLoaded} />
+        </div>
+      </div>
+    </>
   );
 }

@@ -6,29 +6,17 @@ import AppHeader from "@/components/AppHeader";
 import InteractiveDemoModal from "@/components/InteractiveDemoModal";
 import "./globals.css";
 
-import localFont from "next/font/local";
-import { Space_Mono } from "next/font/google";
+import { Inter } from "next/font/google";
 
-const monument = localFont({
-  src: [
-    {
-      path: "../../public/fonts/MonumentExtended-Regular.otf",
-      weight: "400",
-      style: "normal",
-    },
-    {
-      path: "../../public/fonts/MonumentExtended-Ultrabold.otf",
-      weight: "800",
-      style: "normal",
-    },
-  ],
-  variable: "--font-monument",
-});
-
-const spaceMono = Space_Mono({
-  variable: "--font-space-mono",
+// Inter v4 carries an optical-size axis, and "Inter Display" is this same
+// family at the top of that axis — tighter spacing and finer detail, drawn
+// for large sizes. Loading the axis gives headings the display cut and body
+// copy the reading cut from one variable file.
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
-  weight: ["400", "700"],
+  axes: ["opsz"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -41,7 +29,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html
       lang="en"
-      className={`${monument.variable} ${spaceMono.variable} antialiased`}
+      className={`${inter.variable} antialiased`}
     >
       <head>
         <Script

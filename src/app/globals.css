@@ -12,8 +12,8 @@
 }
 
 @theme inline {
-  --font-display: var(--font-monument);
-  --font-body: var(--font-space-mono);
+  --font-display: var(--font-inter);
+  --font-body: var(--font-inter);
   --color-ink: var(--ink);
   --color-bone: var(--bone);
   --color-amber: var(--amber);
@@ -25,7 +25,7 @@ body {
   padding: 0;
   background: var(--ink);
   color: var(--bone);
-  font-family: var(--font-space-mono), system-ui, sans-serif;
+  font-family: var(--font-inter), system-ui, -apple-system, sans-serif;
   overflow-x: hidden;
   
   /* Permanently hide scrollbars to keep a cinematic feel */
@@ -98,4 +98,43 @@ html[data-modal-open="true"] body {
 }
 .animate-scroll-line {
   animation: scroll-line 1.5s cubic-bezier(0.8, 0, 0.2, 1) infinite;
+}
+
+
+/* ── TYPE SCALE ────────────────────────────────────────────────────────────
+ * One family across the site, so hierarchy is carried by weight and optical
+ * size rather than by switching typefaces. Inter's opsz axis runs 14–32:
+ * high values are the "Display" cut (tight, fine) for large type, low values
+ * are the reading cut (open, sturdy) for small type.
+ */
+h1 {
+  font-variation-settings: "opsz" 32;
+  font-weight: 640;
+  letter-spacing: -0.03em;
+}
+
+h2 {
+  font-variation-settings: "opsz" 32;
+  font-weight: 620;
+  letter-spacing: -0.025em;
+}
+
+h3,
+h4 {
+  font-variation-settings: "opsz" 24;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+
+p {
+  font-variation-settings: "opsz" 18;
+  font-weight: 400;
+  letter-spacing: -0.005em;
+}
+
+/* Small uppercase chrome — nav, counters, chapter names. Letterspaced type
+   at small sizes needs weight to hold its colour on a dark ground. */
+.type-label {
+  font-variation-settings: "opsz" 14;
+  font-weight: 500;
 }
