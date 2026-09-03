@@ -1,5 +1,6 @@
 'use client';
 import { useRef, useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import ScrollFilm from '@/components/ScrollFilm';
@@ -12,6 +13,8 @@ import OrbStage from '@/components/OrbStage';
 import CityDroneBackground from '@/components/CityDroneBackground';
 import { useSmoothScroll } from '@/hooks/useSmoothScroll';
 import type { FilmTiming } from '@/orb/types';
+import type { Playhead } from '@/screens/types';
+import ScreenTracks from '@/components/ScreenTracks';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -49,6 +52,15 @@ export default function ExperiencePage() {
   // The multilingual chapter has no camera move for the orb to lead, so it
   // leads the cities instead: it pulses as each one arrives.
   const cityPulse = useRef({ at: 0 });
+
+  // Which frame of which clip is on screen, so the app mockups can be warped
+  // onto the phones exactly where they are.
+  const playhead = useRef<Playhead | null>(null);
+
+  // The hero renders through a portal (see below), which can only happen once
+  // there is a document to portal into.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   useEffect(() => {
     // Nothing should scroll while the cinematic intro is playing.
@@ -363,7 +375,11 @@ export default function ExperiencePage() {
               reportsProgress="intro"
               priority
               timingRef={filmTiming}
+              playheadRef={playhead}
             />
+
+            {/* The app screens, composited into the phones as they move. */}
+            <ScreenTracks playheadRef={playhead} />
           </div>
 
           {/* LAYER 2.5: The White Crossfade Layer */}
@@ -381,7 +397,16 @@ export default function ExperiencePage() {
           </div>
         </div>
 
-        <div className="absolute inset-0 z-[30] pointer-events-none">
+        {/*
+          The hero is portalled to the body rather than left inside the pinned
+          container. ScrollTrigger's pin gives that container its own stacking
+          context, so nothing inside it can paint above the orb's fixed layer —
+          and the orb lands exactly on the "O", which would bury the letter.
+          Out here it can sit above the orb, so the word reads "One" with the
+          orb glowing behind its first letter.
+        */}
+        {mounted && createPortal(
+          <div className="fixed inset-0 z-[31] pointer-events-none">
 
           {/* The Hero Content */}
           <div
@@ -398,9 +423,9 @@ export default function ExperiencePage() {
               }}
             >
               <h1 className="text-4xl md:text-[4.5rem] leading-none text-white tracking-tight flex flex-wrap items-center justify-center gap-x-[0.3em]" style={{ fontFamily: 'var(--font-inter)' }}>
-                {/* Invisible anchor for the Orb to land on must remain intact! */}
+                {/* The orb lands on this "O" — the letter stays visible beneath it. */}
                 <span className="hero-word inline-block">
-                  <span id="hero-o-anchor" className="invisible">O</span>ne
+                  <span id="hero-o-anchor">O</span>ne
                 </span>
                 <span className="hero-word inline-block">source</span>
                 <span className="hero-word inline-block">of</span>
@@ -438,7 +463,9 @@ export default function ExperiencePage() {
             </div>
           </div>
 
-        </div>
+          </div>,
+          document.body,
+        )}
 
       </div>
 

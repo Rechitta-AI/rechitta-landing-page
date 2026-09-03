@@ -16,8 +16,8 @@
  * are read from video metadata at runtime, so a retrim would silently slide
  * every hardcoded progress number out of sync with the footage.
  *
- * Positions are viewport percent, placed against extracted frames. Scale, blur
- * and pad are calibrated by eye — tune them here and nowhere else.
+ * Positions are viewport percent, placed against extracted frames. Scale and
+ * blur are calibrated by eye — tune them here and nowhere else.
  */
 
 import type { ExclusionZone, Keyframe } from './types';
@@ -30,31 +30,31 @@ export const ORB_PATH: Keyframe[] = [
   {
     anchor: { clip: 'scene1-3', t: 2.0 },
     hero: true,
-    x: 50, y: 46, scale: HERO_SCALE, opacity: 0.9, blur: 0, pad: 0,
+    x: 50, y: 46, scale: HERO_SCALE, opacity: 0.9, blur: 0,
     ease: 'inOut',
     note: 'K0 — the hero "O". Text staggers away, the orb stays.',
   },
   {
     anchor: { clip: 'scene1-3', t: 5.0 },
-    x: 40, y: 48, scale: 0.5, opacity: 0.9, blur: 0, pad: 0.1,
+    x: 40, y: 48, scale: 0.5, opacity: 0.9, blur: 0,
     ease: 'in',
     note: 'K1 — at the lit boardroom window while the camera is still outside the glass.',
   },
   {
     anchor: { clip: 'scene1-3', t: 6.6 },
-    x: 55, y: 80, scale: 0.58, opacity: 0.95, blur: 0, pad: 0.15,
+    x: 55, y: 80, scale: 0.58, opacity: 0.95, blur: 0,
     ease: 'out',
     note: 'K2 — through the glass, low, touching down on the near end of the table.',
   },
   {
     anchor: { clip: 'scene1-3', t: 8.5 },
-    x: 58, y: 74, scale: 0.4, opacity: 0.9, blur: 0.6, pad: 0.2,
+    x: 58, y: 74, scale: 0.4, opacity: 0.9, blur: 0.6,
     ease: 'inOut',
     note: 'K3 — sliding up the table centreline, shrinking along its vanishing line.',
   },
   {
     anchor: { clip: 'scene1-3', t: 11.0 },
-    x: 50, y: 78, scale: 0.3, opacity: 0.75, blur: 1.2, pad: 0.25,
+    x: 50, y: 78, scale: 0.3, opacity: 0.75, blur: 1.2,
     ease: 'out',
     note: 'K4 — rests on the credenza below the screen. Holds through the whole deck.',
   },
@@ -62,32 +62,32 @@ export const ORB_PATH: Keyframe[] = [
   // ── Act II — out to the broker ──────────────────────────────────────
   {
     anchor: { clip: 'transit-b', t: 4.0 },
-    x: 47, y: 58, scale: 0.2, opacity: 0.8, blur: 1.2, pad: 0.2,
+    x: 47, y: 58, scale: 0.2, opacity: 0.8, blur: 1.2,
     ease: 'in',
     note: 'K5 — camera pulls wide; the orb lifts off first.',
   },
   {
     anchor: { clip: 'transit-b', t: 6.0 },
-    x: 66, y: 41, scale: 0.62, opacity: 0.95, blur: 0, pad: 0.3,
+    x: 66, y: 41, scale: 0.62, opacity: 0.95, blur: 0,
     ease: 'out',
     note: 'K6 — out through the facade ahead of the camera. Longest trail in the film.',
   },
   {
     anchor: { clip: 'transit-b', t: 9.0 },
-    x: 58, y: 44, scale: 0.5, opacity: 0.9, blur: 0, pad: 0.35,
+    x: 58, y: 44, scale: 0.5, opacity: 0.9, blur: 0,
     ease: 'inOut',
     note: 'K7 — on the terrace, arcing down toward the small figure.',
   },
   {
     anchor: { clip: 'transit-b', t: 13.0 },
-    x: 57, y: 62, scale: 0.42, opacity: 0.9, blur: 0, pad: 0.4,
+    x: 57, y: 62, scale: 0.42, opacity: 0.9, blur: 0,
     ease: 'out',
     note: 'K8 — hovering above his hands. Slows to almost nothing.',
   },
   {
     anchor: { clip: 'transit-b', t: 16.8 },
     pulse: true,
-    x: 23, y: 33, scale: 0.6, opacity: 1, blur: 0, pad: 0.45,
+    x: 23, y: 33, scale: 0.6, opacity: 1, blur: 0,
     ease: 'out',
     note: 'K9 — slides clear of the phone and flares. The app mockup lights.',
   },
@@ -95,20 +95,20 @@ export const ORB_PATH: Keyframe[] = [
   // ── Act III — through the phone ─────────────────────────────────────
   {
     anchor: { clip: 'transit-c', t: 4.0 },
-    x: 50, y: 50, scale: 1.4, opacity: 1, blur: 0, pad: 0.85,
+    x: 50, y: 50, scale: 1.4, opacity: 1, blur: 0,
     ease: 'inOut',
     note: 'K10 — full whiteout. The orb is the only object on screen.',
   },
   {
     anchor: { clip: 'transit-c', t: 6.5 },
     pulse: true,
-    x: 73, y: 24, scale: 0.45, opacity: 1, blur: 0, pad: 0.6,
+    x: 73, y: 24, scale: 0.45, opacity: 1, blur: 0,
     ease: 'out',
     note: 'K11 — re-condenses over the sea, clear of the buyer phone, and flares.',
   },
   {
     anchor: { clip: 'transit-d', t: 5.9 },
-    x: 50, y: 48, scale: 0.9, opacity: 1, blur: 0, pad: 0.5,
+    x: 50, y: 48, scale: 0.9, opacity: 1, blur: 0,
     ease: 'inOut',
     note: 'K12 — expands into the cloud whiteout, seeding the white flash.',
   },
@@ -116,13 +116,13 @@ export const ORB_PATH: Keyframe[] = [
   // ── Act IV — the multilingual chapter ───────────────────────────────
   {
     anchor: { progress: 0.52 },
-    x: 72, y: 40, scale: 0.7, opacity: 0.95, blur: 0, pad: 0.35,
+    x: 72, y: 40, scale: 0.7, opacity: 0.95, blur: 0,
     ease: 'out',
     note: 'K13 — arrives right-of-centre, opposite the phone mockup.',
   },
   {
     anchor: { progress: 0.93 },
-    x: 72, y: 40, scale: 0.7, opacity: 0.95, blur: 0, pad: 0.35,
+    x: 72, y: 40, scale: 0.7, opacity: 0.95, blur: 0,
     ease: 'linear',
     note: 'K14 — holds, pulsing on every city change with a filament to the phone.',
   },
@@ -130,14 +130,14 @@ export const ORB_PATH: Keyframe[] = [
   // ── Act V — home ────────────────────────────────────────────────────
   {
     anchor: { progress: 0.96 },
-    x: 30, y: 60, scale: 0.5, opacity: 0.9, blur: 0, pad: 0.1,
+    x: 30, y: 60, scale: 0.5, opacity: 0.9, blur: 0,
     ease: 'in',
     note: 'K15 — rises from the tower over the dawn skyline.',
   },
   {
     anchor: { progress: 1.0 },
     hero: true,
-    x: 50, y: 46, scale: HERO_SCALE, opacity: 0.9, blur: 0, pad: 0,
+    x: 50, y: 46, scale: HERO_SCALE, opacity: 0.9, blur: 0,
     ease: 'out',
     note: 'K16 — rests on the exact coordinates of K0. The orb is the stitch that hides the loop.',
   },

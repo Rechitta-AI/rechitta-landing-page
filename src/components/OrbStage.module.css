@@ -15,44 +15,6 @@
   will-change: transform, opacity;
 }
 
-/* The shadow pad. `screen` blending makes the orb invisible on white plates —
-   the transit-c whiteout, the beach, the clouds — because screen over white is
-   white. This darkens the plate locally just enough for the orb to read, and
-   sits at zero on dark footage, where it would otherwise be a smudge.
-
-   It lives in its own fixed layer rather than inside .stage so that it
-   multiplies against the film, not against the stage's own empty backdrop. */
-.padLayer {
-  position: fixed;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  pointer-events: none;
-  mix-blend-mode: multiply;
-  z-index: 24;
-}
-
-.pad {
-  width: clamp(260px, 32vw, 420px);
-  aspect-ratio: 1;
-  border-radius: 50%;
-  opacity: 0;
-  /* A long, smooth falloff. A short one reads as a grey disc laid over the
-     plate rather than as the plate darkening around the orb. */
-  background: radial-gradient(
-    circle,
-    rgba(14, 18, 32, 0.58) 0%,
-    rgba(15, 19, 33, 0.44) 18%,
-    rgba(17, 21, 35, 0.28) 34%,
-    rgba(19, 23, 37, 0.15) 50%,
-    rgba(21, 25, 39, 0.06) 66%,
-    rgba(22, 26, 40, 0.015) 82%,
-    rgba(255, 255, 255, 0) 100%
-  );
-  will-change: transform, opacity;
-}
-
 /* The trail. It is what makes "leading" legible — without it a leading orb
    just looks like an orb that is early. */
 .trailLayer {

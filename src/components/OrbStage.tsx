@@ -42,8 +42,6 @@ export default function OrbStage({
 }) {
   const stageRef = useRef<HTMLDivElement>(null);
   const holderRef = useRef<HTMLDivElement>(null);
-  const padLayerRef = useRef<HTMLDivElement>(null);
-  const padRef = useRef<HTMLDivElement>(null);
   const trailLayerRef = useRef<HTMLDivElement>(null);
   const trailDotsRef = useRef<(HTMLDivElement | null)[]>([]);
   const filamentRef = useRef<HTMLDivElement>(null);
@@ -202,7 +200,7 @@ export default function OrbStage({
           snappedAtRef.current = now;
         }
         const k = resolvedRef.current[nearest];
-        pose = { x: k.x, y: k.y, scale: k.scale, opacity: k.opacity, blur: k.blur, pad: k.pad };
+        pose = { x: k.x, y: k.y, scale: k.scale, opacity: k.opacity, blur: k.blur };
 
         const sinceSnap = now - snappedAtRef.current;
         const FADE_MS = 320;
@@ -247,11 +245,6 @@ export default function OrbStage({
         holderRef.current.style.filter = pose.blur > 0.05 ? `blur(${pose.blur}px)` : '';
       }
 
-      // ── The shadow pad ─────────────────────────────────────────────
-      if (padRef.current) {
-        padRef.current.style.transform = `translate(${px}px, ${py}px) scale(${scale * 1.9})`;
-        padRef.current.style.opacity = String(pose.pad * pose.opacity * fade);
-      }
 
       // ── The trail ──────────────────────────────────────────────────
       const previousSample = history[0];
@@ -313,9 +306,6 @@ export default function OrbStage({
 
   return (
     <>
-      <div ref={padLayerRef} className={styles.padLayer} aria-hidden="true">
-        <div ref={padRef} className={styles.pad} />
-      </div>
 
       <div ref={trailLayerRef} className={styles.trailLayer} aria-hidden="true">
         {Array.from({ length: TRAIL_LENGTH }).map((_, i) => (

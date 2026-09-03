@@ -5,6 +5,7 @@ import { pickTier, proxyUrl, fullUrl } from '@/utils/videoTier';
 import { setLoadProgress, registerLoadTask } from '@/utils/loadProgress';
 import { createClock, advanceClock } from '@/utils/filmClock';
 import type { FilmTiming } from '@/orb/types';
+import type { Playhead } from '@/screens/types';
 
 export type SequenceClip = string | { key: string; in?: number; out?: number; holdWeight?: number };
 
@@ -23,6 +24,12 @@ interface ScrollFilmProps {
    * time, so it needs the same duration table the scrub maths runs on.
    */
   timingRef?: React.RefObject<FilmTiming | null>;
+  /**
+   * Receives the exact clip and source time on screen each frame. Anything
+   * composited onto the footage reads this rather than scroll progress, so it
+   * cannot drift from the frame it is sitting on.
+   */
+  playheadRef?: React.RefObject<Playhead | null>;
 }
 
 /** Don't re-seek for less than half a frame of difference. */
@@ -81,6 +88,7 @@ export default function ScrollFilm({
   reportsProgress = false,
   priority = false,
   timingRef,
+  playheadRef,
 }: ScrollFilmProps) {
   const stageRef = useRef<HTMLDivElement>(null);
 
@@ -360,7 +368,16 @@ export default function ScrollFilm({
 
         // Only the visible element is seeked. Driving both was decoding every
         // frame twice — at 4K that is the difference between smooth and not.
-        seek(active, clip.trimIn + remaining);
+        const sourceTime = clip.trimIn + remaining;
+        seek(active, sourceTime);
+
+        if (playheadRef) {
+          const conf = sequenceKeys[activeIndex];
+          playheadRef.current = {
+            clip: typeof conf === 'string' ? conf : conf.key,
+            t: sourceTime,
+          };
+        }
 
         // Swapping mid-seek would flash whatever frame the incoming element
         // happens to be parked on, so wait until it has landed.
@@ -391,7 +408,7 @@ export default function ScrollFilm({
     };
     // sequenceKeys is a literal array in the parent; compare by contents.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scrollData, JSON.stringify(sequenceKeys), reportsProgress, priority, timingRef]);
+  }, [scrollData, JSON.stringify(sequenceKeys), reportsProgress, priority, timingRef, playheadRef]);
 
   return (
     <div

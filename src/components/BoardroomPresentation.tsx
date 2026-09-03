@@ -5,6 +5,14 @@ import gsap from 'gsap';
 
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
+/** The deck shown on the boardroom screen, in order. */
+const SLIDES = [
+  '/presentation/1-FINAL.jpeg',
+  '/presentation/2-FINAL.jpeg',
+  '/presentation/3-FINAL.jpeg',
+  '/presentation/4-FINAL.jpeg',
+];
+
 interface BoardroomPresentationProps {
   holdData: React.RefObject<{ clipIndex: number; progress: number; startProgress?: number; endProgress?: number }>;
 }
@@ -22,8 +30,8 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
     // progress is 0.0 to 1.0. 
     // Slide 0: 0.0, Slide 1: 0.33, Slide 2: 0.66, Slide 3: 1.0
     // We can derive the current slide by multiplying by 3 and rounding
-    const currentSlide = Math.round(progress * 3);
-    const nextSlide = Math.min(3, Math.max(0, currentSlide + direction));
+    const currentSlide = Math.round(progress * (SLIDES.length - 1));
+    const nextSlide = Math.min(SLIDES.length - 1, Math.max(0, currentSlide + direction));
     scrollToSlide(nextSlide);
   };
 
@@ -31,7 +39,7 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
     if (!holdData.current || holdData.current.startProgress === undefined || holdData.current.endProgress === undefined) return;
     const { startProgress, endProgress } = holdData.current;
     
-    const numSlides = 4;
+    const numSlides = SLIDES.length;
     const progressRatio = slideIndex / (numSlides - 1);
     const targetGlobalProgress = startProgress + (endProgress - startProgress) * progressRatio;
     
@@ -106,7 +114,7 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
         // -0% to -75% translation.
 
         // Add a tiny bit of ease so it doesn't feel jarring
-        const targetX = -(progress * 75); // moves from 0 to -75% width
+        const targetX = -(progress * (100 * (SLIDES.length - 1) / SLIDES.length));
         gsap.to(slidesRef.current, {
           x: `${targetX}%`,
           duration: 0.1,
@@ -115,8 +123,8 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
         });
 
         // Update dots
-        const activeSlide = Math.floor(progress * 4);
-        const clampedSlide = Math.min(3, Math.max(0, activeSlide));
+        const activeSlide = Math.floor(progress * SLIDES.length);
+        const clampedSlide = Math.min(SLIDES.length - 1, Math.max(0, activeSlide));
         dotsRef.current.forEach((dot, i) => {
           if (!dot) return;
           if (i === clampedSlide) {
@@ -175,47 +183,26 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
       >
 
         {/* The Sliding Track (4x width for 4 slides) */}
-        <div ref={slidesRef} className="absolute inset-0 w-[400%] h-full flex">
+        <div ref={slidesRef} className="absolute inset-0 h-full flex" style={{ width: `${SLIDES.length * 100}%` }}>
 
-          {/* Slide 1 */}
-          <div className="w-1/4 h-full flex flex-col items-center justify-center p-8">
-            <h2 className="text-4xl md:text-[4.5rem] text-black font-bold mb-6 text-center leading-tight" style={{ fontFamily: 'var(--font-inter)' }}>
-              Slide 1: Overview
-            </h2>
-            <p className="text-lg md:text-xl text-black text-center font-medium max-w-2xl" style={{ fontFamily: 'var(--font-inter)' }}>
-              Welcome to the boardroom. Scroll down to advance the slides.
-            </p>
-          </div>
-
-          {/* Slide 2 */}
-          <div className="w-1/4 h-full flex flex-col items-center justify-center p-8">
-            <h2 className="text-4xl md:text-[4.5rem] text-black font-bold mb-6 text-center leading-tight" style={{ fontFamily: 'var(--font-inter)' }}>
-              Slide 2: Data
-            </h2>
-            <p className="text-lg md:text-xl text-black text-center font-medium max-w-2xl" style={{ fontFamily: 'var(--font-inter)' }}>
-              We track everything. No dropped frames.
-            </p>
-          </div>
-
-          {/* Slide 3 */}
-          <div className="w-1/4 h-full flex flex-col items-center justify-center p-8">
-            <h2 className="text-4xl md:text-[4.5rem] text-black font-bold mb-6 text-center leading-tight" style={{ fontFamily: 'var(--font-inter)' }}>
-              Slide 3: Growth
-            </h2>
-            <p className="text-lg md:text-xl text-black text-center font-medium max-w-2xl" style={{ fontFamily: 'var(--font-inter)' }}>
-              Visualizing the infrastructure scale worldwide.
-            </p>
-          </div>
-
-          {/* Slide 4 */}
-          <div className="w-1/4 h-full flex flex-col items-center justify-center p-8">
-            <h2 className="text-4xl md:text-[4.5rem] text-black font-bold mb-6 text-center leading-tight" style={{ fontFamily: 'var(--font-inter)' }}>
-              Slide 4: End
-            </h2>
-            <p className="text-lg md:text-xl text-black text-center font-medium max-w-2xl" style={{ fontFamily: 'var(--font-inter)' }}>
-              Prepare for the global rollout sequence.
-            </p>
-          </div>
+          {SLIDES.map((src, i) => (
+            <div
+              key={src}
+              className="h-full relative overflow-hidden bg-black shrink-0"
+              style={{ width: `${100 / SLIDES.length}%` }}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={src}
+                alt={`Slide ${i + 1}`}
+                // The deck fills the screen edge to edge; the panel's aspect is
+                // fixed by the footage, so cover is the only fit that leaves no
+                // letterboxing against the video behind it.
+                className="absolute inset-0 w-full h-full object-cover"
+                draggable={false}
+              />
+            </div>
+          ))}
 
         </div>
 
@@ -235,7 +222,7 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
 
         {/* Dots */}
         <div className="flex items-center gap-4">
-          {[0, 1, 2, 3].map((i) => (
+          {SLIDES.map((_, i) => (
             <button
               key={i}
               ref={(el) => { dotsRef.current[i] = el; }}

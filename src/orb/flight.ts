@@ -23,7 +23,7 @@ const EASINGS: Record<Keyframe['ease'], (p: number) => number> = {
 };
 
 /** Where the orb sits before the path can be resolved: centre frame, unseen. */
-const FALLBACK_POSE: Pose = { x: 50, y: 50, scale: 1, opacity: 0, blur: 0, pad: 0 };
+const FALLBACK_POSE: Pose = { x: 50, y: 50, scale: 1, opacity: 0, blur: 0 };
 
 function lerp(a: number, b: number, t: number): number {
   return a + (b - a) * t;
@@ -94,12 +94,11 @@ export function poseAt(resolved: ResolvedKeyframe[], progress: number): Pose {
     scale: lerp(from.scale, to.scale, t),
     opacity: lerp(from.opacity, to.opacity, t),
     blur: lerp(from.blur, to.blur, t),
-    pad: lerp(from.pad, to.pad, t),
   };
 }
 
 function toPose(k: ResolvedKeyframe): Pose {
-  return { x: k.x, y: k.y, scale: k.scale, opacity: k.opacity, blur: k.blur, pad: k.pad };
+  return { x: k.x, y: k.y, scale: k.scale, opacity: k.opacity, blur: k.blur };
 }
 
 /**

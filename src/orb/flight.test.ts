@@ -17,7 +17,7 @@ const timing: FilmTiming = {
 
 const kf = (over: Partial<Keyframe>): Keyframe => ({
   anchor: { progress: 0 },
-  x: 0, y: 0, scale: 1, opacity: 1, blur: 0, pad: 0,
+  x: 0, y: 0, scale: 1, opacity: 1, blur: 0,
   ease: 'linear',
   note: 'test',
   ...over,
@@ -95,7 +95,7 @@ describe('resolvePath', () => {
 describe('poseAt', () => {
   const kfs: ResolvedKeyframe[] = [
     { ...kf({}), progress: 0 },
-    { ...kf({ x: 100, y: 50, scale: 2, opacity: 0.5, blur: 4, pad: 1 }), progress: 1 },
+    { ...kf({ x: 100, y: 50, scale: 2, opacity: 0.5, blur: 4 }), progress: 1 },
   ];
 
   it('returns the exact authored pose at a keyframe', () => {
@@ -107,7 +107,6 @@ describe('poseAt', () => {
     const p = poseAt(kfs, 0.5);
     expect(p.x).toBeCloseTo(50, 5);
     expect(p.y).toBeCloseTo(25, 5);
-    expect(p.pad).toBeCloseTo(0.5, 5);
     expect(p.blur).toBeCloseTo(2, 5);
   });
 

@@ -49,8 +49,6 @@ export type Pose = {
   opacity: number;
   /** Depth softening, px. */
   blur: number;
-  /** Shadow-pad strength, 0–1. Carries the orb over bright plates. */
-  pad: number;
 };
 
 export type Keyframe = Pose & {
