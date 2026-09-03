@@ -19,11 +19,20 @@ const CITIES = [
  */
 export default function CityDroneBackground({
   scrollData,
+  onCityChange,
 }: {
   scrollData: React.MutableRefObject<{ progress: number }>;
+  /** Fires as each crossfade begins, so the orb can pulse in step with the cities. */
+  onCityChange?: () => void;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const textRef = useRef<HTMLHeadingElement>(null);
+
+  // Read from inside a long-lived rAF loop, so kept in a ref rather than a dep.
+  const onCityChangeRef = useRef(onCityChange);
+  useEffect(() => {
+    onCityChangeRef.current = onCityChange;
+  }, [onCityChange]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -182,6 +191,7 @@ export default function CityDroneBackground({
           isFading = true;
           fadeStart = now;
           fadeProgress = 0;
+          onCityChangeRef.current?.();
 
           // Trigger GSAP Focus Pull for Typography
           if (textRef.current) {

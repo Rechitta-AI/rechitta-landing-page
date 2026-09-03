@@ -1,6 +1,6 @@
 # Orb Navigator Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Turn the orb into a scroll-keyed navigator that flies a authored path across the whole film, leading the camera and never landing on a surface that will hold an app mockup.
 
@@ -38,13 +38,13 @@ Pulls the inertia easing out of `ScrollFilm`/`MasterScrollFilm` into one module 
 - Consumes: nothing.
 - Produces: `advanceClock(state: ClockState, target: number, dtSeconds: number): number` and `createClock(initial: number): ClockState`, where `ClockState = { eased: number }`. Exports `CATCH_UP = 0.1` and `SNAP_THRESHOLD = 0.25`.
 
-- [ ] **Step 1: Install Vitest**
+- [x] **Step 1: Install Vitest**
 
 ```bash
 npm install -D vitest
 ```
 
-- [ ] **Step 2: Add config and script**
+- [x] **Step 2: Add config and script**
 
 `vitest.config.ts`:
 ```ts
@@ -57,7 +57,7 @@ export default defineConfig({
 
 Add to `package.json` scripts: `"test": "vitest run"`.
 
-- [ ] **Step 3: Write the failing test**
+- [x] **Step 3: Write the failing test**
 
 ```ts
 import { describe, it, expect } from 'vitest';
@@ -84,11 +84,11 @@ describe('filmClock', () => {
 });
 ```
 
-- [ ] **Step 4: Run and verify it fails**
+- [x] **Step 4: Run and verify it fails**
 
 Run: `npm test`. Expected: FAIL — cannot resolve `./filmClock`.
 
-- [ ] **Step 5: Implement**
+- [x] **Step 5: Implement**
 
 ```ts
 export const CATCH_UP = 0.1;
@@ -111,15 +111,15 @@ export function advanceClock(state: ClockState, target: number, dtSeconds: numbe
 }
 ```
 
-- [ ] **Step 6: Run and verify it passes**
+- [x] **Step 6: Run and verify it passes**
 
 Run: `npm test`. Expected: PASS.
 
-- [ ] **Step 7: Adopt it in both film components**
+- [x] **Step 7: Adopt it in both film components**
 
 In `ScrollFilm.tsx`, delete the local `CATCH_UP`/`SEEK_EPSILON` easing block and the inline snap guard; replace with `createClock` + `advanceClock`. Keep `SEEK_EPSILON` (it is seek logic, not clock logic). Do the same in `MasterScrollFilm.tsx`.
 
-- [ ] **Step 8: Verify no visual regression, then commit**
+- [x] **Step 8: Verify no visual regression, then commit**
 
 Run `npm run dev`, scroll the film top to bottom including the loop. Expected: identical scrub behaviour.
 
@@ -141,20 +141,20 @@ git add -A && git commit -m "refactor: extract shared film clock, add vitest"
 **Interfaces:**
 - Produces: `FilmTiming = { clips: ClipTiming[]; totalUnits: number; startProgress: number; endProgress: number }` where `ClipTiming = { key: string; trimIn: number; trimOut: number; duration: number; holdWeight: number; offsetUnits: number }`. `offsetUnits` is the clip's start position in the film's internal unit timeline.
 
-- [ ] **Step 1: Define the types** in `src/orb/types.ts` exactly as in Interfaces above.
+- [x] **Step 1: Define the types** in `src/orb/types.ts` exactly as in Interfaces above.
 
-- [ ] **Step 2: Publish timing from ScrollFilm**
+- [x] **Step 2: Publish timing from ScrollFilm**
 
 Add an optional `timingRef?: React.RefObject<FilmTiming | null>` prop. Inside `readDurations()`, after durations are known, write the table — including `offsetUnits` accumulated as `duration + holdWeight` per clip — and `totalUnits`, `startProgress`, `endProgress`.
 
-- [ ] **Step 3: Wire it in page.tsx**
+- [x] **Step 3: Wire it in page.tsx**
 
 ```tsx
 const filmTiming = useRef<FilmTiming | null>(null);
 // pass timingRef={filmTiming} to the intro ScrollFilm
 ```
 
-- [ ] **Step 4: Verify and commit**
+- [x] **Step 4: Verify and commit**
 
 Log the ref once in dev and confirm `scene1-3` reports `duration: 9`, `holdWeight: 8`, and `totalUnits ≈ 46.04`.
 
@@ -175,11 +175,11 @@ git add -A && git commit -m "feat: expose film clip timing for orb path resoluti
   `ExclusionZone = { window: { clip: string; from: number; to: number } | { from: number; to: number }; rect: { x0: number; y0: number; x1: number; y1: number }; label: string }`.
   `EaseName = 'linear' | 'inOut' | 'out' | 'in'`.
 
-- [ ] **Step 1: Transcribe every keyframe** from the spec's Act I–V tables, in order, with `hero: true` on K0 and K16 (their x/y/scale are overridden at runtime by the measured `#hero-o-anchor` pose).
+- [x] **Step 1: Transcribe every keyframe** from the spec's Act I–V tables, in order, with `hero: true` on K0 and K16 (their x/y/scale are overridden at runtime by the measured `#hero-o-anchor` pose).
 
-- [ ] **Step 2: Transcribe the five exclusion zones** from the spec's table.
+- [x] **Step 2: Transcribe the five exclusion zones** from the spec's table.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add -A && git commit -m "feat: author the orb flight path as data"
@@ -197,7 +197,7 @@ git add -A && git commit -m "feat: author the orb flight path as data"
 - Consumes: `FilmTiming` (Task 2), `Keyframe` (Task 3).
 - Produces: `resolveAnchor(anchor: Anchor, timing: FilmTiming | null): number | null` — global scroll progress, or `null` when the clip is unknown or `t` falls outside its trimmed range. `resolvePath(path: Keyframe[], timing: FilmTiming | null): ResolvedKeyframe[]` — sorted by progress, dropping unresolvable entries. `ResolvedKeyframe = Keyframe & { progress: number }`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```ts
 import { describe, it, expect } from 'vitest';
@@ -246,13 +246,13 @@ describe('resolveAnchor', () => {
 });
 ```
 
-- [ ] **Step 2: Run and verify failure.** Run: `npm test`. Expected: FAIL — `resolveAnchor` is not exported.
+- [x] **Step 2: Run and verify failure.** Run: `npm test`. Expected: FAIL — `resolveAnchor` is not exported.
 
-- [ ] **Step 3: Implement `resolveAnchor` and `resolvePath`.** For a clip anchor: find the clip, reject if `t < trimIn || t > trimOut`, then `units = offsetUnits + (t - trimIn)` and `progress = startProgress + (units / totalUnits) * (endProgress - startProgress)`.
+- [x] **Step 3: Implement `resolveAnchor` and `resolvePath`.** For a clip anchor: find the clip, reject if `t < trimIn || t > trimOut`, then `units = offsetUnits + (t - trimIn)` and `progress = startProgress + (units / totalUnits) * (endProgress - startProgress)`.
 
-- [ ] **Step 4: Run and verify pass.** Run: `npm test`.
+- [x] **Step 4: Run and verify pass.** Run: `npm test`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add -A && git commit -m "feat: resolve clip-time orb anchors to scroll progress"
@@ -269,7 +269,7 @@ git add -A && git commit -m "feat: resolve clip-time orb anchors to scroll progr
 **Interfaces:**
 - Produces: `poseAt(resolved: ResolvedKeyframe[], progress: number): Pose` where `Pose = { x: number; y: number; scale: number; opacity: number; blur: number; pad: number }`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```ts
 import { poseAt } from './flight';
@@ -298,13 +298,13 @@ describe('poseAt', () => {
 });
 ```
 
-- [ ] **Step 2: Run and verify failure.**
+- [x] **Step 2: Run and verify failure.**
 
-- [ ] **Step 3: Implement.** Binary-search or linear-scan for the bracketing pair, normalise, apply the segment's `ease`, lerp every numeric field.
+- [x] **Step 3: Implement.** Binary-search or linear-scan for the bracketing pair, normalise, apply the segment's `ease`, lerp every numeric field.
 
-- [ ] **Step 4: Run and verify pass.**
+- [x] **Step 4: Run and verify pass.**
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add -A && git commit -m "feat: interpolate orb pose between keyframes"
@@ -321,15 +321,15 @@ git add -A && git commit -m "feat: interpolate orb pose between keyframes"
 **Interfaces:**
 - Produces: `findExclusionViolations(resolved: ResolvedKeyframe[], zones: ExclusionZone[], timing: FilmTiming | null): Violation[]` where `Violation = { keyframeIndex: number; zoneLabel: string }`.
 
-- [ ] **Step 1: Write the failing tests** — a keyframe inside a zone during that zone's window is a violation; the same keyframe outside the window is not; a keyframe clear of the rect is not.
+- [x] **Step 1: Write the failing tests** — a keyframe inside a zone during that zone's window is a violation; the same keyframe outside the window is not; a keyframe clear of the rect is not.
 
-- [ ] **Step 2: Run and verify failure.**
+- [x] **Step 2: Run and verify failure.**
 
-- [ ] **Step 3: Implement.** Resolve each zone's window to a progress range, then test every keyframe whose progress falls inside it against the rect.
+- [x] **Step 3: Implement.** Resolve each zone's window to a progress range, then test every keyframe whose progress falls inside it against the rect.
 
-- [ ] **Step 4: Run and verify pass.**
+- [x] **Step 4: Run and verify pass.**
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add -A && git commit -m "feat: enforce orb exclusion zones"
@@ -349,19 +349,19 @@ The behavioural core. `OrbStage` stops deciding and starts drawing.
 - Consumes: `poseAt`, `resolvePath`, `findExclusionViolations`, `advanceClock`, `FilmTiming`.
 - Produces: no new exports; accepts a new `timingRef` prop.
 
-- [ ] **Step 1: Replace the scroll loop.** Delete the `DRIFT_START`/`DRIFT_END` arithmetic. Each frame: advance the shared clock from `scrollData.current.progress`, call `poseAt`, write `transform`/`opacity`/`filter` on the holder.
+- [x] **Step 1: Replace the scroll loop.** Delete the `DRIFT_START`/`DRIFT_END` arithmetic. Each frame: advance the shared clock from `scrollData.current.progress`, call `poseAt`, write `transform`/`opacity`/`filter` on the holder.
 
-- [ ] **Step 2: Inject the measured hero pose.** After the intro GSAP move lands, overwrite every `hero: true` keyframe's `x`/`y`/`scale` with the measured `#hero-o-anchor` pose, then re-resolve. Re-measure on `resize`.
+- [x] **Step 2: Inject the measured hero pose.** After the intro GSAP move lands, overwrite every `hero: true` keyframe's `x`/`y`/`scale` with the measured `#hero-o-anchor` pose, then re-resolve. Re-measure on `resize`.
 
-- [ ] **Step 3: Add the shadow pad.** A sibling div beneath the holder, `mix-blend-mode: multiply`, radial dark gradient, opacity `pose.pad`, following the same transform.
+- [x] **Step 3: Add the shadow pad.** A sibling div beneath the holder, `mix-blend-mode: multiply`, radial dark gradient, opacity `pose.pad`, following the same transform.
 
-- [ ] **Step 4: Add the trail.** Ring buffer of the last 8 poses; 8 pooled divs, `screen`-blended, opacity and scale falling off by age, shown only above a velocity threshold. `box-shadow` for glow — no `filter: blur()`.
+- [x] **Step 4: Add the trail.** Ring buffer of the last 8 poses; 8 pooled divs, `screen`-blended, opacity and scale falling off by age, shown only above a velocity threshold. `box-shadow` for glow — no `filter: blur()`.
 
-- [ ] **Step 5: Run the exclusion check in dev.** `if (process.env.NODE_ENV !== 'production')` — `console.error` each violation once when the path resolves.
+- [x] **Step 5: Run the exclusion check in dev.** `if (process.env.NODE_ENV !== 'production')` — `console.error` each violation once when the path resolves.
 
-- [ ] **Step 6: Verify in the browser.** Scroll the whole film. The orb dives into the tower, slides the table, parks on the credenza, exits with the camera, reaches the broker, blooms through the whiteout, holds the multilingual chapter, returns home. Confirm the loop shows no jump.
+- [x] **Step 6: Verify in the browser.** Scroll the whole film. The orb dives into the tower, slides the table, parks on the credenza, exits with the camera, reaches the broker, blooms through the whiteout, holds the multilingual chapter, returns home. Confirm the loop shows no jump.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add -A && git commit -m "feat: fly the orb along the authored navigator path"
@@ -375,13 +375,13 @@ git add -A && git commit -m "feat: fly the orb along the authored navigator path
 - Modify: `src/components/OrbStage.tsx`
 - Modify: `src/components/CityDroneBackground.tsx` (expose city-change events)
 
-- [ ] **Step 1: Pulse on hand-off.** When progress crosses a `pulse: true` keyframe, flare the orb's glow briefly. Fires in both scroll directions, once per crossing.
+- [x] **Step 1: Pulse on hand-off.** When progress crosses a `pulse: true` keyframe, flare the orb's glow briefly. Fires in both scroll directions, once per crossing.
 
-- [ ] **Step 2: City-change pulse + filament.** `CityDroneBackground` fires a callback on crossfade. On it, the orb pulses and a thin light line draws from the orb toward the phone mockup and fades.
+- [x] **Step 2: City-change pulse + filament.** `CityDroneBackground` fires a callback on crossfade. On it, the orb pulses and a thin light line draws from the orb toward the phone mockup and fades.
 
-- [ ] **Step 3: Reduced motion.** Under `prefers-reduced-motion`, disable the trail, the anticipation, and the pulses; the orb cross-fades between keyframe poses instead of flying.
+- [x] **Step 3: Reduced motion.** Under `prefers-reduced-motion`, disable the trail, the anticipation, and the pulses; the orb cross-fades between keyframe poses instead of flying.
 
-- [ ] **Step 4: Verify and commit**
+- [x] **Step 4: Verify and commit**
 
 ```bash
 git add -A && git commit -m "feat: orb hand-off pulses, city filament, reduced motion"
@@ -395,7 +395,7 @@ The spec states the pose numbers are a first draft placed against extracted fram
 
 - [ ] **Step 1: Scroll each act slowly** and compare against the storyboard.
 - [ ] **Step 2: Adjust `x`/`y`/`scale`/`blur`/`pad` in `path.ts` only.** No motion logic changes — if tuning requires a code change, the design is wrong; stop and say so.
-- [ ] **Step 3: Re-run `npm test`** to confirm no exclusion violations.
+- [x] **Step 3: Re-run `npm test`** to confirm no exclusion violations.
 - [ ] **Step 4: Commit** `git commit -m "polish: calibrate orb flight path"`.
 
 ---

@@ -172,9 +172,9 @@ These are informational. The path anchors to clip time and re-derives them.
 | # | Anchor | Pose | Beat |
 |---|---|---|---|
 | K0 | `scene1-3` t=2.0 | measured hero pose, scale 1.2 | The hero "O". Text staggers away, the orb stays. |
-| K1 | `scene1-3` t=5.0 | 27%, 39% | Already at the lit boardroom window while the camera is still outside the glass. The one anticipation beat: a small wind-up before the plunge. |
-| K2 | `scene1-3` t=6.6 | 64%, 72% | Through the glass, low, touching down on the near end of the table. |
-| K3 | `scene1-3` t=8.5 | 52%, 62% | Sliding up the table's centreline, shrinking along its vanishing line. |
+| K1 | `scene1-3` t=5.0 | 40%, 48% | Already at the lit boardroom window while the camera is still outside the glass. The one anticipation beat: a small wind-up before the plunge. |
+| K2 | `scene1-3` t=6.6 | 55%, 80% | Through the glass, low, touching down on the near end of the table. |
+| K3 | `scene1-3` t=8.5 | 58%, 74% | Sliding up the table's centreline, shrinking along its vanishing line. |
 | K4 | `scene1-3` t=11.0 | 50%, 78% | Rests on the credenza, below the screen and below the slide controls. Holds through the entire deck with a slow breathing pulse on scale. |
 
 ### Act II — out to the broker (0.185 → 0.348)
@@ -237,6 +237,23 @@ height 48.6%) plus its slide controls and a small margin.
 | Broker's phone | `transit-b` t ≥ 15 | x 41–63, y 7–90 |
 | Buyer's phone, beach | `transit-c` t 5.5–8 | x 40–60, y 15–90 |
 | Phone mockup, multilingual | progress 0.50–0.95 | x 4–26, y 18–82 |
+
+## Calibration record
+
+The Act I positions above are the calibrated values, not the original
+storyboard ones. Two corrections were made during implementation:
+
+- K1–K3 were re-placed. The storyboard frames had been extracted with
+  `ffmpeg -ss` before `-i`, which snaps to the nearest keyframe rather than
+  seeking accurately, so those three beats had been positioned against frames
+  up to a second away from the ones they resolve to. Re-extracted accurately,
+  K1 now sits on the lit boardroom window rather than beside it.
+- K3 was moved from y 62% to y 74%. At 62% it fell inside the boardroom
+  exclusion rectangle — the dev-time check caught it before it ever rendered.
+
+Verified in a headless browser: the film parks within 0.02s of every authored
+frame, all seventeen keyframes resolve, and K0 and K16 land on identical
+coordinates.
 
 ## Pose values are a first draft
 

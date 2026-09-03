@@ -28,12 +28,14 @@ type Sample = { x: number; y: number; scale: number };
 export default function OrbStage({
   scrollData,
   timingRef,
+  cityPulseRef,
   introPhase = 'done',
   onOrbLanded,
   onOrbLoaded,
 }: {
   scrollData: React.RefObject<{ progress: number }>;
   timingRef?: React.RefObject<FilmTiming | null>;
+  cityPulseRef?: React.RefObject<{ at: number }>;
   introPhase?: 'loading' | 'moving' | 'revealing' | 'done';
   onOrbLanded?: () => void;
   onOrbLoaded?: () => void;
@@ -44,6 +46,7 @@ export default function OrbStage({
   const padRef = useRef<HTMLDivElement>(null);
   const trailLayerRef = useRef<HTMLDivElement>(null);
   const trailDotsRef = useRef<(HTMLDivElement | null)[]>([]);
+  const filamentRef = useRef<HTMLDivElement>(null);
 
   // The GSAP intro move runs once; the scroll path picks up where it lands.
   const hasMovedRef = useRef(false);
@@ -59,6 +62,8 @@ export default function OrbStage({
   const lastTimingRef = useRef<FilmTiming | null>(null);
   const pulseAtRef = useRef<number>(-Infinity);
   const lastProgressRef = useRef<number>(0);
+  const snappedIndexRef = useRef<number>(-1);
+  const snappedAtRef = useRef<number>(-Infinity);
 
   /** Measures the hero "O" and returns its centre in viewport percent. */
   const measureHeroPose = (): Sample | null => {
@@ -175,7 +180,34 @@ export default function OrbStage({
 
       const target = scrollData.current?.progress ?? 0;
       const progress = advanceClock(clock, target, dt);
-      const pose = poseAt(resolvedRef.current, progress);
+
+      let pose = poseAt(resolvedRef.current, progress);
+
+      // Reduced motion: the orb does not fly. It sits at the nearest beat and
+      // dips through a fade when the beat changes, so the choreography still
+      // reads without anything travelling across the screen.
+      let fade = 1;
+      if (reduceMotion && resolvedRef.current.length > 0) {
+        let nearest = 0;
+        let bestDistance = Infinity;
+        resolvedRef.current.forEach((k, i) => {
+          const distance = Math.abs(k.progress - progress);
+          if (distance < bestDistance) {
+            bestDistance = distance;
+            nearest = i;
+          }
+        });
+        if (nearest !== snappedIndexRef.current) {
+          snappedIndexRef.current = nearest;
+          snappedAtRef.current = now;
+        }
+        const k = resolvedRef.current[nearest];
+        pose = { x: k.x, y: k.y, scale: k.scale, opacity: k.opacity, blur: k.blur, pad: k.pad };
+
+        const sinceSnap = now - snappedAtRef.current;
+        const FADE_MS = 320;
+        fade = sinceSnap < FADE_MS ? Math.abs(sinceSnap / FADE_MS - 0.5) * 2 : 1;
+      }
 
       // ── Hand-off flares ────────────────────────────────────────────
       if (!reduceMotion) {
@@ -189,6 +221,10 @@ export default function OrbStage({
         }
       }
       lastProgressRef.current = progress;
+
+      // The multilingual chapter pulses on the cities, not on scroll.
+      const cityAt = cityPulseRef?.current?.at ?? 0;
+      if (!reduceMotion && cityAt > pulseAtRef.current) pulseAtRef.current = cityAt;
 
       const sincePulse = now - pulseAtRef.current;
       const pulse = sincePulse >= 0 && sincePulse < PULSE_MS ? 1 - sincePulse / PULSE_MS : 0;
@@ -207,14 +243,14 @@ export default function OrbStage({
 
       if (holderRef.current) {
         holderRef.current.style.transform = `translate(${px}px, ${py}px) scale(${scale})`;
-        holderRef.current.style.opacity = String(Math.min(1, pose.opacity + flare * 0.3));
+        holderRef.current.style.opacity = String(Math.min(1, pose.opacity + flare * 0.3) * fade);
         holderRef.current.style.filter = pose.blur > 0.05 ? `blur(${pose.blur}px)` : '';
       }
 
       // ── The shadow pad ─────────────────────────────────────────────
       if (padRef.current) {
         padRef.current.style.transform = `translate(${px}px, ${py}px) scale(${scale * 1.9})`;
-        padRef.current.style.opacity = String(pose.pad * pose.opacity);
+        padRef.current.style.opacity = String(pose.pad * pose.opacity * fade);
       }
 
       // ── The trail ──────────────────────────────────────────────────
@@ -244,6 +280,25 @@ export default function OrbStage({
         dot.style.opacity = String(intensity * age * 0.5 * pose.opacity);
       });
 
+      // ── The filament, drawn to the phone on a city change ──────────
+      if (filamentRef.current) {
+        const active = flare > 0.01 && progress > 0.5 && progress < 0.95;
+        if (!active) {
+          filamentRef.current.style.opacity = '0';
+        } else {
+          const phone = document.getElementById('multilingual-phone');
+          const rect = phone?.getBoundingClientRect();
+          if (rect) {
+            const dx = rect.left + rect.width / 2 - (vw / 2 + px);
+            const dy = rect.top + rect.height / 2 - (vh / 2 + py);
+            filamentRef.current.style.width = `${Math.hypot(dx, dy)}px`;
+            filamentRef.current.style.transform =
+              `translate(${px}px, ${py}px) rotate(${Math.atan2(dy, dx)}rad)`;
+            filamentRef.current.style.opacity = String(flare * 0.75);
+          }
+        }
+      }
+
       // Above the drifted-orb threshold the orb should sit over the film,
       // below it the film's own overlays win.
       if (stageRef.current) stageRef.current.style.zIndex = progress >= 0.5 ? '27' : '25';
@@ -254,7 +309,7 @@ export default function OrbStage({
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scrollData, introPhase, timingRef]);
+  }, [scrollData, introPhase, timingRef, cityPulseRef]);
 
   return (
     <>
@@ -272,6 +327,7 @@ export default function OrbStage({
             className={styles.trailDot}
           />
         ))}
+        <div ref={filamentRef} className={styles.filament} />
       </div>
 
       <div ref={stageRef} className={styles.stage} aria-hidden="true">

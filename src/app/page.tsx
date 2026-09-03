@@ -46,6 +46,10 @@ export default function ExperiencePage() {
   // to clip time, so it resolves through this rather than hardcoded progress.
   const filmTiming = useRef<FilmTiming | null>(null);
 
+  // The multilingual chapter has no camera move for the orb to lead, so it
+  // leads the cities instead: it pulses as each one arrives.
+  const cityPulse = useRef({ at: 0 });
+
   useEffect(() => {
     // Nothing should scroll while the cinematic intro is playing.
     document.documentElement.style.overflow = introPhase === 'done' ? '' : 'hidden';
@@ -307,7 +311,12 @@ export default function ExperiencePage() {
           >
             {/* The auto-playing drone shot canvas (Mumbai -> Moscow -> etc) */}
             <div ref={cityBgRef} className="absolute inset-0 w-full h-full">
-              <CityDroneBackground scrollData={scrollData} />
+              <CityDroneBackground
+                scrollData={scrollData}
+                onCityChange={() => {
+                  cityPulse.current.at = performance.now();
+                }}
+              />
 
               {/* Radial Vignette Blur Layer - Keeps the phone sharp, blurs the edges */}
               <div
@@ -320,7 +329,10 @@ export default function ExperiencePage() {
             </div>
 
             {/* Phone Mockup on the left side */}
-            <div className="absolute left-[5%] md:left-[18%] top-1/2 -translate-y-1/2 w-[380px] h-auto pointer-events-none">
+            <div
+              id="multilingual-phone"
+              className="absolute left-[5%] md:left-[18%] top-1/2 -translate-y-1/2 w-[380px] h-auto pointer-events-none"
+            >
               <img
                 src="/film/frames/multilingual/phone-mockup.webp"
                 alt="Phone Mockup"
@@ -435,6 +447,7 @@ export default function ExperiencePage() {
       <OrbStage
         scrollData={scrollData}
         timingRef={filmTiming}
+        cityPulseRef={cityPulse}
         introPhase={introPhase}
         onOrbLanded={() => setIntroPhase('revealing')}
         onOrbLoaded={() => setOrbReady(true)}

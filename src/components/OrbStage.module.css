@@ -84,6 +84,8 @@
 /* The filament drawn from the orb toward the phone mockup on a city change. */
 .filament {
   position: absolute;
+  left: 50%;
+  top: 50%;
   height: 2px;
   transform-origin: 0 50%;
   border-radius: 2px;
