@@ -422,7 +422,7 @@ export default function ExperiencePage() {
                 transform: 'translateX(-20px)'
               }}
             >
-              <h1 className="text-4xl md:text-[4.5rem] leading-none text-white tracking-tight flex flex-wrap items-center justify-center gap-x-[0.3em]" style={{ fontFamily: 'var(--font-inter)' }}>
+              <h1 id="hero-heading" className="text-4xl md:text-[4.5rem] leading-none text-white tracking-tight flex flex-wrap items-center justify-center gap-x-[0.3em]" style={{ fontFamily: 'var(--font-inter)' }}>
                 {/* The orb lands on this "O" — the letter stays visible beneath it. */}
                 <span className="hero-word inline-block">
                   <span id="hero-o-anchor">O</span>ne

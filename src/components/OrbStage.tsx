@@ -63,15 +63,21 @@ export default function OrbStage({
   const snappedIndexRef = useRef<number>(-1);
   const snappedAtRef = useRef<number>(-Infinity);
 
-  /** Measures the hero "O" and returns its centre in viewport percent. */
+  /**
+   * The hero pose: centred on the headline, not on its first letter.
+   *
+   * The orb used to land on the "O" and stand in for it. It now sits in the
+   * middle of the line instead, with the heading painting over it, and the
+   * finale resolves to this same measured pose so the loop stays seamless.
+   */
   const measureHeroPose = (): Sample | null => {
-    const target = document.getElementById('hero-o-anchor');
-    if (!target || typeof window === 'undefined') return null;
+    if (typeof window === 'undefined') return null;
+    const target = document.getElementById('hero-heading') ?? document.getElementById('hero-o-anchor');
+    if (!target) return null;
     const rect = target.getBoundingClientRect();
     if (rect.width === 0 && rect.height === 0) return null;
-    // The +15px matches the optical centring the intro move already applies.
     return {
-      x: ((rect.left + rect.width / 2 + 15) / window.innerWidth) * 100,
+      x: ((rect.left + rect.width / 2) / window.innerWidth) * 100,
       y: ((rect.top + rect.height / 2) / window.innerHeight) * 100,
       scale: 1.2,
     };
@@ -117,14 +123,13 @@ export default function OrbStage({
     if (introPhase !== 'moving' || hasMovedRef.current || !holderRef.current) return;
     hasMovedRef.current = true;
 
-    const targetEl = document.getElementById('hero-o-anchor');
+    const targetEl = document.getElementById('hero-heading') ?? document.getElementById('hero-o-anchor');
     if (!targetEl) return;
 
     const targetRect = targetEl.getBoundingClientRect();
     const holderRect = holderRef.current.getBoundingClientRect();
 
-    const deltaX =
-      targetRect.left + targetRect.width / 2 - (holderRect.left + holderRect.width / 2) + 15;
+    const deltaX = targetRect.left + targetRect.width / 2 - (holderRect.left + holderRect.width / 2);
     const deltaY = targetRect.top + targetRect.height / 2 - (holderRect.top + holderRect.height / 2);
 
     heroPoseRef.current = measureHeroPose();

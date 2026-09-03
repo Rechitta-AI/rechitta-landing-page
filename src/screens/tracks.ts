@@ -9,7 +9,7 @@
  * Do not hand-edit.
  */
 
-import type { ScreenTrack } from './types';
+import type { Quad, ScreenTrack } from './types';
 
 const BROKER = '/live-inventory-final.jpeg';
 const BUYER = '/live-interruption-final.jpeg';
@@ -17,8 +17,8 @@ const BUYER = '/live-interruption-final.jpeg';
 export const SCREEN_TRACKS: ScreenTrack[] = [
   {
     clip: 'transit-b',
-    from: 13.60,
-    to: 17.00,
+    from: 14.50,
+    to: 16.90,
     image: BROKER,
     samples: [
       { t: 14.50, corners: [[0.50495, 0.41065], [0.55651, 0.41759], [0.46719, 0.64583], [0.44375, 0.59722]] },
@@ -51,7 +51,7 @@ export const SCREEN_TRACKS: ScreenTrack[] = [
   {
     clip: 'transit-c',
     from: 0.00,
-    to: 3.60,
+    to: 2.60,
     image: BROKER,
     samples: [
       { t: 0.00, corners: [[0.44453, 0.12778], [0.61406, 0.16597], [0.56836, 0.88472], [0.38086, 0.83056]] },
@@ -85,8 +85,8 @@ export const SCREEN_TRACKS: ScreenTrack[] = [
   },
   {
     clip: 'transit-c',
-    from: 5.40,
-    to: 8.00,
+    from: 5.60,
+    to: 7.90,
     image: BUYER,
     samples: [
       { t: 5.60, corners: [[0.43516, 0.16181], [0.60117, 0.19861], [0.55273, 0.91389], [0.37344, 0.86042]] },
@@ -118,7 +118,7 @@ export const SCREEN_TRACKS: ScreenTrack[] = [
   {
     clip: 'transit-d',
     from: 0.00,
-    to: 3.00,
+    to: 2.80,
     image: BUYER,
     samples: [
       { t: 0.00, corners: [[0.43047, 0.16528], [0.59818, 0.20602], [0.54818, 0.91713], [0.36979, 0.86111]] },
@@ -153,3 +153,9 @@ export const SCREEN_TRACKS: ScreenTrack[] = [
     ],
   },
 ];
+
+/**
+ * The boardroom display, in the same normalised frame space. The film parks on
+ * one frame for the whole presentation hold, so it does not move.
+ */
+export const BOARDROOM_SCREEN: Quad = [[0.28750, 0.22870], [0.71953, 0.20000], [0.72370, 0.60509], [0.29401, 0.58843]];

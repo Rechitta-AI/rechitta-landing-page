@@ -40,6 +40,13 @@ export default function ScreenTracks({
       const playhead = playheadRef.current ?? null;
       const track = trackAt(SCREEN_TRACKS, playhead);
 
+      if (process.env.NODE_ENV !== 'production') {
+        (window as unknown as { __screens?: unknown }).__screens = {
+          playhead,
+          track: track ? `${track.clip} ${track.from}-${track.to} ${track.image}` : null,
+        };
+      }
+
       for (const src of sources) {
         const el = imagesRef.current[src];
         if (!el) continue;

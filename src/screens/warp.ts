@@ -35,14 +35,17 @@ export function toViewport(corners: Quad, rect: Rect): Quad {
 }
 
 /**
- * The corners at a moment, interpolated between samples. Returns null outside
- * the track's window, or before it has any samples.
+ * The corners at a moment, interpolated between samples.
+ *
+ * Returns null outside the tracked range rather than clamping to the nearest
+ * sample. Clamping is what put a floating card beside the phone before it had
+ * arrived and after it had left: the screen genuinely is somewhere else then,
+ * and holding the last known corners is a confident wrong answer.
  */
 export function cornersAt(track: ScreenTrack, t: number): Quad | null {
   const samples = track.samples;
   if (samples.length === 0) return null;
-  if (t < samples[0].t) return samples[0].corners as Quad;
-  if (t > samples[samples.length - 1].t) return samples[samples.length - 1].corners as Quad;
+  if (t < samples[0].t || t > samples[samples.length - 1].t) return null;
 
   let hi = 1;
   while (hi < samples.length - 1 && samples[hi].t < t) hi++;

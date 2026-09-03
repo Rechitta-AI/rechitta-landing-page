@@ -32,7 +32,7 @@ export const ORB_PATH: Keyframe[] = [
     hero: true,
     x: 50, y: 46, scale: HERO_SCALE, opacity: 0.9, blur: 0,
     ease: 'inOut',
-    note: 'K0 — the hero "O". Text staggers away, the orb stays.',
+    note: 'K0 — centred on the headline. Text staggers away, the orb stays.',
   },
   {
     anchor: { clip: 'scene1-3', t: 5.0 },
@@ -130,7 +130,7 @@ export const ORB_PATH: Keyframe[] = [
   // ── Act V — home ────────────────────────────────────────────────────
   {
     anchor: { progress: 0.96 },
-    x: 30, y: 60, scale: 0.5, opacity: 0.9, blur: 0,
+    x: 38, y: 62, scale: 0.5, opacity: 0.9, blur: 0,
     ease: 'in',
     note: 'K15 — rises from the tower over the dawn skyline.',
   },
@@ -139,7 +139,7 @@ export const ORB_PATH: Keyframe[] = [
     hero: true,
     x: 50, y: 46, scale: HERO_SCALE, opacity: 0.9, blur: 0,
     ease: 'out',
-    note: 'K16 — rests on the exact coordinates of K0. The orb is the stitch that hides the loop.',
+    note: 'K16 — comes to rest mid-screen, on the exact coordinates of K0. The orb is the stitch that hides the loop.',
   },
 ];
 

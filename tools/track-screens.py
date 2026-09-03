@@ -110,6 +110,60 @@ def track(clip, t_from, t_to, step=0.1, debug_dir=None):
     return samples
 
 
+def find_wall_screen(frame):
+    """
+    The boardroom display. Landscape, near frame centre, and much larger than a
+    phone — the bright windows either side of it would otherwise win.
+    """
+    h, w = frame.shape[:2]
+    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+    best, best_area = None, 0
+
+    for floor in (150, 165, 180, 195, 210):
+        mask = cv2.inRange(hsv, (0, 0, floor), (180, 80, 255))
+        mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, np.ones((21, 21), np.uint8))
+        mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, np.ones((9, 9), np.uint8))
+        contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+        for contour in contours:
+            area = cv2.contourArea(contour)
+            if area < w * h * 0.05 or area > w * h * 0.6:
+                continue
+            peri = cv2.arcLength(contour, True)
+            for eps in (0.01, 0.02, 0.03, 0.04, 0.06):
+                approx = cv2.approxPolyDP(contour, eps * peri, True)
+                if len(approx) != 4 or not cv2.isContourConvex(approx):
+                    continue
+                pts = approx.reshape(4, 2).astype(np.float32)
+                cx, cy = pts.mean(axis=0)
+                if not (0.25 * w < cx < 0.75 * w and 0.1 * h < cy < 0.75 * h):
+                    break
+                long_side = max(np.linalg.norm(pts[0] - pts[1]), np.linalg.norm(pts[1] - pts[2]))
+                short_side = min(np.linalg.norm(pts[0] - pts[1]), np.linalg.norm(pts[1] - pts[2]))
+                if not (1.4 < long_side / short_side < 2.6):
+                    break
+                if area > best_area:
+                    best_area, best = area, pts
+                break
+
+    return best
+
+
+def wall_screen_quad(clip, t):
+    cap = cv2.VideoCapture(f"{VIDEO_DIR}/{clip}.h264.mp4")
+    cap.set(cv2.CAP_PROP_POS_MSEC, t * 1000.0)
+    ok, frame = cap.read()
+    cap.release()
+    if not ok:
+        return None
+    found = find_wall_screen(frame)
+    if found is None:
+        return None
+    h, w = frame.shape[:2]
+    pts = order_corners(found)
+    return [[round(float(x) / w, 5), round(float(y) / h, 5)] for x, y in pts]
+
+
 def centre(corners):
     xs = [c[0] for c in corners]
     ys = [c[1] for c in corners]
@@ -176,7 +230,13 @@ if __name__ == "__main__":
         kept = [x for x in s if x["corners"]]
         print(f"{clip} {a}-{b}s: {len(kept)}/{len(s)} kept "
               f"({before - len(kept)} rejected as discontinuous)")
-        out.append((clip, a, b, mock, kept))
+        if not kept:
+            print(f"  !! {clip} {a}-{b}s produced no track; skipping")
+            continue
+        # The window is the tracked range, never the requested one. Outside it
+        # there is no honest answer for where the screen is, and guessing puts
+        # a floating card next to the phone.
+        out.append((clip, kept[0]["t"], kept[-1]["t"], mock, kept))
 
     blocks = []
     for clip, a, b, mock, kept in out:
@@ -194,6 +254,13 @@ if __name__ == "__main__":
     ],
   },""" % (clip, a, b, mock, samples))
 
+    # The boardroom display. The presentation only shows while the film is
+    # parked on its last frame, so one quad is enough.
+    board = wall_screen_quad("scene1-3", 11.0)
+    if board is None:
+        raise SystemExit("could not locate the boardroom screen")
+    print("boardroom screen located")
+
     with open("src/screens/tracks.ts", "w") as f:
         f.write("""/**
  * Where the phone screens are, frame by frame.
@@ -206,7 +273,7 @@ if __name__ == "__main__":
  * Do not hand-edit.
  */
 
-import type { ScreenTrack } from './types';
+import type { Quad, ScreenTrack } from './types';
 
 const BROKER = '/live-inventory-final.jpeg';
 const BUYER = '/live-interruption-final.jpeg';
@@ -214,5 +281,11 @@ const BUYER = '/live-interruption-final.jpeg';
 export const SCREEN_TRACKS: ScreenTrack[] = [
 %s
 ];
-""" % "\n".join(blocks))
+
+/**
+ * The boardroom display, in the same normalised frame space. The film parks on
+ * one frame for the whole presentation hold, so it does not move.
+ */
+export const BOARDROOM_SCREEN: Quad = [%s];
+""" % ("\n".join(blocks), ", ".join("[%.5f, %.5f]" % (c[0], c[1]) for c in board)))
     print("wrote src/screens/tracks.ts")

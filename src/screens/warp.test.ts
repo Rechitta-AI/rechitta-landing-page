@@ -66,9 +66,10 @@ describe('cornersAt', () => {
     expect(q[0][1]).toBeCloseTo(0.1, 5);
   });
 
-  it('clamps outside the sampled range instead of extrapolating', () => {
-    expect(cornersAt(track, -5)![0]).toEqual([0, 0]);
-    expect(cornersAt(track, 99)![0]).toEqual([0.4, 0.2]);
+  it('refuses to guess outside the tracked range', () => {
+    // Clamping here is what detached the mockup from the phone.
+    expect(cornersAt(track, -5)).toBeNull();
+    expect(cornersAt(track, 99)).toBeNull();
   });
 
   it('has nothing to say without samples', () => {
@@ -133,6 +134,14 @@ describe('matrix3dFor', () => {
 });
 
 describe('the generated tracks', () => {
+  it('never claim a window wider than what was actually tracked', async () => {
+    const { SCREEN_TRACKS } = await import('./tracks');
+    for (const t of SCREEN_TRACKS) {
+      expect(t.from).toBeCloseTo(t.samples[0].t, 5);
+      expect(t.to).toBeCloseTo(t.samples[t.samples.length - 1].t, 5);
+    }
+  });
+
   it('cover the broker and the buyer, with four ordered corners throughout', async () => {
     const { SCREEN_TRACKS } = await import('./tracks');
     expect(SCREEN_TRACKS.length).toBeGreaterThanOrEqual(4);

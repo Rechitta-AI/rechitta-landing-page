@@ -372,11 +372,18 @@ export default function ScrollFilm({
         seek(active, sourceTime);
 
         if (playheadRef) {
-          const conf = sequenceKeys[activeIndex];
-          playheadRef.current = {
-            clip: typeof conf === 'string' ? conf : conf.key,
-            t: sourceTime,
-          };
+          // The time we asked for is not the time on screen: a seek in flight
+          // leaves the element showing an older frame. Publishing the request
+          // would let anything composited onto the footage run ahead of it
+          // during a scrub, which reads as the overlay detaching. Report the
+          // element's own position, and only once it has settled.
+          if (!active.seeking && active.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
+            const conf = sequenceKeys[activeIndex];
+            playheadRef.current = {
+              clip: typeof conf === 'string' ? conf : conf.key,
+              t: active.currentTime,
+            };
+          }
         }
 
         // Swapping mid-seek would flash whatever frame the incoming element
