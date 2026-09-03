@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react';
 import { pickTier, proxyUrl, fullUrl } from '@/utils/videoTier';
 import { setLoadProgress, registerLoadTask } from '@/utils/loadProgress';
+import { createClock, advanceClock } from '@/utils/filmClock';
 
 export type SequenceClip = string | { key: string; in?: number; out?: number; holdWeight?: number };
 
@@ -17,9 +18,6 @@ interface ScrollFilmProps {
   /** The film the visitor lands on. Its first full clip loads immediately. */
   priority?: boolean;
 }
-
-/** How long the film takes to catch up to the scroll position, in seconds. */
-const CATCH_UP = 0.1;
 
 /** Don't re-seek for less than half a frame of difference. */
 const SEEK_EPSILON = 1 / 48;
@@ -221,7 +219,7 @@ export default function ScrollFilm({
       };
     }
 
-    let eased = scrollData.current?.progress ?? 0;
+    const clock = createClock(scrollData.current?.progress ?? 0);
     let lastTime = performance.now();
     let frame: number;
     let shown: HTMLVideoElement | null = null;
@@ -243,12 +241,7 @@ export default function ScrollFilm({
 
       const { startProgress: from, endProgress: to } = rangeRef.current;
       const target = scrollData.current?.progress ?? 0;
-      // Instant snap when teleporting/looping to prevent reverse scrub glitch
-      if (Math.abs(target - eased) > 0.25) {
-        eased = target;
-      } else {
-        eased += (target - eased) * (1 - Math.exp(-dt / CATCH_UP));
-      }
+      const eased = advanceClock(clock, target, dt);
 
       const span = to - from || 1;
       const local = Math.max(0, Math.min((eased - from) / span, 1));

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import { setLoadProgress } from '@/utils/loadProgress';
+import { createClock, advanceClock } from '@/utils/filmClock';
 
 interface MasterScrollFilmProps {
   scrollData: React.RefObject<{ progress: number }>;
@@ -10,7 +11,6 @@ interface MasterScrollFilmProps {
   endProgress: number;
 }
 
-const CATCH_UP = 0.1;
 const SEEK_EPSILON = 1 / 48; // Don't re-seek for tiny differences
 
 export default function MasterScrollFilm({
@@ -73,7 +73,7 @@ export default function MasterScrollFilm({
     events.forEach(e => video.addEventListener(e, report));
     const poll = window.setInterval(report, 250);
 
-    let eased = scrollData.current?.progress ?? 0;
+    const clock = createClock(scrollData.current?.progress ?? 0);
     let lastTime = performance.now();
     let frame: number;
 
@@ -83,9 +83,7 @@ export default function MasterScrollFilm({
 
       const { startProgress: from, endProgress: to } = rangeRef.current;
       const target = scrollData.current?.progress ?? 0;
-      
-      // Inertia easing
-      eased += (target - eased) * (1 - Math.exp(-dt / CATCH_UP));
+      const eased = advanceClock(clock, target, dt);
 
       const span = to - from || 1;
       // Local progress from 0 to 1
