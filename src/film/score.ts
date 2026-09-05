@@ -166,14 +166,13 @@ export const BEATS: Beat[] = [
     hold: 2,
     gate: true,
   },
-  {
-    id: 'world',
-    chapter: 'intro',
-    label: 'V · Worldwide',
-    clip: 'transit-d',
-    park: 6.0,
-    enter: { from: 0, to: 6.0, rate: 1.5 },
-  },
+  /*
+   * The flight out of the buyer's phone into the clouds used to be a beat of
+   * its own, so the film parked on a white frame and sat there until the
+   * viewer scrolled again. It is a transition, not a destination: the footage
+   * now plays as the way into Mumbai and the chapter turns over at the end of
+   * it, in one move.
+   */
   ...CITIES.map((city, i) => ({
     id: `city-${city.key}`,
     chapter: 'cities' as const,
@@ -181,6 +180,9 @@ export const BEATS: Beat[] = [
     park: 0,
     city: i,
     flash: i === 0,
+    ...(i === 0
+      ? { clip: 'transit-d', enter: { from: 0, to: 6.0, rate: 1.5 } }
+      : null),
     progress: cityProgress(i),
     progressFrom: i === 0 ? INTRO_SPAN.end : cityProgress(i - 1),
   })),

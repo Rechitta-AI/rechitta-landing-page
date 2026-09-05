@@ -2,7 +2,6 @@
 
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import gsap from 'gsap';
-import { useDemoModal } from '@/contexts/DemoModalContext';
 import { coverRect, toViewport, matrix3dFor } from '@/screens/warp';
 import { isPortraitFor, modeFor } from '@/hooks/useDeviceMode';
 import type { Quad } from '@/screens/types';
@@ -123,7 +122,6 @@ export default function BuyerPresentation({ holdData }: BuyerPresentationProps) 
   const phoneRef = useRef<HTMLDivElement>(null);
   const hudContentRef = useRef<HTMLDivElement>(null);
   const isVisibleRef = useRef(false);
-  const { openModal } = useDemoModal();
 
   // Calibrated production constants for Buyer Phone
   const corners = BUYER_PHONE_CORNERS;
@@ -168,11 +166,9 @@ export default function BuyerPresentation({ holdData }: BuyerPresentationProps) 
   }, []);
 
   // Perspective Switcher Dock & Scroll Lock State
-  const [isLocked, setIsLocked] = useState(true);
   const isLockedRef = useRef(true);
   const [showScrollPrompt, setShowScrollPrompt] = useState(false);
   const promptTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const dockRef = useRef<HTMLDivElement>(null);
 
   // Responsive viewport tracking for homography mapping
   const [viewport, setViewport] = useState({ width: 1920, height: 1080 });
@@ -223,9 +219,9 @@ export default function BuyerPresentation({ holdData }: BuyerPresentationProps) 
    */
   const hudStyle: React.CSSProperties = composited
     ? {
-        right: '3rem',
+        right: '4rem',
         top: '50%',
-        width: 'min(465px, 46vw)',
+        width: 'min(400px, 38vw)',
         transform: `translateY(-50%) scale(${hudScale})`,
         transformOrigin: 'right center',
       }
@@ -274,7 +270,6 @@ export default function BuyerPresentation({ holdData }: BuyerPresentationProps) 
   // Launch the flight leaving the Buyer's Phone into Global Reach (Chapter 4)
   const handleFlyToGlobal = () => {
     isLockedRef.current = false;
-    setIsLocked(false);
 
     // 1. Smoothly dissolve the Buyer Scene UI
     if (containerRef.current) {
@@ -310,7 +305,6 @@ export default function BuyerPresentation({ holdData }: BuyerPresentationProps) 
       if (isNowVisible && !isVisibleRef.current) {
         isVisibleRef.current = true;
         isLockedRef.current = true;
-        setIsLocked(true);
 
         gsap.killTweensOf(containerRef.current);
         if (phoneRef.current) gsap.killTweensOf(phoneRef.current);
@@ -400,7 +394,6 @@ export default function BuyerPresentation({ holdData }: BuyerPresentationProps) 
       else if (!isNowVisible && isVisibleRef.current) {
         isVisibleRef.current = false;
         isLockedRef.current = false;
-        setIsLocked(false);
 
         gsap.killTweensOf(containerRef.current);
         if (phoneRef.current) gsap.killTweensOf(phoneRef.current);
@@ -564,7 +557,7 @@ export default function BuyerPresentation({ holdData }: BuyerPresentationProps) 
                 </span>
               </div>
               <span className="text-[9px] font-mono px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-neutral-300">
-                {currentLang.code} // VERIFIED
+                {currentLang.code} {'//'} VERIFIED
               </span>
             </div>
           </div>
@@ -769,7 +762,7 @@ export default function BuyerPresentation({ holdData }: BuyerPresentationProps) 
             {headlineLine1.map((token, i) => (
               <span key={i} className="inline-flex overflow-hidden pb-1 pt-0.5">
                 <span
-                  className="buyer-split-word inline-block translate-y-[115%] opacity-0 filter blur-[8px] transform-gpu text-2xl sm:text-3xl md:text-[clamp(1.75rem,2.8vw,2.75rem)] font-bold text-white tracking-tight leading-[1.08]"
+                  className="buyer-split-word inline-block translate-y-[115%] opacity-0 filter blur-[8px] transform-gpu text-xl sm:text-2xl md:text-[clamp(1.4rem,2.1vw,2.05rem)] font-bold text-white tracking-tight leading-[1.08]"
                   style={{ fontFamily: 'var(--font-inter)' }}
                 >
                   {token.text}
@@ -783,7 +776,7 @@ export default function BuyerPresentation({ holdData }: BuyerPresentationProps) 
             {headlineLine2.map((token, i) => (
               <span key={i} className="inline-flex overflow-hidden pb-1 pt-0.5">
                 <span
-                  className="buyer-split-word inline-block translate-y-[115%] opacity-0 filter blur-[8px] transform-gpu text-2xl sm:text-3xl md:text-[clamp(1.75rem,2.8vw,2.75rem)] font-bold tracking-tight leading-[1.08] text-transparent bg-clip-text bg-gradient-to-r from-white via-neutral-100 to-neutral-400"
+                  className="buyer-split-word inline-block translate-y-[115%] opacity-0 filter blur-[8px] transform-gpu text-xl sm:text-2xl md:text-[clamp(1.4rem,2.1vw,2.05rem)] font-bold tracking-tight leading-[1.08] text-transparent bg-clip-text bg-gradient-to-r from-white via-neutral-100 to-neutral-400"
                   style={{ fontFamily: 'var(--font-inter)' }}
                 >
                   {token.text}
@@ -795,19 +788,19 @@ export default function BuyerPresentation({ holdData }: BuyerPresentationProps) 
 
         {/* --- 1 CLEAN SUB-HEADLINE SENTENCE --- */}
         <div className={`overflow-hidden mb-4 ${stacked ? 'hidden' : ''}`}>
-          <p className="buyer-split-sub text-xs sm:text-[13px] md:text-sm text-neutral-400 font-normal leading-relaxed translate-y-[110%] opacity-0 filter blur-[4px]">
+          <p className="buyer-split-sub text-[11px] sm:text-xs md:text-[13px] text-neutral-400 font-normal leading-relaxed translate-y-[110%] opacity-0 filter blur-[4px]">
             From elevator wait times to offshore currency conversion — answered in real time with native cultural fluency.
           </p>
         </div>
 
         {/* --- MINIMALIST LANGUAGE SELECTOR TOGGLE BAR (MATCHING BOARDROOM SLIDE 3) --- */}
-        <div className="buyer-lang-reveal mb-4 flex flex-col gap-2">
+        <div className="buyer-lang-reveal mb-3.5 flex flex-col gap-2">
           <div className="flex items-center justify-between text-[10px] font-mono text-neutral-400 px-1">
             <span className="uppercase tracking-wider flex items-center gap-1.5 text-neutral-300 font-semibold">
               <span className="text-[#568DFF]">🌐</span>
               <span>SELECT BUYER DIALECT</span>
             </span>
-            <span className="text-[9px] text-neutral-500">SWITCHES LIVE PHONE</span>
+            <span className="hidden lg:inline text-[9px] text-neutral-500">SWITCHES LIVE PHONE</span>
           </div>
 
           <div className="grid grid-cols-3 gap-2 p-1.5 rounded-2xl bg-neutral-950/80 border border-white/10 backdrop-blur-md">
@@ -840,7 +833,7 @@ export default function BuyerPresentation({ holdData }: BuyerPresentationProps) 
         */}
         <div className={`buyer-showcase-reveal mb-5 ${stacked ? 'hidden' : ''}`}>
           <div
-            className={`p-4 rounded-2xl border bg-neutral-900/80 border-white/15 backdrop-blur-xl relative overflow-hidden transition-all duration-260 ease-out shadow-2xl text-left ${
+            className={`p-3.5 rounded-2xl border bg-neutral-900/80 border-white/15 backdrop-blur-xl relative overflow-hidden transition-all duration-260 ease-out shadow-2xl text-left ${
               langAnimState === 'exit'
                 ? 'opacity-0 translate-x-2 blur-[4px] scale-[0.98]'
                 : 'opacity-100 translate-x-0 blur-0 scale-100'
@@ -889,69 +882,22 @@ export default function BuyerPresentation({ holdData }: BuyerPresentationProps) 
           </a>
 
           <button
-            onClick={openModal}
-            className="w-auto py-3 sm:py-3.5 px-3.5 sm:px-4.5 rounded-xl bg-neutral-900/80 hover:bg-neutral-800 text-neutral-200 hover:text-white text-xs font-semibold tracking-tight border border-white/10 hover:border-white/25 transition-all flex items-center justify-center gap-2 cursor-pointer shrink-0 shadow-md"
-            title="Open fullscreen sandbox modal"
-          >
-            <span>⛶</span>
-            <span className="whitespace-nowrap">{stacked ? 'Sandbox' : 'Fullscreen Sandbox'}</span>
-          </button>
-        </div>
-      </div>
-
-      {/* ===================================================================
-          3. OPTION B: PERSPECTIVE SWITCHER FLOATING DOCK (BUYER -> GLOBAL)
-          Docked bottom-center, unlocks flight to Global Analytics / Finale
-         =================================================================== */}
-      <div
-        ref={dockRef}
-        className="fixed bottom-[5.5rem] md:bottom-[6rem] left-1/2 -translate-x-1/2 z-50 pointer-events-auto select-none"
-      >
-        <div
-          className={`flex items-center gap-3 sm:gap-4 px-4 sm:px-5 py-2.5 rounded-full bg-neutral-950/90 backdrop-blur-2xl border transition-all duration-500 shadow-2xl ${
-            showScrollPrompt
-              ? 'border-blue-500 shadow-[0_0_35px_rgba(86,141,255,0.5)] scale-105'
-              : 'border-white/15 hover:border-white/30 shadow-[0_20px_50px_rgba(0,0,0,0.85),0_0_20px_rgba(255,255,255,0.05)]'
-          }`}
-        >
-          {/* Left Capsule: Active Scene (Buyer) */}
-          <div className="flex items-center gap-2 pr-2.5 border-r border-white/15">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#568DFF] opacity-75" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-[#568DFF] shadow-sm shadow-[#568DFF]" />
-            </span>
-            <span className="text-[11px] font-mono font-semibold tracking-wider text-neutral-200 uppercase whitespace-nowrap">
-              03 Buyer
-            </span>
-          </div>
-
-          {/* Center Trajectory Flight Indicator - Sleek Laser Track with Blue Pulse Bead */}
-          <div className="hidden sm:flex items-center gap-1 text-[10px] text-neutral-400 font-mono tracking-widest px-1">
-            <span className="w-5 h-px bg-gradient-to-r from-blue-500/40 to-[#568DFF]" />
-            <span className="w-1.5 h-1.5 rounded-full bg-[#568DFF] shadow-[0_0_8px_#568DFF] animate-pulse" />
-            <span className="w-5 h-px bg-gradient-to-r from-[#568DFF] to-blue-500/40" />
-          </div>
-
-          {/* Right CTA Button: Advance to Global Reach */}
-          <button
             onClick={handleFlyToGlobal}
-            className="flex items-center gap-2 px-4.5 py-1.5 rounded-full bg-gradient-to-r from-blue-600 to-[#568DFF] hover:from-blue-500 hover:to-blue-400 text-white text-xs font-semibold tracking-tight transition-all shadow-md shadow-blue-500/25 hover:shadow-blue-500/40 hover:scale-[1.02] active:scale-[0.98] cursor-pointer group whitespace-nowrap border border-blue-400/30"
+            className={`flex-1 min-w-0 py-3 sm:py-3.5 px-4 sm:px-5 rounded-xl text-white text-xs sm:text-[13px] font-bold tracking-tight transition-all flex items-center justify-center gap-2 cursor-pointer group border ${
+              showScrollPrompt
+                ? 'bg-[#568DFF] border-[#8FB4FF] shadow-[0_0_28px_rgba(86,141,255,0.55)] scale-[1.02]'
+                : 'bg-gradient-to-r from-blue-600 to-[#568DFF] border-blue-400/30 shadow-md shadow-blue-500/25 hover:shadow-blue-500/40'
+            }`}
             style={{ fontFamily: 'var(--font-inter)' }}
           >
-            <span>04 Global Reach</span>
+            <span className="whitespace-nowrap">Global Reach</span>
             <span className="text-white/80 font-bold transition-transform group-hover:translate-x-1">
               →
             </span>
           </button>
         </div>
-
-        {/* Scroll Locked Floating Tooltip Hint (appears if user attempts to scroll) */}
-        {showScrollPrompt && (
-          <div className="absolute -top-10 left-1/2 -translate-x-1/2 px-3.5 py-1 rounded-full bg-neutral-900/95 border border-blue-500/40 text-[10px] font-mono text-neutral-200 whitespace-nowrap shadow-xl animate-bounce">
-            ⚡ Click button to advance to Global Reach!
-          </div>
-        )}
       </div>
+
     </div>
   );
 }

@@ -2,7 +2,6 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import gsap from 'gsap';
-import { useDemoModal } from '@/contexts/DemoModalContext';
 import { coverRect, toViewport, matrix3dFor } from '@/screens/warp';
 import { isPortraitFor, modeFor } from '@/hooks/useDeviceMode';
 import type { Quad } from '@/screens/types';
@@ -56,18 +55,15 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
   const phoneRef = useRef<HTMLDivElement>(null);
   const hudContentRef = useRef<HTMLDivElement>(null);
   const isVisibleRef = useRef(false);
-  const { openModal } = useDemoModal();
 
   // Active prompt pill interaction state
   const [activePillId, setActivePillId] = useState<number | null>(null);
   const [copiedPillId, setCopiedPillId] = useState<number | null>(null);
 
   // Perspective Switcher Dock & Scroll Lock State
-  const [isLocked, setIsLocked] = useState(true);
   const isLockedRef = useRef(true);
   const [showScrollPrompt, setShowScrollPrompt] = useState(false);
   const promptTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const dockRef = useRef<HTMLDivElement>(null);
 
   // Responsive viewport tracking for homography mapping & leader line positioning
   const [viewport, setViewport] = useState({ width: 1920, height: 1080 });
@@ -124,9 +120,9 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
    */
   const hudStyle: React.CSSProperties = composited
     ? {
-        right: '3rem',
+        right: '4rem',
         top: '50%',
-        width: 'min(465px, 46vw)',
+        width: 'min(400px, 38vw)',
         transform: `translateY(-50%) scale(${hudScale})`,
         transformOrigin: 'right center',
       }
@@ -184,7 +180,6 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
   // Launch the 60fps hardware flight to the Buyer's Phone
   const handleFlyToBuyer = () => {
     isLockedRef.current = false;
-    setIsLocked(false);
 
     // 1. Smoothly dissolve the Broker Scene UI
     if (containerRef.current) {
@@ -220,7 +215,6 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
       if (isNowVisible && !isVisibleRef.current) {
         isVisibleRef.current = true;
         isLockedRef.current = true;
-        setIsLocked(true);
 
         gsap.killTweensOf(containerRef.current);
         if (phoneRef.current) gsap.killTweensOf(phoneRef.current);
@@ -308,7 +302,6 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
       else if (!isNowVisible && isVisibleRef.current) {
         isVisibleRef.current = false;
         isLockedRef.current = false;
-        setIsLocked(false);
 
         gsap.killTweensOf(containerRef.current);
         if (phoneRef.current) gsap.killTweensOf(phoneRef.current);
@@ -417,6 +410,37 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
         </div>
       </div>
 
+      {/*
+        Projects synced, in the empty half of the frame beside the phone. It
+        used to ride the top of the copy panel, which was already the densest
+        part of the layout.
+      */}
+      {!stacked && (
+        <div
+          className="hud-header-reveal absolute left-[6%] top-1/2 -translate-y-1/2 z-40 select-none pointer-events-none
+                     max-w-[22ch] lg:max-w-[26ch]"
+        >
+          <div className="flex items-center gap-2 mb-2">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#568DFF] opacity-75" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-[#568DFF] shadow-sm shadow-[#568DFF]" />
+            </span>
+            <span className="font-mono text-[9px] tracking-[0.28em] text-neutral-400 uppercase">
+              Synced
+            </span>
+          </div>
+          <div
+            className="text-white/95 font-semibold leading-[1.05] tracking-tight text-[clamp(1.5rem,2.4vw,2.25rem)]"
+            style={{ fontFamily: 'var(--font-inter)' }}
+          >
+            40,000
+          </div>
+          <p className="mt-1.5 font-mono text-[10px] leading-relaxed tracking-[0.14em] text-neutral-400 uppercase">
+            Brokers briefed the same way, at the same moment
+          </p>
+        </div>
+      )}
+
       {/* ===================================================================
           2. SPATIAL EDITORIAL HUD (RIGHT SIDE)
           Matches Boardroom Presentation & Live App design language.
@@ -454,9 +478,15 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
               02 // THE BROKER BRIEFING
             </span>
           </div>
-          <span className="text-[9px] px-2.5 py-0.5 rounded-full bg-white/5 border border-white/10 text-neutral-300 font-mono">
-            40,000 BROKERS SYNCED
-          </span>
+          {/*
+            The count moves out to the empty half beside the phone when there
+            is one; on a stacked screen it stays here, where it fits.
+          */}
+          {stacked && (
+            <span className="text-[9px] px-2.5 py-0.5 rounded-full bg-white/5 border border-white/10 text-neutral-300 font-mono">
+              40,000 SYNCED
+            </span>
+          )}
         </div>
 
         {/* --- OPTICAL MASK SPLIT-REVEAL HERO HEADLINE (PUNCHY 5 WORDS) --- */}
@@ -466,7 +496,7 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
             {headlineLine1.map((token, i) => (
               <span key={i} className="inline-flex overflow-hidden pb-1 pt-0.5">
                 <span
-                  className="split-word inline-block translate-y-[115%] opacity-0 filter blur-[8px] transform-gpu text-2xl sm:text-3xl md:text-[clamp(1.75rem,2.8vw,2.75rem)] font-bold text-white tracking-tight leading-[1.08]"
+                  className="split-word inline-block translate-y-[115%] opacity-0 filter blur-[8px] transform-gpu text-xl sm:text-2xl md:text-[clamp(1.4rem,2.1vw,2.05rem)] font-bold text-white tracking-tight leading-[1.08]"
                   style={{ fontFamily: 'var(--font-inter)' }}
                 >
                   {token.text}
@@ -480,7 +510,7 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
             {headlineLine2.map((token, i) => (
               <span key={i} className="inline-flex overflow-hidden pb-1 pt-0.5">
                 <span
-                  className="split-word inline-block translate-y-[115%] opacity-0 filter blur-[8px] transform-gpu text-2xl sm:text-3xl md:text-[clamp(1.75rem,2.8vw,2.75rem)] font-bold tracking-tight leading-[1.08] text-transparent bg-clip-text bg-gradient-to-r from-white via-neutral-100 to-neutral-400"
+                  className="split-word inline-block translate-y-[115%] opacity-0 filter blur-[8px] transform-gpu text-xl sm:text-2xl md:text-[clamp(1.4rem,2.1vw,2.05rem)] font-bold tracking-tight leading-[1.08] text-transparent bg-clip-text bg-gradient-to-r from-white via-neutral-100 to-neutral-400"
                   style={{ fontFamily: 'var(--font-inter)' }}
                 >
                   {token.text}
@@ -492,7 +522,7 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
 
         {/* --- 1 CLEAN SUB-HEADLINE SENTENCE --- */}
         <div className={`overflow-hidden mb-5 ${stacked ? 'hidden' : ''}`}>
-          <p className="split-sub text-xs sm:text-[13px] md:text-sm text-neutral-400 font-normal leading-relaxed translate-y-[110%] opacity-0 filter blur-[4px]">
+          <p className="split-sub text-[11px] sm:text-xs md:text-[13px] text-neutral-400 font-normal leading-relaxed translate-y-[110%] opacity-0 filter blur-[4px]">
             Every unit, price, and payment plan across Dubai — queried live by voice or text.
           </p>
         </div>
@@ -594,69 +624,22 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
           </a>
 
           <button
-            onClick={openModal}
-            className="w-auto py-3 sm:py-3.5 px-3.5 sm:px-4.5 rounded-xl bg-neutral-900/80 hover:bg-neutral-800 text-neutral-200 hover:text-white text-xs font-semibold tracking-tight border border-white/10 hover:border-white/25 transition-all flex items-center justify-center gap-2 cursor-pointer shrink-0 shadow-md"
-            title="Open fullscreen sandbox modal"
-          >
-            <span>⛶</span>
-            <span className="whitespace-nowrap">{stacked ? 'Sandbox' : 'Fullscreen Sandbox'}</span>
-          </button>
-        </div>
-      </div>
-
-      {/* ===================================================================
-          3. OPTION B: PERSPECTIVE SWITCHER FLOATING DOCK (VISIONOS STYLE)
-          Docked bottom-center, unlocks flight to Buyer's Perspective
-         =================================================================== */}
-      <div
-        ref={dockRef}
-        className="fixed bottom-[5.5rem] md:bottom-[6rem] left-1/2 -translate-x-1/2 z-50 pointer-events-auto select-none"
-      >
-        <div
-          className={`flex items-center gap-3 sm:gap-4 px-4 sm:px-5 py-2.5 rounded-full bg-neutral-950/90 backdrop-blur-2xl border transition-all duration-500 shadow-2xl ${
-            showScrollPrompt
-              ? 'border-blue-500 shadow-[0_0_35px_rgba(86,141,255,0.5)] scale-105'
-              : 'border-white/15 hover:border-white/30 shadow-[0_20px_50px_rgba(0,0,0,0.85),0_0_20px_rgba(255,255,255,0.05)]'
-          }`}
-        >
-          {/* Left Capsule: Active Scene (Broker) */}
-          <div className="flex items-center gap-2 pr-2.5 border-r border-white/15">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#568DFF] opacity-75" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-[#568DFF] shadow-sm shadow-[#568DFF]" />
-            </span>
-            <span className="text-[11px] font-mono font-semibold tracking-wider text-neutral-200 uppercase whitespace-nowrap">
-              02 Broker
-            </span>
-          </div>
-
-          {/* Center Trajectory Flight Indicator - Sleek Laser Track with Blue Pulse Bead */}
-          <div className="hidden sm:flex items-center gap-1 text-[10px] text-neutral-400 font-mono tracking-widest px-1">
-            <span className="w-5 h-px bg-gradient-to-r from-blue-500/40 to-[#568DFF]" />
-            <span className="w-1.5 h-1.5 rounded-full bg-[#568DFF] shadow-[0_0_8px_#568DFF] animate-pulse" />
-            <span className="w-5 h-px bg-gradient-to-r from-[#568DFF] to-blue-500/40" />
-          </div>
-
-          {/* Right CTA Button: Switch to Buyer */}
-          <button
             onClick={handleFlyToBuyer}
-            className="flex items-center gap-2 px-4.5 py-1.5 rounded-full bg-gradient-to-r from-blue-600 to-[#568DFF] hover:from-blue-500 hover:to-blue-400 text-white text-xs font-semibold tracking-tight transition-all shadow-md shadow-blue-500/25 hover:shadow-blue-500/40 hover:scale-[1.02] active:scale-[0.98] cursor-pointer group whitespace-nowrap border border-blue-400/30"
+            className={`flex-1 min-w-0 py-3 sm:py-3.5 px-4 sm:px-5 rounded-xl text-white text-xs sm:text-[13px] font-bold tracking-tight transition-all flex items-center justify-center gap-2 cursor-pointer group border ${
+              showScrollPrompt
+                ? 'bg-[#568DFF] border-[#8FB4FF] shadow-[0_0_28px_rgba(86,141,255,0.55)] scale-[1.02]'
+                : 'bg-gradient-to-r from-blue-600 to-[#568DFF] border-blue-400/30 shadow-md shadow-blue-500/25 hover:shadow-blue-500/40'
+            }`}
             style={{ fontFamily: 'var(--font-inter)' }}
           >
-            <span>03 Buyer&apos;s Perspective</span>
+            <span className="whitespace-nowrap">Buyer&apos;s Perspective</span>
             <span className="text-white/80 font-bold transition-transform group-hover:translate-x-1">
               →
             </span>
           </button>
         </div>
-
-        {/* Scroll Locked Floating Tooltip Hint (appears if user attempts to scroll) */}
-        {showScrollPrompt && (
-          <div className="absolute -top-10 left-1/2 -translate-x-1/2 px-3.5 py-1 rounded-full bg-neutral-900/95 border border-blue-500/40 text-[10px] font-mono text-neutral-200 whitespace-nowrap shadow-xl animate-bounce">
-            ⚡ Click button to fly to Buyer&apos;s Perspective!
-          </div>
-        )}
       </div>
+
     </div>
   );
 }

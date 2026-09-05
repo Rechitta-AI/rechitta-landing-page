@@ -21,7 +21,7 @@ const CHAPTERS: { label: string; from: string }[] = [
   { label: 'Boardroom', from: 'boardroom' },
   { label: 'Broker', from: 'broker' },
   { label: 'Buyer', from: 'buyer' },
-  { label: 'World', from: 'world' },
+  { label: 'World', from: 'city-mumbai' },
   { label: 'Dusk', from: 'finale' },
 ];
 

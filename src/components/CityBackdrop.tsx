@@ -131,36 +131,34 @@ export default function CityBackdrop({
       ))}
 
       {/*
-        Where, what the clock says there, and the fact that every one of these
-        reads the same instant.
+        The city takes the right-hand half at display size, with the clock and
+        the line that makes the point — every one of these reads the same
+        instant — set small beneath it.
 
-        On a wide screen it stacks down the left, in the empty half beside the
-        phone. On a portrait one there is no empty half, so it runs as a single
-        line above the phone instead.
+        Portrait has no right-hand half, so it runs above the phone instead.
       */}
       <div
         className="absolute z-[25] px-6 md:px-0
-                   left-0 right-0 top-[92px] flex flex-wrap items-baseline justify-center gap-x-4 gap-y-1 text-center
-                   md:left-auto md:right-[8%] md:top-1/2 md:-translate-y-1/2 md:block md:text-left"
+                   left-0 right-0 top-[92px] text-center
+                   md:left-auto md:right-[7%] md:top-1/2 md:-translate-y-1/2 md:text-right md:max-w-[46vw]"
       >
-        <span
-          className="block font-mono text-[11px] md:text-[13px] tracking-[0.35em] text-[#8FB4FF]
-                     [text-shadow:0_1px_12px_rgba(7,10,16,0.85)]"
+        <h2
+          className="text-white leading-[0.92] tracking-tighter
+                     text-[clamp(1.75rem,9vw,2.75rem)] md:text-[clamp(3.25rem,7.5vw,7rem)]
+                     [text-shadow:0_2px_28px_rgba(7,10,16,0.6)]"
+          style={{ fontFamily: 'var(--font-inter)' }}
         >
           {city.label}
-        </span>
-        <span
-          className="font-mono text-[11px] md:text-[13px] tracking-[0.3em] text-white/90
-                     md:mt-3 md:block [text-shadow:0_1px_12px_rgba(7,10,16,0.85)]"
-        >
-          {cityTime(city)} LOCAL
-        </span>
-        <span
-          className="hidden sm:inline font-mono text-[11px] md:text-[13px] tracking-[0.3em] text-white/45
-                     md:mt-1.5 md:block [text-shadow:0_1px_12px_rgba(7,10,16,0.85)]"
-        >
-          <span className="md:hidden">· </span>THE SAME MOMENT
-        </span>
+        </h2>
+
+        <div className="mt-2 md:mt-5 flex flex-wrap items-baseline justify-center md:justify-end gap-x-3 gap-y-1">
+          <span className="font-mono text-[11px] md:text-[13px] tracking-[0.3em] text-[#8FB4FF] [text-shadow:0_1px_12px_rgba(7,10,16,0.85)]">
+            {cityTime(city)} LOCAL
+          </span>
+          <span className="hidden sm:inline font-mono text-[11px] md:text-[13px] tracking-[0.3em] text-white/45 [text-shadow:0_1px_12px_rgba(7,10,16,0.85)]">
+            <span className="md:hidden">· </span>THE SAME MOMENT
+          </span>
+        </div>
       </div>
     </>
   );

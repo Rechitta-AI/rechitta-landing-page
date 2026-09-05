@@ -143,14 +143,14 @@ export const ORB_PATH: Keyframe[] = [
     anchor: { progress: 0.52 },
     // The mockup is centred on a portrait screen, so the orb takes the sky.
     portrait: { x: 82, y: 17, scale: 0.5 },
-    x: 72, y: 40, scale: 0.7, opacity: 0.95, blur: 0,
+    x: 72, y: 19, scale: 0.62, opacity: 0.95, blur: 0,
     ease: 'out',
-    note: 'K13 — arrives right-of-centre, opposite the phone mockup.',
+    note: 'K13 — arrives in the sky above the city name, opposite the phone.',
   },
   {
     anchor: { progress: 0.93 },
     portrait: { x: 82, y: 17, scale: 0.5 },
-    x: 72, y: 40, scale: 0.7, opacity: 0.95, blur: 0,
+    x: 72, y: 19, scale: 0.62, opacity: 0.95, blur: 0,
     ease: 'linear',
     note: 'K14 — holds, pulsing on every city change with a filament to the phone.',
   },
@@ -202,6 +202,11 @@ export const EXCLUSION_ZONES: ExclusionZone[] = [
   {
     label: 'phone mockup, multilingual chapter',
     window: { from: 0.5, to: 0.95 },
-    rect: { x0: 4, y0: 18, x1: 26, y1: 82 },
+    rect: { x0: 26, y0: 6, x1: 54, y1: 94 },
+  },
+  {
+    label: 'city name, multilingual chapter',
+    window: { from: 0.5, to: 0.95 },
+    rect: { x0: 60, y0: 36, x1: 96, y1: 62 },
   },
 ];

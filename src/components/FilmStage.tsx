@@ -161,11 +161,12 @@ export default function FilmStage({
     // the decoder's own clock so the orb cannot drift off the frame.
 
     const beatProgress = (beat: Beat): number => {
+      if (beat.progress !== undefined) return beat.progress;
       if (beat.clip) {
         const p = progressForClipTime(timing, beat.clip, beat.park);
         if (p !== null) return p;
       }
-      return beat.progress ?? 0;
+      return 0;
     };
 
     const publish = (progress: number) => {
@@ -451,6 +452,21 @@ export default function FilmStage({
 
       const chapterChange = source.chapter !== target.chapter;
 
+      // Footage that belongs to the chapter being left has to play before the
+      // flash, not after it — the flight into the clouds is the way out of the
+      // buyer's phone, so it runs while the film layer is still up.
+      const playsOut =
+        dir === 1 &&
+        chapterChange &&
+        Boolean(target.enter) &&
+        Boolean(target.clip) &&
+        progressForClipTime(timing, target.clip!, target.enter!.from) !== null;
+
+      if (playsOut) {
+        await playForward(target, from, to);
+        if (disposed) return;
+      }
+
       if (chapterChange) {
         await crossChapter(target, async () => {
           if (target.chapter === 'cities') {
@@ -460,7 +476,10 @@ export default function FilmStage({
             setLayerVisible(true);
             if (target.clip) {
               const v = acquire(target.clip);
-              await park(v, dir === 1 && target.enter ? target.enter.from : target.park);
+              await park(
+                v,
+                dir === 1 && target.enter && !playsOut ? target.enter.from : target.park,
+              );
               show(v, 0);
             }
           }
@@ -472,7 +491,7 @@ export default function FilmStage({
         });
         if (disposed) return;
 
-        if (dir === 1 && target.enter && target.chapter !== 'cities') {
+        if (!playsOut && dir === 1 && target.enter && target.chapter !== 'cities') {
           await playForward(target, from, to);
         } else {
           publish(beatProgress(target));

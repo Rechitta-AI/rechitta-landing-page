@@ -208,9 +208,9 @@ export default function ExperiencePage() {
             <div
               id="multilingual-phone"
               className="absolute -translate-x-1/2 pointer-events-none
-                         left-[46%] top-[132px]
+                         left-[46%] top-[164px]
                          md:left-[40%] md:top-1/2 md:-translate-y-1/2
-                         h-[min(62vh,150vw)] md:h-[min(78vh,780px)]"
+                         h-[min(58vh,150vw)] md:h-[min(78vh,780px)]"
             >
               <div className="relative h-full w-auto animate-idle-float">
                 {/*
