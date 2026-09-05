@@ -11,14 +11,15 @@ import { CITIES, cityTime } from '@/film/score';
  * and shimmer on its own: it genuinely was, sixty times a second, whether or
  * not anyone had scrolled.
  *
- * This version paints nothing. Each city is a layer the compositor owns, the
- * crossfade is a CSS opacity transition, and the drone shot runs for a beat
- * after a step and then freezes on a frame. Parked means parked — no rAF, no
- * canvas, no decoder running in the background.
+ * This version paints nothing. Each city is a layer the compositor owns and
+ * the crossfade is a CSS opacity transition, so the drone shot can run on
+ * loop the way it was always meant to without costing the main thread a
+ * thing. What made the old one shimmer was the canvas, not the looping.
+ *
+ * Only the city on screen plays. Its neighbour is loaded and paused, ready
+ * for the next step, and everything else is torn down — six 4K-ish decoders
+ * open at once is more than a browser will give.
  */
-
-/** How long the drone shot keeps moving after arriving at a city, ms. */
-const PLAY_MS = 2000;
 
 /** Crossfade between two cities, ms. */
 const FADE_MS = 900;
@@ -46,7 +47,6 @@ export default function CityBackdrop({
   // drone clips held open at once is more decoders than a browser will give.
   useEffect(() => {
     if (!active) return;
-    const timers: number[] = [];
 
     CITIES.forEach((city, i) => {
       const v = videoRefs.current[i];
@@ -68,18 +68,16 @@ export default function CityBackdrop({
       }
 
       if (i === index) {
-        // A short push-in on arrival, then a held frame.
+        // A touch under speed: a drone shot, not a video playing.
         v.playbackRate = 0.85;
+        v.loop = true;
         void v.play().catch(() => {});
-        timers.push(window.setTimeout(() => v.pause(), PLAY_MS));
       } else {
         v.pause();
       }
     });
 
     onSwapRef.current?.();
-
-    return () => timers.forEach((t) => window.clearTimeout(t));
   }, [index, active]);
 
   // Leaving the chapter must free every decoder, not just pause it. A paused
@@ -123,6 +121,7 @@ export default function CityBackdrop({
               videoRefs.current[i] = el;
             }}
             muted
+            loop
             playsInline
             preload="none"
             className="absolute inset-0 w-full h-full object-cover"

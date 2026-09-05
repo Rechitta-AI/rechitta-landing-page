@@ -1,10 +1,85 @@
 /*
- * The chapter rail, along the bottom of the window.
+ * The chapter rail: a pulsing dot travelling the foot of the screen.
  *
- * It used to run down the right-hand edge, where every scene's copy panel is.
- * Down here it has the full width to itself, and the band it reserves keeps
- * the scenes' own docks from ever landing on top of it.
+ * The named-chapter version this replaces is kept at the bottom of the file,
+ * commented out. Its inner comments were stripped so the block nests.
  */
+
+.dotRail {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 120;
+  pointer-events: none;
+  display: flex;
+  justify-content: center;
+  padding: 0 clamp(1.25rem, 5vw, 4rem) 1.125rem;
+}
+
+.dotTrack {
+  position: relative;
+  width: 100%;
+  max-width: 46rem;
+  height: 1px;
+  background: linear-gradient(
+    to right,
+    rgba(232, 236, 244, 0) 0%,
+    rgba(232, 236, 244, 0.16) 12%,
+    rgba(232, 236, 244, 0.16) 88%,
+    rgba(232, 236, 244, 0) 100%
+  );
+}
+
+/* Carries the dot along the track. */
+.dotCarriage {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 100%;
+  height: 0;
+  will-change: transform;
+}
+
+/* Pulses in place, so it never fights the carriage for the transform. */
+.dot {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 7px;
+  height: 7px;
+  margin: -3.5px 0 0 -3.5px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 10px 1px rgba(86, 141, 255, 0.75);
+  animation: rail-dot-pulse 2.4s ease-in-out infinite;
+}
+
+@keyframes rail-dot-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.85;
+  }
+  50% {
+    transform: scale(1.45);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dot {
+    animation: none;
+  }
+}
+
+@media (max-width: 809px) {
+  .dotRail {
+    padding-bottom: 0.875rem;
+  }
+}
+
+/* ── The named-chapter rail, kept for reference ───────────────────────────
 .rail {
   position: fixed;
   left: 0;
@@ -17,11 +92,9 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0 clamp(1rem, 4vw, 3rem) 1rem;
-  /* Nothing behind it, so a bright frame cannot swallow the ticks. */
   background: linear-gradient(to top, rgba(7, 10, 16, 0.72) 0%, rgba(7, 10, 16, 0) 100%);
 }
 
-/* Every chapter takes the same width, whatever it holds. */
 .chapters {
   display: flex;
   width: 100%;
@@ -37,7 +110,6 @@
   gap: 0.5rem;
 }
 
-/* One tick per beat: the transitions and scenes inside the chapter. */
 .ticks {
   display: flex;
   align-items: center;
@@ -78,7 +150,6 @@
   color: rgba(255, 255, 255, 0.95);
 }
 
-/* The single name, shown only where the full set cannot fit. */
 .labelSolo {
   display: none;
   font-size: 0.5625rem;
@@ -102,3 +173,4 @@
     display: block;
   }
 }
+──────────────────────────────────────────────────────────────────────── */
