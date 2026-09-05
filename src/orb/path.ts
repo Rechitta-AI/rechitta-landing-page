@@ -30,9 +30,9 @@ export const ORB_PATH: Keyframe[] = [
   {
     anchor: { clip: 'scene1-3', t: 2.0 },
     hero: true,
-    x: 50, y: 46, scale: HERO_SCALE, opacity: 0.9, blur: 0,
+    x: 50, y: 36, scale: HERO_SCALE, opacity: 0.9, blur: 0,
     ease: 'inOut',
-    note: 'K0 — centred on the headline. Text staggers away, the orb stays.',
+    note: 'K0 — centred above the headline. Text staggers away, the orb stays.',
   },
   {
     anchor: { clip: 'scene1-3', t: 5.0 },
@@ -48,13 +48,13 @@ export const ORB_PATH: Keyframe[] = [
   },
   {
     anchor: { clip: 'scene1-3', t: 8.5 },
-    x: 58, y: 74, scale: 0.4, opacity: 0.9, blur: 0.6,
+    x: 58, y: 74, scale: 0.4, opacity: 0.9, blur: 0,
     ease: 'inOut',
     note: 'K3 — sliding up the table centreline, shrinking along its vanishing line.',
   },
   {
     anchor: { clip: 'scene1-3', t: 11.0 },
-    x: 50, y: 78, scale: 0.3, opacity: 0.75, blur: 1.2,
+    x: 50, y: 78, scale: 0.3, opacity: 0.75, blur: 0,
     ease: 'out',
     note: 'K4 — rests on the credenza below the screen. Holds through the whole deck.',
   },
@@ -100,11 +100,29 @@ export const ORB_PATH: Keyframe[] = [
     note: 'K10 — full whiteout. The orb is the only object on screen.',
   },
   {
-    anchor: { clip: 'transit-c', t: 6.5 },
-    pulse: true,
-    x: 73, y: 24, scale: 0.45, opacity: 1, blur: 0,
+    anchor: { clip: 'transit-c', t: 5.3 },
+    x: 56, y: 56, scale: 0.68, opacity: 1, blur: 0,
+    ease: 'inOut',
+    note: 'K11a — re-condenses over the bay as the beach comes into view.',
+  },
+  {
+    anchor: { clip: 'transit-c', t: 6.2 },
+    x: 62, y: 72, scale: 0.42, opacity: 1, blur: 0,
     ease: 'out',
-    note: 'K11 — re-condenses over the sea, clear of the buyer phone, and flares.',
+    note: 'K11b — sweeps in an arc clear of the phone screen toward the bottom dock.',
+  },
+  {
+    anchor: { clip: 'transit-c', t: 6.8 },
+    pulse: true,
+    x: 46.5, y: 84.1, scale: 0.26, opacity: 1, blur: 0,
+    ease: 'out',
+    note: 'K11c — smoothly touches down dead-centre into the buyer phone voice dock R circle and flares.',
+  },
+  {
+    anchor: { clip: 'transit-d', t: 0.0 },
+    x: 46.5, y: 84.1, scale: 0.26, opacity: 1, blur: 0,
+    ease: 'in',
+    note: 'K11d — holds docked in the phone voice dock through the presentation pause, then lifts off.',
   },
   {
     anchor: { clip: 'transit-d', t: 5.9 },
@@ -137,9 +155,9 @@ export const ORB_PATH: Keyframe[] = [
   {
     anchor: { progress: 1.0 },
     hero: true,
-    x: 50, y: 46, scale: HERO_SCALE, opacity: 0.9, blur: 0,
+    x: 50, y: 36, scale: HERO_SCALE, opacity: 0.9, blur: 0,
     ease: 'out',
-    note: 'K16 — comes to rest mid-screen, on the exact coordinates of K0. The orb is the stitch that hides the loop.',
+    note: 'K16 — comes to rest mid-screen above headline, on the exact coordinates of K0. The orb is the stitch that hides the loop.',
   },
 ];
 
@@ -167,9 +185,9 @@ export const EXCLUSION_ZONES: ExclusionZone[] = [
     rect: { x0: 41, y0: 7, x1: 63, y1: 90 },
   },
   {
-    label: "buyer's phone, beach",
+    label: "buyer's phone content area",
     window: { clip: 'transit-c', from: 5.5, to: 8 },
-    rect: { x0: 40, y0: 15, x1: 60, y1: 90 },
+    rect: { x0: 40, y0: 15, x1: 60, y1: 76 },
   },
   {
     label: 'phone mockup, multilingual chapter',

@@ -42,6 +42,10 @@ export default function Loader({ onDone, orbReady = true }: { onDone: () => void
     let frame: number;
     let finishing = false;
 
+    const safetyTimer = window.setTimeout(() => {
+      finish();
+    }, SAFETY_TIMEOUT_MS);
+
     const stopListening = onLoadProgress((value) => {
       actual = value;
     });
@@ -59,7 +63,7 @@ export default function Loader({ onDone, orbReady = true }: { onDone: () => void
       // Smoothly fade out the loader ring, then fire onDone so the cinematic hero reveal can begin
       gsap.to(shellRef.current, { 
         opacity: 0, 
-        duration: 1, 
+        duration: 0.8, 
         ease: 'power2.inOut',
         onComplete: () => {
           setGone(true);
@@ -77,11 +81,12 @@ export default function Loader({ onDone, orbReady = true }: { onDone: () => void
       
       // Update SVG circle stroke-dashoffset (circumference = 282.743)
       if (fillRef.current) {
-        const offset = 282.743 * (1 - eased);
+        const offset = 282.743 * (1 - Math.min(1, eased));
         fillRef.current.style.strokeDashoffset = String(offset);
       }
 
-      if (eased >= 0.999 && orbReadyRef.current) {
+      // Once visually at 100% (eased >= 0.99) and the 3D scene is ready, enter the site
+      if (eased >= 0.99 && orbReadyRef.current) {
         finish();
         return;
       }
@@ -91,6 +96,7 @@ export default function Loader({ onDone, orbReady = true }: { onDone: () => void
 
     return () => {
       cancelAnimationFrame(frame);
+      window.clearTimeout(safetyTimer);
       stopListening();
     };
   }, []);

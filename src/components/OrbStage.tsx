@@ -72,7 +72,10 @@ export default function OrbStage({
    */
   const measureHeroPose = (): Sample | null => {
     if (typeof window === 'undefined') return null;
-    const target = document.getElementById('hero-heading') ?? document.getElementById('hero-o-anchor');
+    const target =
+      document.getElementById('hero-orb-anchor') ??
+      document.getElementById('hero-heading') ??
+      document.getElementById('hero-o-anchor');
     if (!target) return null;
     const rect = target.getBoundingClientRect();
     if (rect.width === 0 && rect.height === 0) return null;
@@ -123,7 +126,10 @@ export default function OrbStage({
     if (introPhase !== 'moving' || hasMovedRef.current || !holderRef.current) return;
     hasMovedRef.current = true;
 
-    const targetEl = document.getElementById('hero-heading') ?? document.getElementById('hero-o-anchor');
+    const targetEl =
+      document.getElementById('hero-orb-anchor') ??
+      document.getElementById('hero-heading') ??
+      document.getElementById('hero-o-anchor');
     if (!targetEl) return;
 
     const targetRect = targetEl.getBoundingClientRect();

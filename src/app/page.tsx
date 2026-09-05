@@ -5,6 +5,8 @@ import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import ScrollFilm from '@/components/ScrollFilm';
 import BoardroomPresentation from '@/components/BoardroomPresentation';
+import BrokerPresentation from '@/components/BrokerPresentation';
+import BuyerPresentation from '@/components/BuyerPresentation';
 import TexturedGlobe from '@/components/TexturedGlobe';
 import Loader from '@/components/Loader';
 import ScrollRail from '@/components/ScrollRail';
@@ -31,6 +33,7 @@ export default function ExperiencePage() {
   const isLoopingRef = useRef(false);
 
   const heroRef = useRef<HTMLDivElement>(null);
+  const heroWordsRef = useRef<NodeListOf<Element> | null>(null);
 
   const [activeChapter, setActiveChapter] = useState('hero');
   const currentChapterRef = useRef('hero');
@@ -246,7 +249,11 @@ export default function ExperiencePage() {
           const HERO_EXIT_THRESHOLD = 0.03; // Adjusted to match the exact glass facade timing
 
           if (heroRef.current) {
-            const words = heroRef.current.querySelectorAll('.hero-word, .subheading-word');
+            const words =
+              heroWordsRef.current ??
+              (heroWordsRef.current = heroRef.current.querySelectorAll('.hero-word, .subheading-word'));
+            const scrollIndicator = heroRef.current.querySelector('#hero-scroll-indicator');
+
             if (pScroll >= HERO_EXIT_THRESHOLD && !heroExitedRef.current) {
               heroExitedRef.current = true;
               gsap.to(words, {
@@ -257,6 +264,16 @@ export default function ExperiencePage() {
                 ease: 'power3.in',
                 overwrite: true
               });
+              if (scrollIndicator) {
+                gsap.to(scrollIndicator, {
+                  opacity: 0,
+                  y: 20,
+                  scale: 0.95,
+                  duration: 0.35,
+                  ease: 'power2.inOut',
+                  overwrite: true
+                });
+              }
             } else if (pScroll < HERO_EXIT_THRESHOLD && heroExitedRef.current) {
               heroExitedRef.current = false;
               gsap.to(words, {
@@ -267,6 +284,16 @@ export default function ExperiencePage() {
                 ease: 'power3.out',
                 overwrite: true
               });
+              if (scrollIndicator) {
+                gsap.to(scrollIndicator, {
+                  opacity: 1,
+                  y: 0,
+                  scale: 1,
+                  duration: 0.4,
+                  ease: 'power2.out',
+                  overwrite: true
+                });
+              }
             }
           }
         }
@@ -360,14 +387,16 @@ export default function ExperiencePage() {
 
             {/* The Scroll-Locked UI Overlay */}
             <BoardroomPresentation holdData={holdData} />
+            <BrokerPresentation holdData={holdData} />
+            <BuyerPresentation holdData={holdData} />
 
             <ScrollFilm
               scrollData={scrollData}
               holdData={holdData}
               sequenceKeys={[
                 { key: 'scene1-3', in: 2, out: 11, holdWeight: 8 }, // Holds here for 8 durations of video to slow down presentation scroll!
-                { key: 'transit-b', in: 2 },
-                'transit-c',
+                { key: 'transit-b', in: 2, out: 16.9, holdWeight: 6 }, // Holds on the broker's phone!
+                { key: 'transit-c', in: 0, out: 6.8, holdWeight: 6 }, // Holds on the buyer's phone!
                 'transit-d'
               ]}
               startProgress={0}
@@ -413,6 +442,9 @@ export default function ExperiencePage() {
             ref={heroRef}
             className="absolute inset-0 flex flex-col items-center justify-center text-center px-4 pt-16"
           >
+            {/* The Orb Hero Anchor - Centered directly above the headline */}
+            <div id="hero-orb-anchor" className="w-16 h-16 md:w-20 md:h-20 pointer-events-none mb-3 md:mb-6" />
+
             <div
               ref={revealTextRef}
               style={{
@@ -422,7 +454,7 @@ export default function ExperiencePage() {
                 transform: 'translateX(-20px)'
               }}
             >
-              <h1 id="hero-heading" className="text-4xl md:text-[4.5rem] leading-none text-white tracking-tight flex flex-wrap items-center justify-center gap-x-[0.3em]" style={{ fontFamily: 'var(--font-inter)' }}>
+              <h1 id="hero-heading" className="text-[clamp(2.25rem,5.5vw,4.5rem)] leading-none text-white tracking-tight flex flex-wrap items-center justify-center gap-x-[0.3em]" style={{ fontFamily: 'var(--font-inter)' }}>
                 {/* The orb lands on this "O" — the letter stays visible beneath it. */}
                 <span className="hero-word inline-block">
                   <span id="hero-o-anchor">O</span>ne
@@ -433,7 +465,7 @@ export default function ExperiencePage() {
               </h1>
             </div>
             <p
-              className="mt-6 text-base md:text-lg text-gray-300 max-w-2xl leading-relaxed flex flex-wrap justify-center gap-x-[0.4em] gap-y-2"
+              className="mt-4 md:mt-6 text-sm sm:text-base md:text-lg text-gray-300 max-w-xl md:max-w-2xl leading-relaxed flex flex-wrap justify-center gap-x-[0.4em] gap-y-2"
               style={{ fontFamily: 'var(--font-inter)' }}
             >
               {"Live developer inventory, translated into conversation — so every broker and every buyer speaks the same language.".split(' ').map((word, i) => (
@@ -453,7 +485,8 @@ export default function ExperiencePage() {
 
             {/* Scroll Indicator */}
             <div
-              className={`absolute bottom-8 md:bottom-12 left-1/2 -translate-x-1/2 flex flex-col items-center gap-3 transition-all duration-1000 ${introPhase === 'done' ? 'opacity-100 translate-y-0 delay-[1000ms]' : 'opacity-0 translate-y-4'
+              id="hero-scroll-indicator"
+              className={`absolute bottom-8 md:bottom-12 left-1/2 -translate-x-1/2 flex flex-col items-center gap-3 transition-all duration-700 ${introPhase === 'done' ? 'opacity-100 translate-y-0 delay-[1000ms]' : 'opacity-0 translate-y-4'
                 }`}
             >
               <span className="text-[11px] tracking-[0.4em] text-white/50 font-medium font-sans">SCROLL</span>

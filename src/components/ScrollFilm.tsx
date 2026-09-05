@@ -1,11 +1,15 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { pickTier, proxyUrl, fullUrl } from '@/utils/videoTier';
+import gsap from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { pickTier, fullUrl } from '@/utils/videoTier';
 import { setLoadProgress, registerLoadTask } from '@/utils/loadProgress';
 import { createClock, advanceClock } from '@/utils/filmClock';
 import type { FilmTiming } from '@/orb/types';
 import type { Playhead } from '@/screens/types';
+
+gsap.registerPlugin(ScrollTrigger);
 
 export type SequenceClip = string | { key: string; in?: number; out?: number; holdWeight?: number };
 
@@ -17,7 +21,7 @@ interface ScrollFilmProps {
   holdData?: React.RefObject<{ clipIndex: number; progress: number; startProgress?: number; endProgress?: number }>;
   /** Whether this film's loading counts toward the loader's number. Pass an ID string to register. */
   reportsProgress?: string | boolean;
-  /** The film the visitor lands on. Its first full clip loads immediately. */
+  /** The film the visitor lands on. */
   priority?: boolean;
   /**
    * Receives the measured clip timings. The orb's flight path anchors to clip
@@ -25,9 +29,7 @@ interface ScrollFilmProps {
    */
   timingRef?: React.RefObject<FilmTiming | null>;
   /**
-   * Receives the exact clip and source time on screen each frame. Anything
-   * composited onto the footage reads this rather than scroll progress, so it
-   * cannot drift from the frame it is sitting on.
+   * Receives the exact clip and source time on screen each frame.
    */
   playheadRef?: React.RefObject<Playhead | null>;
 }
@@ -39,7 +41,6 @@ const SEEK_EPSILON = 1 / 48;
 const ASSUMED_DURATION = 8;
 
 type Clip = {
-  proxy: HTMLVideoElement;
   full: HTMLVideoElement;
   duration: number; // Playable duration (trimOut - trimIn)
   trimIn: number;
@@ -53,10 +54,8 @@ function makeVideo(src: string): HTMLVideoElement {
   v.muted = true;
   v.defaultMuted = true;
   v.playsInline = true;
-  // Metadata only to begin with — enough to learn the clip's duration, which
-  // the scrub maths needs, without pulling the whole file. Clips are promoted
-  // to full download as the visitor approaches them.
-  v.preload = 'metadata';
+  // Aggressively preload entire 4K video payload into browser memory
+  v.preload = 'auto';
   v.setAttribute('aria-hidden', 'true');
   Object.assign(v.style, {
     position: 'absolute',
@@ -69,7 +68,7 @@ function makeVideo(src: string): HTMLVideoElement {
   return v;
 }
 
-/** How much of a clip has arrived, 0–1. */
+/** How much of a clip has arrived in memory, 0–1. */
 function bufferedFraction(v: HTMLVideoElement): number {
   if (!v.duration || !Number.isFinite(v.duration)) return 0;
   let total = 0;
@@ -108,18 +107,19 @@ export default function ScrollFilm({
     // Built imperatively rather than through JSX: these nodes live inside the
     // ScrollTrigger-pinned container, and letting React insert them mid-scroll
     // races with GSAP's DOM surgery.
+    // Pure 4K: One full-resolution video element per clip, eliminating duplicate decoders.
     const clips: Clip[] = sequenceKeys.map((item) => {
       const key = typeof item === 'string' ? item : item.key;
-      const proxy = makeVideo(proxyUrl(key));
+      const trimIn = typeof item === 'object' && item.in !== undefined ? item.in : 0;
+      const holdWeight = typeof item === 'object' && item.holdWeight !== undefined ? item.holdWeight : 0;
       const full = makeVideo(fullUrl(key, tier));
-      stage.append(proxy, full);
-      return { 
-        proxy, 
-        full, 
+      stage.append(full);
+      return {
+        full,
         duration: ASSUMED_DURATION,
-        trimIn: 0,
+        trimIn,
         trimOut: ASSUMED_DURATION,
-        holdWeight: 0
+        holdWeight,
       };
     });
 
@@ -129,51 +129,47 @@ export default function ScrollFilm({
 
     let isWarmedUp = false;
 
-    // Promote ALL proxies and ALL 4K videos to download immediately
-    clips.forEach(clip => {
-      promote(clip.proxy);
-      promote(clip.full);
-    });
-
-    // HARDWARE WARM-UP (THE "GPU PUMP")
-    const warmup = async (v: HTMLVideoElement) => {
+    // HARDWARE WARM-UP (THE "GPU PUMP") - primes each clip directly to its trimIn point
+    const warmup = async (v: HTMLVideoElement, initialTime = 0) => {
       try {
         await v.play();
         v.pause();
-        v.currentTime = 0;
-      } catch (err) {
+        v.currentTime = initialTime;
+      } catch {
         // Ignored
       }
     };
 
     const warmups: Promise<void>[] = [];
-    clips.forEach(clip => {
-      warmups.push(warmup(clip.proxy));
-      warmups.push(warmup(clip.full));
+
+    // All 4K footage preloads immediately in memory so 100% of footage is primed on loading screen
+    clips.forEach((clip) => {
+      promote(clip.full);
+      warmups.push(warmup(clip.full, clip.trimIn));
     });
 
-    // Safety net: force resolution after 3 seconds
-    const fallbackTimeout = new Promise(resolve => setTimeout(resolve, 3000));
-    
-    Promise.race([
-      Promise.all(warmups),
-      fallbackTimeout
-    ]).then(() => {
+    // Safety net: force resolution after 1.5 seconds if browser autoplay policy delays warmup
+    const fallbackTimeout = new Promise((resolve) => setTimeout(resolve, 1500));
+
+    let triggerReport = () => {};
+
+    Promise.race([Promise.all(warmups), fallbackTimeout]).then(() => {
       isWarmedUp = true;
+      triggerReport();
     });
 
     const readDurations = () => {
       clips.forEach((clip, i) => {
-        const d = clip.full.duration || clip.proxy.duration;
+        const d = clip.full.duration;
         if (d && Number.isFinite(d)) {
           const conf = sequenceKeys[i];
-          const trimIn = (typeof conf === 'object' && conf.in !== undefined) ? conf.in : 0;
-          let trimOut = (typeof conf === 'object' && conf.out !== undefined) ? conf.out : d;
-          const holdWeight = (typeof conf === 'object' && conf.holdWeight !== undefined) ? conf.holdWeight : 0;
-          
+          const trimIn = typeof conf === 'object' && conf.in !== undefined ? conf.in : 0;
+          let trimOut = typeof conf === 'object' && conf.out !== undefined ? conf.out : d;
+          const holdWeight = typeof conf === 'object' && conf.holdWeight !== undefined ? conf.holdWeight : 0;
+
           // clamp trimOut to actual video duration just in case
           trimOut = Math.min(trimOut, d);
-          
+
           clip.trimIn = trimIn;
           clip.trimOut = trimOut;
           clip.holdWeight = holdWeight;
@@ -213,51 +209,64 @@ export default function ScrollFilm({
     };
 
     const onMeta = () => readDurations();
-    clips.forEach(({ proxy, full }) => {
-      proxy.addEventListener('loadedmetadata', onMeta);
+    clips.forEach(({ full }) => {
       full.addEventListener('loadedmetadata', onMeta);
     });
 
-    // The loader's number
+    // The loader's number: tracks actual 4K byte buffer completion
     let stopReporting = () => {};
     if (reportsProgress && clips.length > 0) {
       const loadId = typeof reportsProgress === 'string' ? reportsProgress : 'main';
       registerLoadTask(loadId);
 
       const report = () => {
-        let proxyTotal = 0;
-        let fullTotal = 0;
-        clips.forEach(clip => {
-          proxyTotal += clip.proxy.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA ? 1 : bufferedFraction(clip.proxy);
-          fullTotal += clip.full.readyState >= HTMLMediaElement.HAVE_ENOUGH_DATA ? 1 : bufferedFraction(clip.full);
-        });
-        proxyTotal /= clips.length;
-        fullTotal /= clips.length;
+        // Measure the buffer progress of all 4K clips in this sequence
+        let totalFraction = 0;
+        let allReady = true;
 
-        let total = 0.5 * proxyTotal + 0.5 * fullTotal;
-        
-        // HARDWARE LOCK: Never report 100% until the GPU has fully warmed up
+        for (let i = 0; i < clips.length; i++) {
+          const v = clips[i].full;
+          const frac = bufferedFraction(v);
+          totalFraction += frac;
+          // Modern browsers cap paused video buffers at ~10-15s or signal HAVE_ENOUGH_DATA
+          const isClipReady = frac >= 0.85 || v.readyState >= HTMLMediaElement.HAVE_ENOUGH_DATA;
+          if (!isClipReady) {
+            allReady = false;
+          }
+        }
+
+        const avgFraction = totalFraction / clips.length;
+
+        // Linear climb tracking actual 4K bytes received across all clips
+        let total = Math.min(1, avgFraction / 0.85);
+
+        // Require all 4K videos in this sequence to be primed before reporting 100%
+        if (allReady) {
+          total = 1.0;
+        }
+
+        // HARDWARE LOCK: If GPU hasn't warmed up yet, keep at 0.99 briefly
         if (total >= 1 && !isWarmedUp) {
           total = 0.99;
         }
-        
+
         setLoadProgress(total, loadId);
       };
 
+      triggerReport = report;
+
       const events = ['progress', 'canplay', 'canplaythrough', 'loadeddata'] as const;
-      clips.forEach(clip => {
-        events.forEach(e => {
-          clip.proxy.addEventListener(e, report);
+      clips.forEach((clip) => {
+        events.forEach((e) => {
           clip.full.addEventListener(e, report);
         });
       });
 
-      const poll = window.setInterval(report, 250);
+      const poll = window.setInterval(report, 200);
       stopReporting = () => {
         window.clearInterval(poll);
-        clips.forEach(clip => {
-          events.forEach(e => {
-            clip.proxy.removeEventListener(e, report);
+        clips.forEach((clip) => {
+          events.forEach((e) => {
             clip.full.removeEventListener(e, report);
           });
         });
@@ -268,7 +277,137 @@ export default function ScrollFilm({
     let lastTime = performance.now();
     let frame: number;
     let shown: HTMLVideoElement | null = null;
-    let proxiesPromoted = false;
+
+    // Flight mode state: plays transit-b natively via hardware decoding
+    let isFlying = false;
+    let flightVideo: HTMLVideoElement | null = null;
+    let flightStartT = 2.0;
+    let flightEndT = 16.9;
+    let flightStartScroll = 0.158;
+    let flightEndScroll = 0.297;
+    let flightClipKey = 'transit-b';
+    let flightTargetHoldIndex = 1;
+
+    const onStartFlight = () => {
+      // Find clip 1 (transit-b)
+      const transitClip = clips[1];
+      if (!transitClip) return;
+
+      const video = transitClip.full;
+
+      flightVideo = video;
+      flightStartT = 2.0;
+      flightEndT = 16.9;
+      flightStartScroll = 0.158;
+      flightEndScroll = 0.297; // Centered inside broker hold
+      flightClipKey = 'transit-b';
+      flightTargetHoldIndex = 1;
+      isFlying = true;
+
+      // Stop Lenis during flight so user wheel gestures don't fight flight
+      const lenis = (window as any).lenis;
+      if (lenis && typeof lenis.stop === 'function') {
+        lenis.stop();
+      }
+
+      // Exit boardroom hold state immediately
+      if (holdData?.current) {
+        holdData.current.clipIndex = -1;
+        holdData.current.progress = 0;
+      }
+
+      // Prime start time & accelerated playback rate (fast, cinematic drone rush)
+      video.currentTime = flightStartT;
+      video.playbackRate = 2.5;
+
+      // Immediately display this video
+      if (shown && shown !== video) shown.style.opacity = '0';
+      video.style.opacity = '1';
+      shown = video;
+
+      // Hardware playback via GPU decoder!
+      video.play().catch(() => {});
+    };
+
+    const onFlyToBuyer = () => {
+      // Find clip 2 (transit-c)
+      const transitClip = clips[2];
+      if (!transitClip) return;
+
+      const video = transitClip.full;
+
+      flightVideo = video;
+      flightStartT = 0.0;
+      flightEndT = 6.8;
+      flightStartScroll = 0.297;
+      flightEndScroll = 0.406;
+      flightClipKey = 'transit-c';
+      flightTargetHoldIndex = 2; // Parked on Buyer's Phone!
+      isFlying = true;
+
+      // Stop Lenis during flight
+      const lenis = (window as any).lenis;
+      if (lenis && typeof lenis.stop === 'function') {
+        lenis.stop();
+      }
+
+      // Exit broker hold state immediately
+      if (holdData?.current) {
+        holdData.current.clipIndex = -1;
+        holdData.current.progress = 0;
+      }
+
+      video.currentTime = flightStartT;
+      video.playbackRate = 2.5;
+
+      if (shown && shown !== video) shown.style.opacity = '0';
+      video.style.opacity = '1';
+      shown = video;
+
+      video.play().catch(() => {});
+    };
+
+    const onFlyToGlobal = () => {
+      // Find clip 3 (transit-d)
+      const transitClip = clips[3];
+      if (!transitClip) return;
+
+      const video = transitClip.full;
+
+      flightVideo = video;
+      flightStartT = 0.0;
+      flightEndT = 2.8;
+      flightStartScroll = 0.406;
+      flightEndScroll = 0.500;
+      flightClipKey = 'transit-d';
+      flightTargetHoldIndex = -1; // Transitions to Global/Multilingual chapter
+      isFlying = true;
+
+      // Stop Lenis during flight
+      const lenis = (window as any).lenis;
+      if (lenis && typeof lenis.stop === 'function') {
+        lenis.stop();
+      }
+
+      // Exit buyer hold state immediately
+      if (holdData?.current) {
+        holdData.current.clipIndex = -1;
+        holdData.current.progress = 0;
+      }
+
+      video.currentTime = flightStartT;
+      video.playbackRate = 2.5;
+
+      if (shown && shown !== video) shown.style.opacity = '0';
+      video.style.opacity = '1';
+      shown = video;
+
+      video.play().catch(() => {});
+    };
+
+    window.addEventListener('rechitta:start-flight', onStartFlight);
+    window.addEventListener('rechitta:fly-to-buyer', onFlyToBuyer);
+    window.addEventListener('rechitta:fly-to-global', onFlyToGlobal);
 
     const seek = (v: HTMLVideoElement, time: number) => {
       if (v.readyState < HTMLMediaElement.HAVE_METADATA) return;
@@ -283,6 +422,82 @@ export default function ScrollFilm({
     const render = (now: number) => {
       const dt = Math.min((now - lastTime) / 1000, 0.1);
       lastTime = now;
+
+      // --- NATIVE HARDWARE VIDEO PLAYBACK FLIGHT MODE ---
+      if (isFlying && flightVideo) {
+        const currentT = flightVideo.currentTime;
+
+        // Keep phone screen overlay warped to current video frame at native 60fps
+        if (playheadRef) {
+          playheadRef.current = {
+            clip: flightClipKey,
+            t: currentT,
+          };
+        }
+
+        // Map video time to scroll progress
+        const ratio = Math.max(0, Math.min(1, (currentT - flightStartT) / (flightEndT - flightStartT || 1)));
+        const curProgress = flightStartScroll + ratio * (flightEndScroll - flightStartScroll);
+
+        if (scrollData.current) {
+          scrollData.current.progress = curProgress;
+        }
+        clock.eased = curProgress;
+
+        const maxST =
+          ScrollTrigger.maxScroll(window) ||
+          document.documentElement.scrollHeight - window.innerHeight;
+        window.scrollTo(0, curProgress * maxST);
+
+        // Notify hold state as we arrive at destination
+        if (holdData?.current) {
+          if (ratio >= 0.95) {
+            holdData.current.clipIndex = flightTargetHoldIndex; // parked on destination!
+            holdData.current.progress = 0.5;
+          } else {
+            holdData.current.clipIndex = -1; // in transit
+            holdData.current.progress = 0;
+          }
+        }
+
+        // Arrival condition: reached destination!
+        if (currentT >= flightEndT - 0.05 || flightVideo.ended || flightVideo.paused) {
+          flightVideo.pause();
+          flightVideo.currentTime = flightEndT;
+          isFlying = false;
+          flightVideo = null;
+
+          if (scrollData.current) {
+            scrollData.current.progress = flightEndScroll;
+          }
+          clock.eased = flightEndScroll;
+          window.scrollTo(0, flightEndScroll * maxST);
+          ScrollTrigger.update();
+
+          if (holdData?.current) {
+            holdData.current.clipIndex = flightTargetHoldIndex;
+            holdData.current.progress = 0.5;
+          }
+
+          const lenis = (window as any).lenis;
+          if (lenis) {
+            if (flightTargetHoldIndex === 1) {
+              // Stay completely stopped for the locked broker scene
+              if (typeof lenis.stop === 'function') lenis.stop();
+              if (typeof lenis.velocity !== 'undefined') lenis.velocity = 0;
+            } else {
+              if (typeof lenis.start === 'function') lenis.start();
+            }
+            if (typeof lenis.scrollTo === 'function') {
+              lenis.scrollTo(flightEndScroll * maxST, { immediate: true });
+            }
+          }
+        }
+
+        frame = requestAnimationFrame(render);
+        return;
+      }
+      // --- END FLIGHT MODE ---
 
       const { startProgress: from, endProgress: to } = rangeRef.current;
       const target = scrollData.current?.progress ?? 0;
@@ -313,7 +528,7 @@ export default function ScrollFilm({
 
       for (let i = 0; i < clips.length; i++) {
         const c = clips[i];
-        
+
         // 1. Check if we fall within the playable video duration of this clip
         if (remaining < c.duration) {
           activeIndex = i;
@@ -321,24 +536,24 @@ export default function ScrollFilm({
         }
         remaining -= c.duration;
         timeAccumulator += c.duration;
-        
+
         // 2. Check if we fall within the HOLD duration of this clip
         if (c.holdWeight > 0) {
           if (remaining <= c.holdWeight) {
             activeIndex = i;
             isHolding = true;
             holdProgress = remaining / c.holdWeight; // 0.0 to 1.0 progress inside the hold window
-            
+
             // Expose the global boundaries!
             if (holdData?.current) {
               const holdStartLocal = timeAccumulator / totalDuration;
               const holdEndLocal = (timeAccumulator + c.holdWeight) / totalDuration;
-              holdData.current.startProgress = from + (holdStartLocal * span);
-              holdData.current.endProgress = from + (holdEndLocal * span);
+              holdData.current.startProgress = from + holdStartLocal * span;
+              holdData.current.endProgress = from + holdEndLocal * span;
             }
 
             // Park the video at the end of its playable duration!
-            remaining = c.duration; 
+            remaining = c.duration;
             break;
           }
           remaining -= c.holdWeight;
@@ -357,41 +572,27 @@ export default function ScrollFilm({
         holdData.current.progress = isHolding ? holdProgress : 0;
       }
 
-      // Videos are now eagerly loaded upfront, so we no longer dynamically promote here.
-
       const clip = clips[activeIndex];
       if (clip) {
-        // Prefer full quality; fall back to the proxy until it can render.
         const full = clip.full;
-        const useFull = full.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA;
-        const active = useFull ? full : clip.proxy;
-
-        // Only the visible element is seeked. Driving both was decoding every
-        // frame twice — at 4K that is the difference between smooth and not.
         const sourceTime = clip.trimIn + remaining;
-        seek(active, sourceTime);
+
+        seek(full, sourceTime);
+
+        if (shown !== full) {
+          if (shown) shown.style.opacity = '0';
+          full.style.opacity = '1';
+          shown = full;
+        }
 
         if (playheadRef) {
-          // The time we asked for is not the time on screen: a seek in flight
-          // leaves the element showing an older frame. Publishing the request
-          // would let anything composited onto the footage run ahead of it
-          // during a scrub, which reads as the overlay detaching. Report the
-          // element's own position, and only once it has settled.
-          if (!active.seeking && active.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
+          if (full.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
             const conf = sequenceKeys[activeIndex];
             playheadRef.current = {
               clip: typeof conf === 'string' ? conf : conf.key,
-              t: active.currentTime,
+              t: full.currentTime,
             };
           }
-        }
-
-        // Swapping mid-seek would flash whatever frame the incoming element
-        // happens to be parked on, so wait until it has landed.
-        if (active !== shown && !active.seeking) {
-          if (shown) shown.style.opacity = '0';
-          active.style.opacity = '1';
-          shown = active;
         }
       }
 
@@ -402,15 +603,15 @@ export default function ScrollFilm({
     return () => {
       cancelAnimationFrame(frame);
       stopReporting();
-      clips.forEach(({ proxy, full }) => {
-        proxy.removeEventListener('loadedmetadata', onMeta);
+      window.removeEventListener('rechitta:start-flight', onStartFlight);
+      window.removeEventListener('rechitta:fly-to-buyer', onFlyToBuyer);
+      window.removeEventListener('rechitta:fly-to-global', onFlyToGlobal);
+      clips.forEach(({ full }) => {
         full.removeEventListener('loadedmetadata', onMeta);
-        [proxy, full].forEach((v) => {
-          v.pause();
-          v.removeAttribute('src');
-          v.load();
-          v.remove();
-        });
+        full.pause();
+        full.removeAttribute('src');
+        full.load();
+        full.remove();
       });
     };
     // sequenceKeys is a literal array in the parent; compare by contents.

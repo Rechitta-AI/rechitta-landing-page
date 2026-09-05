@@ -8,14 +8,14 @@
  */
 
 /** How long a surface takes to catch up to the scroll position, in seconds. */
-export const CATCH_UP = 0.1;
+export const CATCH_UP = 0.05;
 
 /**
  * A jump larger than this is a teleport, not a scroll — the loop reset at the
  * end of the experience. Easing across it plays the whole film backwards at
  * speed, so the clock snaps instead.
  */
-export const SNAP_THRESHOLD = 0.25;
+export const SNAP_THRESHOLD = 0.55;
 
 export type ClockState = { eased: number };
 
