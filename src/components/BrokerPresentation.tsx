@@ -411,32 +411,35 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
       </div>
 
       {/*
-        Projects synced, in the empty half of the frame beside the phone. It
-        used to ride the top of the copy panel, which was already the densest
-        part of the layout.
+        The sync announcement, in the empty half of the frame beside the phone.
+        It used to drop in as a toast over the boardroom, which said the same
+        thing twice — the deck had just shown the upload complete. Here it
+        belongs to the shot it describes, and it only exists inside this
+        overlay, so it can only appear on the broker beat.
       */}
       {!stacked && (
         <div
           className="hud-header-reveal absolute left-[6%] top-1/2 -translate-y-1/2 z-40 select-none pointer-events-none
-                     max-w-[22ch] lg:max-w-[26ch]"
+                     max-w-[15rem] lg:max-w-[17rem]"
         >
-          <div className="flex items-center gap-2 mb-2">
-            <span className="relative flex h-2 w-2">
+          <div className="flex items-center gap-2.5 mb-3">
+            <span className="relative flex h-2.5 w-2.5 shrink-0">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#568DFF] opacity-75" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-[#568DFF] shadow-sm shadow-[#568DFF]" />
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#568DFF] shadow-md shadow-[#568DFF]/80" />
             </span>
-            <span className="font-mono text-[9px] tracking-[0.28em] text-neutral-400 uppercase">
-              Synced
+            <span className="font-mono text-[9px] tracking-[0.24em] text-[#8FB4FF] uppercase font-bold">
+              Global Broadcast Live
             </span>
           </div>
-          <div
-            className="text-white/95 font-semibold leading-[1.05] tracking-tight text-[clamp(1.5rem,2.4vw,2.25rem)]"
+
+          <p
+            className="text-white font-semibold leading-[1.15] tracking-tight text-[clamp(1.05rem,1.5vw,1.4rem)]"
             style={{ fontFamily: 'var(--font-inter)' }}
           >
-            40,000
-          </div>
-          <p className="mt-1.5 font-mono text-[10px] leading-relaxed tracking-[0.14em] text-neutral-400 uppercase">
-            Brokers briefed the same way, at the same moment
+            Project synced to 40,000 brokers
+          </p>
+          <p className="mt-2 text-[11px] leading-relaxed text-neutral-400">
+            Instant interactive briefing, live across the Dubai network.
           </p>
         </div>
       )}

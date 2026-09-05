@@ -1,9 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
 import gsap from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { coverRect } from '@/screens/warp';
 import { isPortraitFor } from '@/hooks/useDeviceMode';
 
@@ -103,12 +101,9 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
   const [quizState, setQuizState] = useState<'prompt' | 'yes' | 'no'>('prompt');
   const [isUploading, setIsUploading] = useState(false);
   const [isSynced, setIsSynced] = useState(false);
-  const [showNotification, setShowNotification] = useState(false);
-  const [mounted, setMounted] = useState(false);
   const [viewport, setViewport] = useState({ width: 1920, height: 1080 });
 
   useEffect(() => {
-    setMounted(true);
     const handleResize = () => {
       setViewport({ width: window.innerWidth, height: window.innerHeight });
     };
@@ -273,7 +268,6 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
     // 1. Simulate data indexing & packaging (micro-spinner)
     setTimeout(() => {
       setIsSynced(true);
-      setShowNotification(true);
 
       // 2. 350ms "sight pause" after notification appears, initiate native hardware video playback flight!
       setTimeout(() => {
@@ -294,11 +288,6 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
         }
 
         window.dispatchEvent(new CustomEvent('rechitta:start-flight'));
-
-        // Keep notification visible during flight, then gently fade it out after arriving at broker
-        setTimeout(() => {
-          setShowNotification(false);
-        }, 7000);
       }, 350);
     }, 900);
   };
@@ -618,7 +607,7 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
                           className="text-xs md:text-sm font-semibold text-neutral-800 tracking-wide"
                           style={{ fontFamily: 'var(--font-inter)' }}
                         >
-                          Think there's a solution?
+                          Think there&apos;s a solution?
                         </span>
                         <div className="flex items-center gap-3">
                           <button
@@ -799,52 +788,6 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
         </button>
       </div>
 
-      {/* Global Sync Notification Popup (Translucent Executive Glass Toast) */}
-      {mounted &&
-        showNotification &&
-        createPortal(
-          <div
-            className="fixed top-8 left-1/2 -translate-x-1/2 z-[999] pointer-events-none animate-notification-drop"
-            style={{ fontFamily: 'var(--font-inter)' }}
-          >
-            <div
-              className="flex items-center gap-4 md:gap-5 px-6 md:px-7 py-4 md:py-4.5 rounded-2xl text-white shadow-2xl transition-all duration-300 min-w-[340px] md:min-w-[430px]"
-              style={{
-                background: 'rgba(15, 18, 26, 0.52)',
-                backdropFilter: 'blur(28px) saturate(190%)',
-                WebkitBackdropFilter: 'blur(28px) saturate(190%)',
-                border: '1px solid rgba(255, 255, 255, 0.18)',
-                boxShadow:
-                  'inset 0 1px 1px 0 rgba(255, 255, 255, 0.3), 0 25px 60px -15px rgba(0, 0, 0, 0.55), 0 0 30px rgba(86, 141, 255, 0.25)',
-              }}
-            >
-              {/* Live Pulsing Orb-Blue Status Beacon */}
-              <div className="relative flex h-3.5 w-3.5 shrink-0 items-center justify-center">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#568DFF] opacity-75" />
-                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#568DFF] shadow-md shadow-[#568DFF]/80" />
-              </div>
-
-              {/* Toast Text Block */}
-              <div className="flex flex-col text-left flex-1">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-[10px] tracking-[0.2em] text-[#568DFF] font-bold uppercase">
-                    Global Broadcast Live
-                  </span>
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/10 text-neutral-200 font-medium tracking-wide">
-                    Just Now
-                  </span>
-                </div>
-                <span className="text-sm md:text-base font-semibold text-white tracking-tight leading-snug">
-                  Project Synced to 40,000 Brokers
-                </span>
-                <span className="text-xs text-neutral-300/85 mt-0.5 font-normal">
-                  Instant interactive briefing live across Dubai network
-                </span>
-              </div>
-            </div>
-          </div>,
-          document.body
-        )}
     </div>
   );
 }
