@@ -88,6 +88,14 @@ export type FilmStageProps = {
   enabled: boolean;
   onChapter?: (chapter: Chapter) => void;
   onBeat?: (beat: Beat, index: number) => void;
+  /**
+   * Fired the instant a move is committed, before any footage plays.
+   *
+   * `onBeat` only fires on arrival, which is too late for anything that
+   * should react to the scroll itself — the hero copy has to be gone by the
+   * time the camera starts moving, not several seconds later.
+   */
+  onMoveStart?: (from: number, to: number, dir: 1 | -1) => void;
   onCity?: (index: number) => void;
   /** A gated beat refused to advance — the overlay should say so. */
   onNudge?: (beat: Beat) => void;
@@ -106,19 +114,20 @@ export default function FilmStage({
   onBeat,
   onCity,
   onNudge,
+  onMoveStart,
 }: FilmStageProps) {
   const hostRef = useRef<HTMLDivElement>(null);
   const flashRef = useRef<HTMLDivElement>(null);
 
   // Read inside long-lived listeners; kept current without rebuilding them.
   const enabledRef = useRef(enabled);
-  const callbacks = useRef({ onChapter, onBeat, onCity, onNudge });
+  const callbacks = useRef({ onChapter, onBeat, onCity, onNudge, onMoveStart });
   useEffect(() => {
     enabledRef.current = enabled;
   }, [enabled]);
   useEffect(() => {
-    callbacks.current = { onChapter, onBeat, onCity, onNudge };
-  }, [onChapter, onBeat, onCity, onNudge]);
+    callbacks.current = { onChapter, onBeat, onCity, onNudge, onMoveStart };
+  }, [onChapter, onBeat, onCity, onNudge, onMoveStart]);
 
   useEffect(() => {
     const host = hostRef.current;
@@ -426,6 +435,7 @@ export default function FilmStage({
       const fromProgress = beatProgress(source);
 
       skipRequested = false;
+      callbacks.current.onMoveStart?.(from, to, dir);
 
       // Let the overlay play its own hand-off first — the boardroom's upload
       // and sync sequence — before the camera leaves the room. It is still on

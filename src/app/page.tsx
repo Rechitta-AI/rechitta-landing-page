@@ -120,6 +120,14 @@ export default function ExperiencePage() {
     [setHeroVisible],
   );
 
+  /** The copy leaves the moment the film commits, not when the shot lands. */
+  const handleMoveStart = useCallback(
+    (_from: number, to: number) => {
+      setHeroVisible(to === 0);
+    },
+    [setHeroVisible],
+  );
+
   const handleCity = useCallback((index: number) => {
     setCityIndex(index);
   }, []);
@@ -182,7 +190,7 @@ export default function ExperiencePage() {
               screen and in the middle of a portrait one.
             */}
             <div
-              className="absolute inset-0 backdrop-blur-[6px] bg-black/40 pointer-events-none [--focus-x:46%] md:[--focus-x:42%]"
+              className="absolute inset-0 backdrop-blur-[6px] bg-black/40 pointer-events-none [--focus-x:46%] md:[--focus-x:40%]"
               style={{
                 maskImage:
                   'radial-gradient(ellipse at var(--focus-x) center, transparent 15%, black 60%)',
@@ -192,44 +200,39 @@ export default function ExperiencePage() {
             />
 
             {/*
-              The mockup fills the height of the window with a little air top
-              and bottom, and the briefing is composited into its screen. The
-              screen is the transparent cut-out in the artwork, measured off
-              its alpha channel: 4.38% in from the left, 7.25% down, 91.24%
-              wide and 91% tall.
+              The mockup is a frame, not a phone: every pixel inside its outline
+              is transparent, the notch included. So the lit screen goes behind
+              the artwork and fills the whole interior — anything less and the
+              city shows through around the notch.
             */}
             <div
               id="multilingual-phone"
               className="absolute -translate-x-1/2 pointer-events-none
                          left-[46%] top-[132px]
-                         md:left-[42%] md:top-1/2 md:-translate-y-1/2
+                         md:left-[40%] md:top-1/2 md:-translate-y-1/2
                          h-[min(62vh,150vw)] md:h-[min(78vh,780px)]"
             >
-              <div className="relative h-full w-auto">
+              <div className="relative h-full w-auto animate-idle-float">
+                {/*
+                  Corner radii measured off the artwork's alpha: the frame's
+                  curve runs about 60px in horizontally and 80px vertically on
+                  a 388x800 image.
+                */}
+                <div
+                  className="absolute inset-[1%] rounded-[15%/9.5%]"
+                  style={{
+                    background:
+                      'radial-gradient(ellipse at 50% 52%, rgba(58,72,96,0.95) 0%, rgba(16,20,29,0.96) 58%, rgba(11,14,21,0.97) 100%)',
+                  }}
+                />
+
                 <img
                   src="/film/frames/multilingual/phone-mockup.webp"
                   alt=""
-                  className="h-full w-auto object-contain animate-idle-float"
+                  className="relative h-full w-auto object-contain"
                 />
 
-                {/* The screen itself, and the briefing sitting on it. */}
-                <div
-                  className="absolute animate-idle-float flex flex-col items-center justify-center px-[7%] text-center"
-                  style={{ left: '4.38%', top: '7.25%', width: '91.24%', height: '91%' }}
-                >
-                  {/*
-                    The cut-out in the artwork is fully transparent, so without
-                    this the city behind shows straight through and the
-                    briefing is unreadable against it.
-                  */}
-                  <div
-                    className="absolute inset-0 -z-10 rounded-[11%/5.4%]"
-                    style={{
-                      background:
-                        'radial-gradient(ellipse at 50% 52%, rgba(58,72,96,0.92) 0%, rgba(16,20,29,0.94) 58%, rgba(11,14,21,0.96) 100%)',
-                      backdropFilter: 'blur(18px)',
-                    }}
-                  />
+                <div className="absolute inset-0 flex flex-col items-center justify-center px-[11%] text-center">
                   <p
                     key={cityIndex}
                     dir={CITIES[cityIndex]?.rtl ? 'rtl' : 'ltr'}
@@ -267,6 +270,7 @@ export default function ExperiencePage() {
               enabled={introPhase === 'done'}
               onChapter={handleChapter}
               onBeat={handleBeat}
+              onMoveStart={handleMoveStart}
               onCity={handleCity}
             />
           </div>

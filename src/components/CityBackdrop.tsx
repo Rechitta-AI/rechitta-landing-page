@@ -141,7 +141,7 @@ export default function CityBackdrop({
       <div
         className="absolute z-[25] px-6 md:px-0
                    left-0 right-0 top-[92px] flex flex-wrap items-baseline justify-center gap-x-4 gap-y-1 text-center
-                   md:left-[7%] md:right-auto md:top-1/2 md:-translate-y-1/2 md:block md:text-left"
+                   md:left-auto md:right-[8%] md:top-1/2 md:-translate-y-1/2 md:block md:text-left"
       >
         <span
           className="block font-mono text-[11px] md:text-[13px] tracking-[0.35em] text-[#8FB4FF]
