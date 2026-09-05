@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import gsap from 'gsap';
 import { useDemoModal } from '@/contexts/DemoModalContext';
 import { coverRect, toViewport, matrix3dFor } from '@/screens/warp';
+import { isPortraitFor, modeFor } from '@/hooks/useDeviceMode';
 import type { Quad } from '@/screens/types';
 
 interface BrokerPresentationProps {
@@ -86,12 +87,64 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
   const viewportCorners: Quad = toViewport(BROKER_PHONE_CORNERS, rect);
   const matrix = matrix3dFor(PHONE_WIDTH, PHONE_HEIGHT, viewportCorners);
 
+  /*
+   * Below desktop the phone stops being composited into the shot.
+   *
+   * The homography puts the mockup exactly where the phone is in the footage,
+   * which is the whole trick — but the footage is 16:9 and `object-fit: cover`
+   * crops it hard on a narrower window. By tablet width the phone has drifted
+   * under the copy panel, and on a portrait screen it is barely in frame at
+   * all. So below 1200px the scene lays itself out instead: the live app on
+   * one side, the copy on the other, or stacked when there is no room for two
+   * columns. The film keeps playing behind it either way.
+   */
+  const deviceMode = modeFor(viewport.width);
+  const stacked = isPortraitFor(viewport.width, viewport.height);
+  const composited = deviceMode === 'desktop' && !stacked;
+
+  /** The flat phone's painted height, and the width that follows from it. */
+  const flatPhoneHeight = stacked
+    ? Math.min(viewport.height * 0.50, viewport.width * 0.62 * (PHONE_HEIGHT / PHONE_WIDTH))
+    : Math.min(viewport.height * 0.80, 660);
+  const flatPhoneWidth = flatPhoneHeight * (PHONE_WIDTH / PHONE_HEIGHT);
+  /** Clears the fixed site header when the scene is stacked. */
+  const STACK_TOP = 88;
+
   // Proportional scale-to-fit on compact, short, or zoomed viewports
   // Prevents HUD panel from overflowing vertically or colliding with bottom dock and phone
   const hudScale = Math.min(
     1,
     Math.max(0.72, Math.min((viewport.height - 120) / 570, (viewport.width - 520) / 470))
   );
+
+  /*
+   * The copy panel goes wherever the phone is not: opposite it in the shot on
+   * desktop, in the other column when the scene is laid out flat, and below it
+   * once the screen is too narrow for two columns.
+   */
+  const hudStyle: React.CSSProperties = composited
+    ? {
+        right: '3rem',
+        top: '50%',
+        width: 'min(465px, 46vw)',
+        transform: `translateY(-50%) scale(${hudScale})`,
+        transformOrigin: 'right center',
+      }
+    : stacked
+      ? {
+          left: '50%',
+          top: `${STACK_TOP + flatPhoneHeight + 18}px`,
+          width: 'min(92vw, 460px)',
+          transform: 'translateX(-50%)',
+          transformOrigin: 'top center',
+        }
+      : {
+          left: `calc(6% + ${flatPhoneWidth}px + 5%)`,
+          right: '5%',
+          top: '50%',
+          transform: `translateY(-50%) scale(${hudScale})`,
+          transformOrigin: 'left center',
+        };
 
   // Handle prompt pill click: copies to clipboard & displays live simulated AI answer preview
   const handlePillClick = (pill: (typeof PROMPT_PILLS)[0]) => {
@@ -297,6 +350,18 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
       className="absolute inset-0 z-30 pointer-events-none opacity-0 invisible overflow-hidden"
       style={{ fontFamily: 'var(--font-inter)' }}
     >
+      {/*
+        Off the footage, the phone in the shot is still there behind the
+        layout — two phones on screen at once, with the copy sitting across
+        the wrong one. Dropping the film back to a backdrop resolves it.
+      */}
+      {!composited && (
+        <div
+          className="absolute inset-0 -z-10 pointer-events-none bg-[#070A10]/78 backdrop-blur-[14px]"
+          aria-hidden="true"
+        />
+      )}
+
       {/* ===================================================================
           1. THE CALIBRATED 4-CORNER WARPED PHONE SCREEN
           Precision homography transform mapping 390x844 onto the user's
@@ -304,26 +369,45 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
          =================================================================== */}
       <div
         ref={phoneRef}
-        className="absolute inset-0 pointer-events-none overflow-visible"
+        className={
+          composited
+            ? 'absolute inset-0 pointer-events-none overflow-visible'
+            : 'absolute inset-0 flex items-center justify-center pointer-events-none'
+        }
       >
-        {/* Homography Warped Phone Chassis */}
         <div
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            width: PHONE_WIDTH,
-            height: PHONE_HEIGHT,
-            transformOrigin: '0 0',
-            transform: matrix,
-            borderRadius: `${BROKER_PHONE_RADIUS}px`,
-            overflow: 'hidden',
-            boxShadow:
-              '0 30px 70px -10px rgba(0, 0, 0, 0.95), 0 0 35px rgba(6, 182, 212, 0.12), inset 0 0 0 1.5px rgba(255, 255, 255, 0.18)',
-            pointerEvents: 'auto',
-          }}
+          style={
+            composited
+              ? {
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: PHONE_WIDTH,
+                  height: PHONE_HEIGHT,
+                  transformOrigin: '0 0',
+                  transform: matrix,
+                  borderRadius: `${BROKER_PHONE_RADIUS}px`,
+                  overflow: 'hidden',
+                  boxShadow: '0 30px 70px -10px rgba(0, 0, 0, 0.95), 0 0 35px rgba(6, 182, 212, 0.12), inset 0 0 0 1.5px rgba(255, 255, 255, 0.18)',
+                  pointerEvents: 'auto',
+                }
+              : {
+                  position: 'absolute',
+                  width: `${flatPhoneWidth}px`,
+                  height: `${flatPhoneHeight}px`,
+                  // Left column on a wide-enough screen, top of the stack on
+                  // a portrait one.
+                  left: stacked ? '50%' : '6%',
+                  // Below the site header, which is fixed over everything.
+                  top: stacked ? `${STACK_TOP}px` : '50%',
+                  transform: stacked ? 'translateX(-50%)' : 'translateY(-50%)',
+                  borderRadius: `${Math.round(flatPhoneHeight * 0.055)}px`,
+                  overflow: 'hidden',
+                  boxShadow: '0 30px 70px -10px rgba(0, 0, 0, 0.95), 0 0 35px rgba(6, 182, 212, 0.12), inset 0 0 0 1.5px rgba(255, 255, 255, 0.18)',
+                  pointerEvents: 'auto',
+                }
+          }
         >
-          {/* The Live Interactive Azure Sandbox Iframe (Clean edge-to-edge) */}
           <iframe
             src="https://icy-sand-0d102fd00.7.azurestaticapps.net/?sessionId=0b555e4f-a0cf-4459-be58-a6d45a69ac68"
             className="w-full h-full border-none relative z-10"
@@ -339,11 +423,8 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
          =================================================================== */}
       <div
         ref={hudContentRef}
-        className="absolute right-4 sm:right-6 md:right-8 lg:right-12 top-1/2 z-50 pointer-events-auto max-w-[min(490px,46vw)] w-[92vw] md:w-[465px] select-none"
-        style={{
-          transform: `translateY(-50%) scale(${hudScale})`,
-          transformOrigin: 'right center',
-        }}
+        className="absolute z-50 pointer-events-auto select-none"
+        style={hudStyle}
       >
         {/* Soft Organic Atmospheric Wash (Executive Obsidian + Subtle Cyan Accent) */}
         <div
@@ -410,14 +491,18 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
         </div>
 
         {/* --- 1 CLEAN SUB-HEADLINE SENTENCE --- */}
-        <div className="overflow-hidden mb-5">
+        <div className={`overflow-hidden mb-5 ${stacked ? 'hidden' : ''}`}>
           <p className="split-sub text-xs sm:text-[13px] md:text-sm text-neutral-400 font-normal leading-relaxed translate-y-[110%] opacity-0 filter blur-[4px]">
             Every unit, price, and payment plan across Dubai — queried live by voice or text.
           </p>
         </div>
 
-        {/* --- INTERACTIVE PROMPT CHIPS SECTION (MATCHING BOARDROOM SLIDE 3/4) --- */}
-        <div className="mb-5 flex flex-col gap-2.5">
+        {/*
+          Stacked, there is only room under the phone for the headline and the
+          buttons — and the live app the pills demonstrate is already on screen
+          right above them.
+        */}
+        <div className={`mb-5 flex-col gap-2.5 ${stacked ? 'hidden' : 'flex'}`}>
           <div className="hud-header-reveal flex items-center justify-between text-[10px] font-mono text-neutral-400 px-1">
             <span className="uppercase tracking-wider flex items-center gap-1.5 text-neutral-300 font-semibold">
               <span className="text-[#568DFF]">⚡</span>
@@ -458,7 +543,7 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
                     }`}
                   >
                     {isCopied ? (
-                      <span className="text-emerald-600 font-bold flex items-center gap-1">
+                      <span className="text-sky-600 font-bold flex items-center gap-1">
                         <span>✓</span> Copied & Injected
                       </span>
                     ) : (
@@ -482,7 +567,7 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
                 {/* Instant Answer Preview on Click */}
                 {isSelected && (
                   <div className="mt-2.5 pt-2.5 border-t border-neutral-200 text-[11px] text-neutral-700 leading-relaxed animate-fade-in flex items-start gap-1.5">
-                    <span className="text-emerald-600 text-xs shrink-0 mt-0.5">✦</span>
+                    <span className="text-sky-600 text-xs shrink-0 mt-0.5">✦</span>
                     <span>
                       <strong className="text-neutral-950 font-semibold">Verified Response:</strong>{' '}
                       {pill.answer}
@@ -495,14 +580,14 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
         </div>
 
         {/* --- BOTTOM ACTION CONTROLS --- */}
-        <div className="hud-action-reveal flex flex-col sm:flex-row items-center gap-3 pt-1">
+        <div className="hud-action-reveal flex flex-row flex-wrap sm:flex-row items-center gap-2.5 sm:gap-3 pt-1">
           <a
             href="https://rechitta.com/brokers"
             target="_blank"
             rel="noreferrer"
-            className="w-full sm:flex-1 py-3.5 px-5 rounded-xl bg-white hover:bg-neutral-100 text-neutral-950 text-xs sm:text-[13px] font-bold tracking-tight transition-all flex items-center justify-center gap-2 group shadow-xl hover:shadow-white/10 cursor-pointer text-center"
+            className="flex-1 min-w-0 py-3 sm:py-3.5 px-4 sm:px-5 rounded-xl bg-white hover:bg-neutral-100 text-neutral-950 text-xs sm:text-[13px] font-bold tracking-tight transition-all flex items-center justify-center gap-2 group shadow-xl hover:shadow-white/10 cursor-pointer text-center"
           >
-            <span>Explore Broker Experience</span>
+            <span className="whitespace-nowrap">{stacked ? 'Broker Experience' : 'Explore Broker Experience'}</span>
             <span className="text-neutral-600 font-bold transition-transform group-hover:translate-x-1">
               →
             </span>
@@ -510,11 +595,11 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
 
           <button
             onClick={openModal}
-            className="w-full sm:w-auto py-3.5 px-4.5 rounded-xl bg-neutral-900/80 hover:bg-neutral-800 text-neutral-200 hover:text-white text-xs font-semibold tracking-tight border border-white/10 hover:border-white/25 transition-all flex items-center justify-center gap-2 cursor-pointer shrink-0 shadow-md"
+            className="w-auto py-3 sm:py-3.5 px-3.5 sm:px-4.5 rounded-xl bg-neutral-900/80 hover:bg-neutral-800 text-neutral-200 hover:text-white text-xs font-semibold tracking-tight border border-white/10 hover:border-white/25 transition-all flex items-center justify-center gap-2 cursor-pointer shrink-0 shadow-md"
             title="Open fullscreen sandbox modal"
           >
             <span>⛶</span>
-            <span>Fullscreen Sandbox</span>
+            <span className="whitespace-nowrap">{stacked ? 'Sandbox' : 'Fullscreen Sandbox'}</span>
           </button>
         </div>
       </div>
@@ -525,7 +610,7 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
          =================================================================== */}
       <div
         ref={dockRef}
-        className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 pointer-events-auto select-none"
+        className="fixed bottom-[5.5rem] md:bottom-[6rem] left-1/2 -translate-x-1/2 z-50 pointer-events-auto select-none"
       >
         <div
           className={`flex items-center gap-3 sm:gap-4 px-4 sm:px-5 py-2.5 rounded-full bg-neutral-950/90 backdrop-blur-2xl border transition-all duration-500 shadow-2xl ${

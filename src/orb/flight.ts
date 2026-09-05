@@ -55,12 +55,20 @@ export function resolveAnchor(anchor: Anchor, timing: FilmTiming | null): number
  * than guessed at — a beat in the wrong place is worse than a beat missing,
  * and the dev-time check reports them.
  */
-export function resolvePath(path: Keyframe[], timing: FilmTiming | null): ResolvedKeyframe[] {
+export function resolvePath(
+  path: Keyframe[],
+  timing: FilmTiming | null,
+  portrait = false,
+): ResolvedKeyframe[] {
   const resolved: ResolvedKeyframe[] = [];
   for (const keyframe of path) {
     const progress = resolveAnchor(keyframe.anchor, timing);
     if (progress === null) continue;
-    resolved.push({ ...keyframe, progress });
+    // On a portrait screen the overlays lay themselves out flat rather than
+    // tracking the footage, so a beat that clears a mockup on a wide screen
+    // can land straight on it. Those beats carry a second pose.
+    const pose = portrait && keyframe.portrait ? { ...keyframe, ...keyframe.portrait } : keyframe;
+    resolved.push({ ...pose, progress });
   }
   return resolved.sort((a, b) => a.progress - b.progress);
 }

@@ -22,7 +22,9 @@ export default function InteractiveDemoModal() {
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center pointer-events-auto">
+        <div
+          className="fixed inset-0 z-[9999] flex items-center justify-center pointer-events-auto [--modal-gutter:7rem] md:[--modal-gutter:8rem]"
+        >
           {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
@@ -39,7 +41,22 @@ export default function InteractiveDemoModal() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 40, scale: 0.98 }}
             transition={{ type: 'spring', damping: 25, stiffness: 200, mass: 0.8 }}
-            className="relative w-full max-w-[1400px] w-[95vw] aspect-[4/3] md:aspect-[16/10]"
+            /*
+             * Sized by whichever axis runs out first.
+             *
+             * This used to be width alone — 95vw capped at 1400px — with the
+             * aspect ratio deciding the height. On any viewport shorter than
+             * that height, which is most laptops, the mockup ran off the top
+             * and bottom of the screen. The third term below is the fix: the
+             * height the window can actually spare, converted back into a
+             * width through the same ratio.
+             */
+            className="relative [--modal-aspect:0.78] md:[--modal-aspect:1.6]"
+            style={{
+              aspectRatio: 'var(--modal-aspect)',
+              width: 'min(94vw, 1400px, (100dvh - var(--modal-gutter)) * var(--modal-aspect))',
+              maxHeight: 'calc(100dvh - var(--modal-gutter))',
+            }}
           >
             {/* CSS Bezel (Thin Black Border) */}
             <div className="absolute inset-0 bg-black p-[8px] md:p-[12px] lg:p-[16px] rounded-[24px] md:rounded-[36px] shadow-[inset_0_0_0_2px_rgba(255,255,255,0.2),inset_0_0_0_3px_rgba(0,0,0,1),0_30px_60px_rgba(0,0,0,0.8)]">

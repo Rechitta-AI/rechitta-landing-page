@@ -35,9 +35,9 @@
   background: var(--bone);
 }
 
-/* Over anything clickable the reticle opens up and takes the film's amber. */
+/* Over anything clickable the reticle opens up and takes the accent blue. */
 .ringActive {
-  border-color: var(--amber);
+  border-color: var(--accent);
   background: rgba(232, 162, 75, 0.1);
 }
 

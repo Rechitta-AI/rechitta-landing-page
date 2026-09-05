@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { coverRect } from '@/screens/warp';
+import { isPortraitFor } from '@/hooks/useDeviceMode';
 
 /** Interactive questions on Slide 3 showcasing Rechitta's instant intelligence */
 const SLIDE_3_QUESTIONS = [
@@ -129,16 +130,51 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
   const ROTATE_Z = 0.3;
   const SCALE = 1.03;
 
-  const BASE_W = 826;
-  const BASE_H = 462;
+  // The deck is laid out on a fixed reference canvas and scaled to fit, so it
+  // stays one piece however large the screen it is painted onto is.
+  const LANDSCAPE_BASE = { w: 826, h: 462 };
+  /** Portrait needs its own canvas: 826px of reference width scaled down to
+   *  fit a phone puts the body copy at about seven pixels. */
+  const PORTRAIT_BASE = { w: 430, h: 620 };
 
-  // Mathematically lock the presentation canvas to the 16:9 video frame inside viewport
-  const rect = coverRect(viewport.width, viewport.height);
-  const screenLeft = rect.x + (LEFT / 100) * rect.width;
-  const screenTop = rect.y + (TOP / 100) * rect.height;
-  const screenWidth = (WIDTH / 100) * rect.width;
-  const screenHeight = (HEIGHT / 100) * rect.height;
+  /*
+   * On a wide screen the deck is pinned to the display in the footage, which
+   * is what sells it as a real briefing. That cannot work on a portrait phone:
+   * the shot is 16:9, `object-fit: cover` crops it hard, and the display it
+   * is pinned to is mostly off the side of the screen. There the deck comes
+   * off the wall and sits flat in the middle instead.
+   */
+  const flat = isPortraitFor(viewport.width, viewport.height);
+  const BASE_W = flat ? PORTRAIT_BASE.w : LANDSCAPE_BASE.w;
+  const BASE_H = flat ? PORTRAIT_BASE.h : LANDSCAPE_BASE.h;
+
+  let screenLeft: number;
+  let screenTop: number;
+  let screenWidth: number;
+  let screenHeight: number;
+
+  if (flat) {
+    // Room for the header above and the slide controls below.
+    const availableW = viewport.width * 0.94;
+    const availableH = viewport.height * 0.70;
+    const scale = Math.min(availableW / BASE_W, availableH / BASE_H);
+    screenWidth = BASE_W * scale;
+    screenHeight = BASE_H * scale;
+    screenLeft = (viewport.width - screenWidth) / 2;
+    screenTop = (viewport.height - screenHeight) / 2 - viewport.height * 0.03;
+  } else {
+    const rect = coverRect(viewport.width, viewport.height);
+    screenLeft = rect.x + (LEFT / 100) * rect.width;
+    screenTop = rect.y + (TOP / 100) * rect.height;
+    screenWidth = (WIDTH / 100) * rect.width;
+    screenHeight = (HEIGHT / 100) * rect.height;
+  }
+
   const scaleRatio = screenWidth / BASE_W;
+  // A deck lying flat should not carry the wall's perspective.
+  const tilt = flat
+    ? ''
+    : `rotateY(${ROTATE_Y}deg) rotateX(${ROTATE_X}deg) rotateZ(${ROTATE_Z}deg) scale(${SCALE})`;
   // ==========================================
 
   const slideBy = (direction: -1 | 1) => {
@@ -336,34 +372,47 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
     >
       {/* The 3D Skewed Presentation Canvas (Proportionally Scaled Reference Canvas) */}
       <div
-        className="overflow-hidden relative rounded-sm pointer-events-auto"
+        className={`overflow-hidden relative pointer-events-auto ${
+          flat ? 'rounded-[18px]' : 'rounded-sm'
+        }`}
         style={{
           width: `${BASE_W}px`,
           height: `${BASE_H}px`,
           transformOrigin: 'top left',
-          transform: `scale(${scaleRatio}) rotateY(${ROTATE_Y}deg) rotateX(${ROTATE_X}deg) rotateZ(${ROTATE_Z}deg) scale(${SCALE})`,
+          transform: `scale(${scaleRatio}) ${tilt}`.trim(),
           transformStyle: 'preserve-3d',
+          // Pinned to the wall the deck borrows the lit display underneath it.
+          // Lying flat there is nothing under it, so it brings its own.
+          ...(flat
+            ? {
+                background: 'linear-gradient(180deg, #f6f7f9 0%, #e9ecf1 100%)',
+                boxShadow: '0 30px 70px -20px rgba(0,0,0,0.75), inset 0 0 0 1px rgba(255,255,255,0.6)',
+              }
+            : null),
         }}
       >
         {/* Ambient Display Backlight */}
         <div className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-neutral-200/50 via-transparent to-transparent opacity-60" />
 
         {/* Top Header Chrome */}
-        <div className="absolute top-3 left-8 right-8 z-20 flex items-center justify-between border-b border-neutral-900/10 pb-2 pointer-events-none text-[10px] md:text-[11px] font-mono tracking-widest text-neutral-400 uppercase">
-          <div className="flex items-center gap-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-neutral-900" />
-            <span className="font-semibold text-neutral-800 tracking-wider">RECHITTA // DEVELOPER PRESENTATION</span>
+        <div className="absolute top-3 left-6 right-6 sm:left-8 sm:right-8 z-20 flex items-center justify-between gap-3 border-b border-neutral-900/10 pb-2 pointer-events-none text-[10px] md:text-[11px] font-mono tracking-widest text-neutral-400 uppercase">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="w-1.5 h-1.5 shrink-0 rounded-full bg-neutral-900" />
+            <span className="font-semibold text-neutral-800 tracking-wider truncate">
+              {/* The narrow canvas has no room for the full slug. */}
+              {flat ? 'RECHITTA' : 'RECHITTA // DEVELOPER PRESENTATION'}
+            </span>
           </div>
-          <div className="flex items-center gap-1.5 text-neutral-500 font-medium">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            <span>DLD INTEGRATED // SYNC READY</span>
+          <div className="flex items-center gap-1.5 shrink-0 text-neutral-500 font-medium">
+            <span className="w-1.5 h-1.5 rounded-full bg-sky-500 animate-pulse" />
+            <span>{flat ? 'SYNC READY' : 'DLD INTEGRATED // SYNC READY'}</span>
           </div>
         </div>
 
         {/* Bottom Footer Chrome */}
-        <div className="absolute bottom-2.5 left-8 right-8 z-20 flex items-center justify-between border-t border-neutral-900/10 pt-1.5 pointer-events-none text-[9px] md:text-[10px] font-mono tracking-widest text-neutral-400 uppercase">
-          <span>CONFIDENTIAL DEVELOPER DOSSIER</span>
-          <span className="font-bold text-neutral-800">0{activeSlide + 1} / 04</span>
+        <div className="absolute bottom-2.5 left-6 right-6 sm:left-8 sm:right-8 z-20 flex items-center justify-between gap-3 border-t border-neutral-900/10 pt-1.5 pointer-events-none text-[9px] md:text-[10px] font-mono tracking-widest text-neutral-400 uppercase">
+          <span className="truncate">{flat ? 'CONFIDENTIAL' : 'CONFIDENTIAL DEVELOPER DOSSIER'}</span>
+          <span className="shrink-0 font-bold text-neutral-800">0{activeSlide + 1} / 04</span>
         </div>
 
         {/* The Sliding Track (4x width for 4 slides) */}
@@ -432,7 +481,7 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
                       {/* Document 1 (Front / Active) */}
                       <div className="absolute w-full h-13 bg-white border border-neutral-200 rounded-xl shadow-md flex items-center px-3.5 justify-between z-10">
                         <div className="flex items-center gap-2.5 overflow-hidden">
-                          <div className="w-7 h-7 rounded-lg bg-red-50 border border-red-200 text-red-600 flex items-center justify-center text-[9px] font-bold shrink-0">
+                          <div className="w-7 h-7 rounded-lg bg-slate-100 border border-slate-300 text-slate-500 flex items-center justify-center text-[9px] font-bold shrink-0">
                             PDF
                           </div>
                           <div className="flex flex-col text-left overflow-hidden">
@@ -444,17 +493,17 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
                             </span>
                           </div>
                         </div>
-                        <span className="text-[9px] font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200/80 shrink-0">
+                        <span className="text-[9px] font-semibold text-sky-700 bg-sky-50 px-2 py-0.5 rounded-full border border-sky-200/80 shrink-0">
                           Unread
                         </span>
                       </div>
                     </div>
 
                     {/* Warning Stat Pill */}
-                    <div className="mt-2.5 flex items-center gap-2 px-3 py-1 rounded-full bg-amber-50/90 border border-amber-200/90 text-[10px] text-amber-800 font-medium shadow-2xs">
-                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping" />
+                    <div className="mt-2.5 flex items-center gap-2 px-3 py-1 rounded-full bg-sky-50/90 border border-sky-200/90 text-[10px] text-sky-800 font-medium shadow-2xs">
+                      <span className="w-1.5 h-1.5 rounded-full bg-sky-500 animate-ping" />
                       <span>94% of Brokers Never Read It</span>
-                      <span className="text-amber-300">•</span>
+                      <span className="text-sky-300">•</span>
                       <span>3 Months to Circulate</span>
                     </div>
                   </div>
@@ -475,26 +524,26 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
 
                       {/* Center: Live Neural Transformation */}
                       <div className="flex flex-col items-center justify-center flex-1 px-1">
-                        <span className="text-[8px] md:text-[9px] text-emerald-600 font-bold uppercase tracking-wider mb-1">
+                        <span className="text-[8px] md:text-[9px] text-sky-600 font-bold uppercase tracking-wider mb-1">
                           Vectorized
                         </span>
                         <div className="w-full h-1 bg-neutral-200 rounded-full relative overflow-hidden">
-                          <div className="absolute inset-0 bg-gradient-to-r from-neutral-300 via-emerald-500 to-emerald-400 animate-pulse" />
+                          <div className="absolute inset-0 bg-gradient-to-r from-neutral-300 via-sky-500 to-sky-400 animate-pulse" />
                         </div>
                         <span className="text-[8px] md:text-[9px] text-neutral-400 font-mono mt-1">12.4s</span>
                       </div>
 
                       {/* Right: Instant AI Agent */}
-                      <div className="flex flex-col items-center text-center p-2 rounded-xl bg-white border border-emerald-200/80 shadow-2xs w-[40%] relative">
+                      <div className="flex flex-col items-center text-center p-2 rounded-xl bg-white border border-sky-200/80 shadow-2xs w-[40%] relative">
                         <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
-                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                          <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-400 opacity-75" />
+                          <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-sky-500" />
                         </span>
-                        <div className="w-6 h-6 rounded-lg bg-emerald-50 flex items-center justify-center text-[11px] text-emerald-600 mb-1">
+                        <div className="w-6 h-6 rounded-lg bg-sky-50 flex items-center justify-center text-[11px] text-sky-600 mb-1">
                           ⚡
                         </div>
-                        <span className="text-[10px] md:text-[11px] font-semibold text-emerald-900">Rechitta Brain</span>
-                        <span className="text-[8px] md:text-[9px] text-emerald-600 mt-0.5">40,000 Brokers</span>
+                        <span className="text-[10px] md:text-[11px] font-semibold text-sky-900">Rechitta Brain</span>
+                        <span className="text-[8px] md:text-[9px] text-sky-600 mt-0.5">40,000 Brokers</span>
                       </div>
                     </div>
                   </div>
@@ -526,15 +575,15 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
                         <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider">
                           <span className="relative flex h-2 w-2">
                             <span
-                              className={`animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75 ${isStreaming ? 'duration-300' : 'duration-1000'
+                              className={`animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-400 opacity-75 ${isStreaming ? 'duration-300' : 'duration-1000'
                                 }`}
                             />
-                            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-sky-500" />
                           </span>
                           <span
                             className={
                               isStreaming
-                                ? 'text-emerald-700 font-bold'
+                                ? 'text-sky-700 font-bold'
                                 : 'text-neutral-600 font-semibold'
                             }
                           >
@@ -553,7 +602,7 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
                       >
                         {streamedText}
                         {isStreaming && (
-                          <span className="inline-block w-1.5 h-3 bg-emerald-500 ml-1 translate-y-0.5 animate-pulse" />
+                          <span className="inline-block w-1.5 h-3 bg-sky-500 ml-1 translate-y-0.5 animate-pulse" />
                         )}
                       </p>
                     </div>
@@ -694,9 +743,14 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
       </div>
 
       {/* Fluid Capsule Pagination & Arrow Controls (Pure Button-driven) */}
+      {/*
+        The canvas overflows this container by design — it is a fixed reference
+        size scaled down — so the controls cannot simply follow it in flow.
+        They are placed against the canvas's painted height instead.
+      */}
       <div
-        className="w-full h-[12%] flex items-center justify-center gap-4 pointer-events-auto"
-        style={{ zIndex: 100 }}
+        className="absolute left-0 right-0 flex items-center justify-center gap-4 pointer-events-auto"
+        style={{ top: `${flat ? screenHeight + 18 : BASE_H}px`, zIndex: 100 }}
       >
         {/* Left Arrow */}
         <button

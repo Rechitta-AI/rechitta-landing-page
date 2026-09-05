@@ -13,7 +13,7 @@ import OrbStage from '@/components/OrbStage';
 import CityBackdrop from '@/components/CityBackdrop';
 import type { FilmTiming } from '@/orb/types';
 import type { Playhead } from '@/screens/types';
-import { BEATS, type Beat, type Chapter } from '@/film/score';
+import { CITIES, type Beat, type Chapter } from '@/film/score';
 
 /**
  * The experience is a fixed stage, not a tall page.
@@ -31,7 +31,9 @@ export default function ExperiencePage() {
   const heroExitedRef = useRef(false);
 
   const [chapter, setChapter] = useState<Chapter>('intro');
-  const [railLabel, setRailLabel] = useState(BEATS[0].label);
+  const [beatIndex, setBeatIndex] = useState(0);
+  /** Where the film is as a fractional beat, for the chapter rail. */
+  const beatPosition = useRef(0);
   const [cityIndex, setCityIndex] = useState(0);
 
   // Cinematic intro choreography.
@@ -111,9 +113,9 @@ export default function ExperiencePage() {
   }, []);
 
   const handleBeat = useCallback(
-    (beat: Beat) => {
+    (beat: Beat, index: number) => {
       setHeroVisible(beat.id === 'hero');
-      setRailLabel(beat.label);
+      setBeatIndex(index);
     },
     [setHeroVisible],
   );
@@ -134,12 +136,16 @@ export default function ExperiencePage() {
         <Loader onDone={() => setIntroPhase('moving')} orbReady={orbReady} />
       )}
 
-      {/* The chapter rail */}
+      {/*
+        The chapter rail, along the bottom. It fades in with the film and
+        nothing else is allowed to sit on top of it — the scenes' own docks
+        clear the band it reserves, and the orb passes above it.
+      */}
       <div
-        className="fixed left-0 top-0 bottom-0 z-50 pointer-events-none transition-opacity duration-1000"
+        className="transition-opacity duration-1000"
         style={{ opacity: introPhase === 'done' ? 1 : 0 }}
       >
-        <ScrollRail scrollData={scrollData} label={railLabel} />
+        <ScrollRail beatPosition={beatPosition} beatIndex={beatIndex} />
       </div>
 
       <div className="fixed inset-0 w-full h-full bg-[#070A10] overflow-hidden film-grain-overlay">
@@ -170,24 +176,77 @@ export default function ExperiencePage() {
               }}
             />
 
-            {/* Keeps the phone sharp and softens everything around it. */}
+            {/*
+              Keeps the phone sharp and softens everything around it. The
+              focus point follows the phone, which sits to the left on a wide
+              screen and in the middle of a portrait one.
+            */}
             <div
-              className="absolute inset-0 backdrop-blur-[6px] bg-black/40 pointer-events-none"
+              className="absolute inset-0 backdrop-blur-[6px] bg-black/40 pointer-events-none [--focus-x:46%] md:[--focus-x:42%]"
               style={{
-                maskImage: 'radial-gradient(ellipse at 35% center, transparent 15%, black 60%)',
-                WebkitMaskImage: 'radial-gradient(ellipse at 35% center, transparent 15%, black 60%)',
+                maskImage:
+                  'radial-gradient(ellipse at var(--focus-x) center, transparent 15%, black 60%)',
+                WebkitMaskImage:
+                  'radial-gradient(ellipse at var(--focus-x) center, transparent 15%, black 60%)',
               }}
             />
 
+            {/*
+              The mockup fills the height of the window with a little air top
+              and bottom, and the briefing is composited into its screen. The
+              screen is the transparent cut-out in the artwork, measured off
+              its alpha channel: 4.38% in from the left, 7.25% down, 91.24%
+              wide and 91% tall.
+            */}
             <div
               id="multilingual-phone"
-              className="absolute left-[5%] md:left-[18%] top-1/2 -translate-y-1/2 w-[380px] h-auto pointer-events-none"
+              className="absolute -translate-x-1/2 pointer-events-none
+                         left-[46%] top-[132px]
+                         md:left-[42%] md:top-1/2 md:-translate-y-1/2
+                         h-[min(62vh,150vw)] md:h-[min(78vh,780px)]"
             >
-              <img
-                src="/film/frames/multilingual/phone-mockup.webp"
-                alt="Phone Mockup"
-                className="w-full h-auto object-contain animate-idle-float"
-              />
+              <div className="relative h-full w-auto">
+                <img
+                  src="/film/frames/multilingual/phone-mockup.webp"
+                  alt=""
+                  className="h-full w-auto object-contain animate-idle-float"
+                />
+
+                {/* The screen itself, and the briefing sitting on it. */}
+                <div
+                  className="absolute animate-idle-float flex flex-col items-center justify-center px-[7%] text-center"
+                  style={{ left: '4.38%', top: '7.25%', width: '91.24%', height: '91%' }}
+                >
+                  {/*
+                    The cut-out in the artwork is fully transparent, so without
+                    this the city behind shows straight through and the
+                    briefing is unreadable against it.
+                  */}
+                  <div
+                    className="absolute inset-0 -z-10 rounded-[11%/5.4%]"
+                    style={{
+                      background:
+                        'radial-gradient(ellipse at 50% 52%, rgba(58,72,96,0.92) 0%, rgba(16,20,29,0.94) 58%, rgba(11,14,21,0.96) 100%)',
+                      backdropFilter: 'blur(18px)',
+                    }}
+                  />
+                  <p
+                    key={cityIndex}
+                    dir={CITIES[cityIndex]?.rtl ? 'rtl' : 'ltr'}
+                    className="animate-briefing-in text-white/95 leading-snug text-balance
+                               text-[clamp(0.95rem,2.5vh,1.9rem)]"
+                    style={{ fontFamily: 'var(--font-inter), system-ui, sans-serif' }}
+                  >
+                    {CITIES[cityIndex]?.briefing}
+                  </p>
+                  <div className="mt-[2.2vh] flex items-center gap-2 font-mono text-white/55 text-[clamp(0.5rem,1.1vh,0.72rem)] tracking-[0.28em]">
+                    <span className="h-1.5 w-1.5 rounded-full bg-[#568DFF] shadow-[0_0_8px_rgba(86,141,255,0.9)]" />
+                    <span>{CITIES[cityIndex]?.language}</span>
+                    <span className="text-white/25">·</span>
+                    <span>LIVE DATA</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -204,6 +263,7 @@ export default function ExperiencePage() {
               holdData={holdData}
               timingRef={filmTiming}
               playheadRef={playhead}
+              beatPositionRef={beatPosition}
               enabled={introPhase === 'done'}
               onChapter={handleChapter}
               onBeat={handleBeat}

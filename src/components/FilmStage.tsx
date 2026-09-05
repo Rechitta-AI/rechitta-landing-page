@@ -77,6 +77,13 @@ export type FilmStageProps = {
   timingRef?: React.RefObject<FilmTiming | null>;
   /** The exact clip and source second on screen. */
   playheadRef?: React.RefObject<Playhead | null>;
+  /**
+   * Where the film is as a fractional beat — 3.4 means "two fifths of the way
+   * from beat 3 to beat 4". The chapter rail is drawn per beat, so raw
+   * progress would fill its ticks unevenly: the six cities share as much of
+   * the progress line as the whole intro.
+   */
+  beatPositionRef?: React.RefObject<number>;
   /** Motion is dead until the intro choreography finishes. */
   enabled: boolean;
   onChapter?: (chapter: Chapter) => void;
@@ -93,6 +100,7 @@ export default function FilmStage({
   holdData,
   timingRef,
   playheadRef,
+  beatPositionRef,
   enabled,
   onChapter,
   onBeat,
@@ -197,6 +205,7 @@ export default function FilmStage({
       arrive(state, index, dir, performance.now(), BEATS);
 
       publish(beatProgress(beat));
+      if (beatPositionRef) beatPositionRef.current = index;
       setHold(beat.hold ?? -1);
 
       if (beat.chapter !== currentChapter) {
@@ -231,7 +240,7 @@ export default function FilmStage({
      * own clock instead of being seeked to a new time sixty times a second
      * against twenty-four frames of source.
      */
-    const playForward = async (beat: Beat) => {
+    const playForward = async (beat: Beat, moveFrom = 0, moveTo = 0) => {
       if (!beat.clip || !beat.enter) return;
       const { from, to, rate } = beat.enter;
 
@@ -306,6 +315,10 @@ export default function FilmStage({
           const t = v.currentTime;
 
           if (playheadRef) playheadRef.current = { clip: beat.clip!, t };
+          if (beatPositionRef) {
+            const ratio = Math.max(0, Math.min(1, (t - from) / (to - from || 1)));
+            beatPositionRef.current = moveFrom + (moveTo - moveFrom) * ratio;
+          }
 
           // Clips inside the measured cut resolve through the same table the
           // orb's keyframes do, so its path stays welded to the footage.
@@ -346,7 +359,7 @@ export default function FilmStage({
     };
 
     /** Backwards, and between cities: a parked frame dissolving into another. */
-    const dissolveTo = async (beat: Beat, fromProgress: number) => {
+    const dissolveTo = async (beat: Beat, fromProgress: number, moveFrom = 0, moveTo = 0) => {
       const toProgress = beatProgress(beat);
       const started = performance.now();
 
@@ -380,6 +393,7 @@ export default function FilmStage({
           // Smoothstep, so the orb eases rather than sliding linearly.
           const e = t * t * (3 - 2 * t);
           publish(fromProgress + (toProgress - fromProgress) * e);
+          if (beatPositionRef) beatPositionRef.current = moveFrom + (moveTo - moveFrom) * e;
           if (t >= 1) return resolve();
           requestAnimationFrame(step);
         };
@@ -449,7 +463,7 @@ export default function FilmStage({
         if (disposed) return;
 
         if (dir === 1 && target.enter && target.chapter !== 'cities') {
-          await playForward(target);
+          await playForward(target, from, to);
         } else {
           publish(beatProgress(target));
         }
@@ -457,11 +471,11 @@ export default function FilmStage({
         // Cities move by dissolve; the backdrop runs its own short push-in and
         // then freezes, so nothing drifts while the viewer reads.
         callbacks.current.onCity?.(target.city ?? 0);
-        await dissolveTo(target, fromProgress);
+        await dissolveTo(target, fromProgress, from, to);
       } else if (dir === 1 && target.enter) {
-        await playForward(target);
+        await playForward(target, from, to);
       } else {
-        await dissolveTo(target, fromProgress);
+        await dissolveTo(target, fromProgress, from, to);
       }
 
       if (disposed) return;
@@ -648,6 +662,7 @@ export default function FilmStage({
       const first = BEATS[0];
       if (first.clip) show(acquire(first.clip), 0);
       publish(beatProgress(first));
+      if (beatPositionRef) beatPositionRef.current = 0;
 
       // Metadata may reveal a clip shorter than its authored trim.
       const measured: Record<string, number> = {};

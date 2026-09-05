@@ -1,49 +1,104 @@
+/*
+ * The chapter rail, along the bottom of the window.
+ *
+ * It used to run down the right-hand edge, where every scene's copy panel is.
+ * Down here it has the full width to itself, and the band it reserves keeps
+ * the scenes' own docks from ever landing on top of it.
+ */
 .rail {
   position: fixed;
-  top: 50%;
-  right: clamp(1.25rem, 3vw, 3rem);
-  transform: translateY(-50%);
-  height: 30vh;
-  width: 1px;
-  z-index: 40;
-  pointer-events: none;
-}
-
-.track {
-  position: absolute;
-  inset: 0;
-  background: rgba(255, 255, 255, 0.16);
-}
-
-.dot {
-  position: absolute;
-  top: 0;
   left: 0;
-  width: 100%;
-  height: 100%; /* Full height, scaled down via JS */
-  background: #fff;
-  will-change: transform;
-  transform-origin: top;
-}
-
-/* The current chapter, sitting above the top of the rail. */
-.label {
-  position: absolute;
-  bottom: calc(100% + 0.875rem);
   right: 0;
-  white-space: nowrap;
-  font-size: 0.625rem;
-  letter-spacing: 0.26em;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.85);
-  transition: opacity 0.35s ease;
+  bottom: 0;
+  z-index: 120;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0 clamp(1rem, 4vw, 3rem) 1rem;
+  /* Nothing behind it, so a bright frame cannot swallow the ticks. */
+  background: linear-gradient(to top, rgba(7, 10, 16, 0.72) 0%, rgba(7, 10, 16, 0) 100%);
 }
 
-@media (max-width: 900px) {
+/* Every chapter takes the same width, whatever it holds. */
+.chapters {
+  display: flex;
+  width: 100%;
+  max-width: 62rem;
+  gap: clamp(0.75rem, 2.4vw, 2rem);
+}
+
+.chapter {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+/* One tick per beat: the transitions and scenes inside the chapter. */
+.ticks {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.tick {
+  flex: 1;
+  height: 2px;
+  border-radius: 2px;
+  background: rgba(232, 236, 244, 0.16);
+  overflow: hidden;
+}
+
+.tickFill {
+  display: block;
+  height: 100%;
+  width: 100%;
+  background: var(--accent);
+  transform-origin: left;
+  transform: scaleX(0);
+  will-change: transform;
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 0.5625rem;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: rgba(232, 236, 244, 0.34);
+  transition: color 0.4s ease;
+}
+
+.labelActive {
+  color: rgba(255, 255, 255, 0.95);
+}
+
+/* The single name, shown only where the full set cannot fit. */
+.labelSolo {
+  display: none;
+  font-size: 0.5625rem;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+@media (max-width: 809px) {
   .rail {
-    height: 22vh;
+    padding-bottom: 0.75rem;
+    gap: 0.45rem;
+  }
+  .chapters {
+    gap: 0.4rem;
   }
   .label {
     display: none;
+  }
+  .labelSolo {
+    display: block;
   }
 }

@@ -1,14 +1,33 @@
 @import "tailwindcss";
 
 :root {
-  /* Palette pulled from the film itself — the orb's amber core and cold
-     blue-black sky. Amber is the only accent; everything else is neutral. */
+  /* Two colours and nothing else: the orb's blue against a cold blue-black
+     sky, with white and neutrals carrying everything in between. */
   --ink: #070a10;
   --ink-raise: #0d131c;
   --bone: #e8e4dc;
   --mute: #6b7684;
-  --amber: #e8a24b;
+  --accent: #568dff;
+  --accent-soft: #8fb4ff;
   --hairline: rgba(232, 228, 220, 0.14);
+}
+
+@theme {
+  /*
+   * The three device modes the site is designed against. `md:` is the tablet
+   * boundary and `lg:` the desktop one, so every existing `md:`/`lg:` class
+   * lands on these rather than on Tailwind's stock 768/1024.
+   *
+   *   mobile   <= 809px   no prefix
+   *   tablet   810–1199   md:
+   *   desktop  >= 1200    lg:
+   *
+   * `sm:` stays at 640 for splitting small phones from large ones.
+   */
+  --breakpoint-md: 810px;
+  --breakpoint-lg: 1200px;
+  --breakpoint-xl: 1200px;
+  --breakpoint-2xl: 1200px;
 }
 
 @theme inline {
@@ -16,7 +35,7 @@
   --font-body: var(--font-inter);
   --color-ink: var(--ink);
   --color-bone: var(--bone);
-  --color-amber: var(--amber);
+  --color-accent: var(--accent);
 }
 
 html,
@@ -57,7 +76,7 @@ html[data-modal-open="true"] body {
 }
 
 :focus-visible {
-  outline: 1px solid var(--amber);
+  outline: 1px solid var(--accent);
   outline-offset: 3px;
 }
 
@@ -253,3 +272,20 @@ p {
   animation: notificationDrop 0.55s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
+
+/* The briefing arriving on the phone as each city takes over. */
+@keyframes briefing-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+    filter: blur(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+.animate-briefing-in {
+  animation: briefing-in 0.75s cubic-bezier(0.16, 1, 0.3, 1) both;
+}

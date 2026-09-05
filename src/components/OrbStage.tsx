@@ -7,6 +7,7 @@ import styles from './OrbStage.module.css';
 import { createClock, advanceClock } from '@/utils/filmClock';
 import { ORB_PATH, EXCLUSION_ZONES } from '@/orb/path';
 import { findExclusionViolations, poseAt, resolvePath } from '@/orb/flight';
+import { isPortraitFor } from '@/hooks/useDeviceMode';
 import type { FilmTiming, Keyframe, ResolvedKeyframe } from '@/orb/types';
 
 /** How many past positions the trail replays. */
@@ -98,7 +99,7 @@ export default function OrbStage({
       ? ORB_PATH.map((k) => (k.hero ? { ...k, x: hero.x, y: hero.y, scale: hero.scale } : k))
       : ORB_PATH;
 
-    const resolved = resolvePath(path, timing);
+    const resolved = resolvePath(path, timing, isPortraitFor(window.innerWidth, window.innerHeight));
     resolvedRef.current = resolved;
     lastTimingRef.current = timing;
 
@@ -305,7 +306,10 @@ export default function OrbStage({
 
       // Above the drifted-orb threshold the orb should sit over the film,
       // below it the film's own overlays win.
-      if (stageRef.current) stageRef.current.style.zIndex = progress >= 0.5 ? '27' : '25';
+      // Above the chapter rail at the foot of the screen — the orb is the
+      // only thing that may cross it — and above the film's own overlays once
+      // it has drifted past the halfway mark.
+      if (stageRef.current) stageRef.current.style.zIndex = progress >= 0.5 ? '132' : '130';
 
       frame = requestAnimationFrame(tick);
     };

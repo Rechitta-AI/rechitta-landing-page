@@ -54,6 +54,8 @@ export const ORB_PATH: Keyframe[] = [
   },
   {
     anchor: { clip: 'scene1-3', t: 11.0 },
+    // Below the flat deck and its slide controls, not across them.
+    portrait: { x: 50, y: 90, scale: 0.24 },
     x: 50, y: 78, scale: 0.3, opacity: 0.75, blur: 0,
     ease: 'out',
     note: 'K4 — rests on the credenza below the screen. Holds through the whole deck.',
@@ -87,6 +89,8 @@ export const ORB_PATH: Keyframe[] = [
   {
     anchor: { clip: 'transit-b', t: 16.8 },
     pulse: true,
+    // Stacked, the live app sits centre screen; 23% lands on it.
+    portrait: { x: 84, y: 20, scale: 0.5 },
     x: 23, y: 33, scale: 0.6, opacity: 1, blur: 0,
     ease: 'out',
     note: 'K9 — slides clear of the phone and flares. The app mockup lights.',
@@ -114,12 +118,15 @@ export const ORB_PATH: Keyframe[] = [
   {
     anchor: { clip: 'transit-c', t: 6.8 },
     pulse: true,
+    // The voice dock it touches down on is only there in the composite.
+    portrait: { x: 84, y: 20, scale: 0.4 },
     x: 46.5, y: 84.1, scale: 0.26, opacity: 1, blur: 0,
     ease: 'out',
     note: 'K11c — smoothly touches down dead-centre into the buyer phone voice dock R circle and flares.',
   },
   {
     anchor: { clip: 'transit-d', t: 0.0 },
+    portrait: { x: 84, y: 20, scale: 0.4 },
     x: 46.5, y: 84.1, scale: 0.26, opacity: 1, blur: 0,
     ease: 'in',
     note: 'K11d — holds docked in the phone voice dock through the presentation pause, then lifts off.',
@@ -134,12 +141,15 @@ export const ORB_PATH: Keyframe[] = [
   // ── Act IV — the multilingual chapter ───────────────────────────────
   {
     anchor: { progress: 0.52 },
+    // The mockup is centred on a portrait screen, so the orb takes the sky.
+    portrait: { x: 82, y: 17, scale: 0.5 },
     x: 72, y: 40, scale: 0.7, opacity: 0.95, blur: 0,
     ease: 'out',
     note: 'K13 — arrives right-of-centre, opposite the phone mockup.',
   },
   {
     anchor: { progress: 0.93 },
+    portrait: { x: 82, y: 17, scale: 0.5 },
     x: 72, y: 40, scale: 0.7, opacity: 0.95, blur: 0,
     ease: 'linear',
     note: 'K14 — holds, pulsing on every city change with a filament to the phone.',

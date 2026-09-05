@@ -25,7 +25,8 @@
   justify-content: center;
   pointer-events: none;
   mix-blend-mode: screen;
-  z-index: 26;
+  /* With the orb, above the chapter rail. */
+  z-index: 131;
 }
 
 .trailDot {

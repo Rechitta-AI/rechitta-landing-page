@@ -27,14 +27,45 @@ export const INTRO_SPAN = { start: 0, end: 0.5 };
 export const CITIES_SPAN = { start: 0.52, end: 0.93 };
 export const FINALE_SPAN = { start: 0.95, end: 1.0 };
 
-export const CITIES = [
-  { key: 'mumbai', label: 'MUMBAI' },
-  { key: 'moscow', label: 'MOSCOW' },
-  { key: 'london', label: 'LONDON' },
-  { key: 'shanghai', label: 'SHANGHAI' },
-  { key: 'riyadh', label: 'RIYADH' },
-  { key: 'paris', label: 'PARIS' },
-] as const;
+/**
+ * The multilingual chapter.
+ *
+ * Every clock here reads the same instant — 04:11 UTC — which is the whole
+ * point of the sequence: one briefing, delivered everywhere at once, in the
+ * language of the person holding the phone. Change one time and the line
+ * "THE SAME MOMENT" stops being true, so they are derived rather than typed.
+ */
+const BASE_UTC_MINUTES = 4 * 60 + 11;
+
+function localTime(offsetMinutes: number): string {
+  const total = (((BASE_UTC_MINUTES + offsetMinutes) % 1440) + 1440) % 1440;
+  const h = Math.floor(total / 60);
+  const m = total % 60;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+}
+
+export type City = {
+  key: string;
+  label: string;
+  /** The language the briefing arrives in, as shown under the headline. */
+  language: string;
+  /** "Your briefing is ready", in that language. */
+  briefing: string;
+  /** Minutes ahead of UTC. */
+  offset: number;
+  rtl?: boolean;
+};
+
+export const CITIES: readonly City[] = [
+  { key: 'mumbai', label: 'MUMBAI', language: 'HINDI', briefing: 'आपकी ब्रीफ़िंग तैयार है', offset: 330 },
+  { key: 'moscow', label: 'MOSCOW', language: 'RUSSIAN', briefing: 'Ваш брифинг готов', offset: 180 },
+  { key: 'london', label: 'LONDON', language: 'ENGLISH', briefing: 'Your briefing is ready', offset: 60 },
+  { key: 'shanghai', label: 'SHANGHAI', language: 'MANDARIN', briefing: '您的简报已准备好', offset: 480 },
+  { key: 'riyadh', label: 'RIYADH', language: 'ARABIC', briefing: 'ملخصك جاهز', offset: 180, rtl: true },
+  { key: 'paris', label: 'PARIS', language: 'FRENCH', briefing: 'Votre briefing est prêt', offset: 120 },
+];
+
+export const cityTime = (city: City) => localTime(city.offset);
 
 export type Chapter = 'intro' | 'cities' | 'finale';
 

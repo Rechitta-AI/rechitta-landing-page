@@ -57,6 +57,15 @@ export type Keyframe = Pose & {
   /** A hand-off beat: the orb flares and a mockup wakes. */
   pulse?: boolean;
   /**
+   * Where the orb sits on a portrait screen, when that differs.
+   *
+   * The path is authored against the 16:9 frame. On a portrait viewport the
+   * overlays lay themselves out flat instead of tracking the footage, so some
+   * beats that are clear of a mockup on a wide screen land straight on it.
+   * Only the fields given are replaced.
+   */
+  portrait?: Partial<Pick<Pose, 'x' | 'y' | 'scale'>>;
+  /**
    * Pose is taken from the measured `#hero-o-anchor` instead of x/y/scale
    * above. The hero and the finale share it, which is what hides the loop.
    */

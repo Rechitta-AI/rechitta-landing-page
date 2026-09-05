@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { CITIES } from '@/film/score';
+import { CITIES, cityTime } from '@/film/score';
 
 /**
  * The multilingual chapter's backdrop.
@@ -96,6 +96,8 @@ export default function CityBackdrop({
     });
   }, [active]);
 
+  const city = CITIES[index] ?? CITIES[0];
+
   return (
     <>
       {CITIES.map((city, i) => (
@@ -128,16 +130,38 @@ export default function CityBackdrop({
         </div>
       ))}
 
-      <h1
-        className="absolute top-1/2 -translate-y-1/2 right-[10%] text-6xl md:text-[6rem] text-white tracking-tighter"
-        style={{
-          fontFamily: 'var(--font-inter)',
-          zIndex: 20,
-          transition: 'opacity 420ms ease, filter 420ms ease',
-        }}
+      {/*
+        Where, what the clock says there, and the fact that every one of these
+        reads the same instant.
+
+        On a wide screen it stacks down the left, in the empty half beside the
+        phone. On a portrait one there is no empty half, so it runs as a single
+        line above the phone instead.
+      */}
+      <div
+        className="absolute z-[25] px-6 md:px-0
+                   left-0 right-0 top-[92px] flex flex-wrap items-baseline justify-center gap-x-4 gap-y-1 text-center
+                   md:left-[7%] md:right-auto md:top-1/2 md:-translate-y-1/2 md:block md:text-left"
       >
-        {CITIES[index]?.label ?? CITIES[0].label}
-      </h1>
+        <span
+          className="block font-mono text-[11px] md:text-[13px] tracking-[0.35em] text-[#8FB4FF]
+                     [text-shadow:0_1px_12px_rgba(7,10,16,0.85)]"
+        >
+          {city.label}
+        </span>
+        <span
+          className="font-mono text-[11px] md:text-[13px] tracking-[0.3em] text-white/90
+                     md:mt-3 md:block [text-shadow:0_1px_12px_rgba(7,10,16,0.85)]"
+        >
+          {cityTime(city)} LOCAL
+        </span>
+        <span
+          className="hidden sm:inline font-mono text-[11px] md:text-[13px] tracking-[0.3em] text-white/45
+                     md:mt-1.5 md:block [text-shadow:0_1px_12px_rgba(7,10,16,0.85)]"
+        >
+          <span className="md:hidden">· </span>THE SAME MOMENT
+        </span>
+      </div>
     </>
   );
 }
