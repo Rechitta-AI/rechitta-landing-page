@@ -169,7 +169,6 @@ export default function BuyerPresentation({ holdData }: BuyerPresentationProps) 
   // Perspective Switcher Dock & Scroll Lock State
   const [isLocked, setIsLocked] = useState(true);
   const isLockedRef = useRef(true);
-  const lockedScrollYRef = useRef<number | null>(null);
   const [showScrollPrompt, setShowScrollPrompt] = useState(false);
   const promptTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const dockRef = useRef<HTMLDivElement>(null);
@@ -210,73 +209,27 @@ export default function BuyerPresentation({ holdData }: BuyerPresentationProps) 
     }, 2400);
   };
 
-  // HARD SCROLL-LOCK: Capture-phase interception & scroll pinning
+  /**
+   * The film holds here until the call to action is pressed. Showing the
+   * prompt is all this has to do now — the beat machine simply declines to
+   * advance, instead of the old capture-phase handler clamping the window
+   * scroll position back every frame.
+   */
   useEffect(() => {
-    const preventScroll = (e: Event) => {
-      if (!isVisibleRef.current || !isLockedRef.current) return;
-
-      // Stop event completely before Lenis or browser handles it
-      e.preventDefault();
-      e.stopPropagation();
-      e.stopImmediatePropagation();
+    const onNudge = (e: Event) => {
+      const detail = (e as CustomEvent<{ beat?: string }>).detail;
+      if (detail?.beat && detail.beat !== 'buyer') return;
+      if (!isVisibleRef.current) return;
       triggerScrollPrompt();
-
-      // Ensure Lenis remains completely stopped
-      const lenis = (window as any).lenis;
-      if (lenis && typeof lenis.stop === 'function') lenis.stop();
-      if (lenis && typeof lenis.velocity !== 'undefined') lenis.velocity = 0;
-
-      if (lockedScrollYRef.current === null) {
-        lockedScrollYRef.current = window.scrollY;
-      }
-
-      // Ensure window stays pinned to exact locked scroll position
-      if (Math.abs(window.scrollY - lockedScrollYRef.current) > 0.5) {
-        window.scrollTo(0, lockedScrollYRef.current);
-      }
     };
-
-    const preventKeyScroll = (e: KeyboardEvent) => {
-      if (!isVisibleRef.current || !isLockedRef.current) return;
-      const scrollKeys = ['ArrowDown', 'ArrowUp', 'PageDown', 'PageUp', 'Home', 'End', 'Space', ' '];
-      if (scrollKeys.includes(e.key)) {
-        e.preventDefault();
-        e.stopPropagation();
-        e.stopImmediatePropagation();
-        triggerScrollPrompt();
-        if (lockedScrollYRef.current !== null) {
-          window.scrollTo(0, lockedScrollYRef.current);
-        }
-      }
-    };
-
-    const handleScrollClamp = () => {
-      if (!isVisibleRef.current || !isLockedRef.current) return;
-      if (lockedScrollYRef.current !== null && Math.abs(window.scrollY - lockedScrollYRef.current) > 1) {
-        window.scrollTo(0, lockedScrollYRef.current);
-        triggerScrollPrompt();
-      }
-    };
-
-    // Use CAPTURE phase so this handler runs before Lenis or any other listener!
-    window.addEventListener('wheel', preventScroll, { capture: true, passive: false });
-    window.addEventListener('touchmove', preventScroll, { capture: true, passive: false });
-    window.addEventListener('keydown', preventKeyScroll, { capture: true, passive: false });
-    window.addEventListener('scroll', handleScrollClamp, { capture: true, passive: false });
-
-    return () => {
-      window.removeEventListener('wheel', preventScroll, { capture: true } as any);
-      window.removeEventListener('touchmove', preventScroll, { capture: true } as any);
-      window.removeEventListener('keydown', preventKeyScroll, { capture: true } as any);
-      window.removeEventListener('scroll', handleScrollClamp, { capture: true } as any);
-    };
+    window.addEventListener('rechitta:nudge', onNudge);
+    return () => window.removeEventListener('rechitta:nudge', onNudge);
   }, []);
 
   // Launch the flight leaving the Buyer's Phone into Global Reach (Chapter 4)
   const handleFlyToGlobal = () => {
     isLockedRef.current = false;
     setIsLocked(false);
-    lockedScrollYRef.current = null;
 
     // 1. Smoothly dissolve the Buyer Scene UI
     if (containerRef.current) {
@@ -291,7 +244,7 @@ export default function BuyerPresentation({ holdData }: BuyerPresentationProps) 
       });
     }
 
-    // 2. Dispatch the flight launch event to ScrollFilm
+    // 2. Hand control back to the film, which opens the world chapter.
     window.dispatchEvent(new CustomEvent('rechitta:fly-to-global'));
   };
 
@@ -313,14 +266,6 @@ export default function BuyerPresentation({ holdData }: BuyerPresentationProps) 
         isVisibleRef.current = true;
         isLockedRef.current = true;
         setIsLocked(true);
-        lockedScrollYRef.current = window.scrollY;
-
-        // Hard stop Lenis and wipe residual inertia
-        const lenis = (window as any).lenis;
-        if (lenis) {
-          if (typeof lenis.stop === 'function') lenis.stop();
-          if (typeof lenis.velocity !== 'undefined') lenis.velocity = 0;
-        }
 
         gsap.killTweensOf(containerRef.current);
         if (phoneRef.current) gsap.killTweensOf(phoneRef.current);
@@ -411,7 +356,6 @@ export default function BuyerPresentation({ holdData }: BuyerPresentationProps) 
         isVisibleRef.current = false;
         isLockedRef.current = false;
         setIsLocked(false);
-        lockedScrollYRef.current = null;
 
         gsap.killTweensOf(containerRef.current);
         if (phoneRef.current) gsap.killTweensOf(phoneRef.current);

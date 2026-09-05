@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Script from "next/script";
-import SmoothScroller from "@/components/SmoothScroller";
 import { DemoModalProvider } from "@/contexts/DemoModalContext";
 import AppHeader from "@/components/AppHeader";
 import InteractiveDemoModal from "@/components/InteractiveDemoModal";
@@ -91,11 +90,9 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
           ></iframe>
         </noscript>
         <DemoModalProvider>
-          <SmoothScroller>
-            <AppHeader />
-            <InteractiveDemoModal />
-            {children}
-          </SmoothScroller>
+          <AppHeader />
+          <InteractiveDemoModal />
+          {children}
         </DemoModalProvider>
       </body>
     </html>

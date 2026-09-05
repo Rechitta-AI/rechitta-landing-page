@@ -1,373 +1,184 @@
 'use client';
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import gsap from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import ScrollFilm from '@/components/ScrollFilm';
+import FilmStage from '@/components/FilmStage';
 import BoardroomPresentation from '@/components/BoardroomPresentation';
 import BrokerPresentation from '@/components/BrokerPresentation';
 import BuyerPresentation from '@/components/BuyerPresentation';
-import TexturedGlobe from '@/components/TexturedGlobe';
 import Loader from '@/components/Loader';
 import ScrollRail from '@/components/ScrollRail';
 import Cursor from '@/components/Cursor';
 import OrbStage from '@/components/OrbStage';
-import CityDroneBackground from '@/components/CityDroneBackground';
-import { useSmoothScroll } from '@/hooks/useSmoothScroll';
+import CityBackdrop from '@/components/CityBackdrop';
 import type { FilmTiming } from '@/orb/types';
 import type { Playhead } from '@/screens/types';
-import ScreenTracks from '@/components/ScreenTracks';
+import { BEATS, type Beat, type Chapter } from '@/film/score';
 
-gsap.registerPlugin(ScrollTrigger);
-
+/**
+ * The experience is a fixed stage, not a tall page.
+ *
+ * Nothing here scrolls. Wheel, touch and key input all go to the film's own
+ * threshold in FilmStage, which commits to one beat at a time. That is what
+ * removed the judder: there used to be three separate things writing the
+ * scroll position every frame — smooth-scroll inertia, the film driving the
+ * page from video time, and the presentation overlays clamping it back — and
+ * they fought each other on every gesture.
+ */
 export default function ExperiencePage() {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const filmContainerRef = useRef<HTMLDivElement>(null);
-
-  const finaleFilmContainerRef = useRef<HTMLDivElement>(null);
-
-  const multilingualContainerRef = useRef<HTMLDivElement>(null);
-  const cityBgRef = useRef<HTMLDivElement>(null);
-  const whiteFlashRef = useRef<HTMLDivElement>(null);
-  const heroExitedRef = useRef(false);
-  const isLoopingRef = useRef(false);
-
   const heroRef = useRef<HTMLDivElement>(null);
   const heroWordsRef = useRef<NodeListOf<Element> | null>(null);
+  const heroExitedRef = useRef(false);
 
-  const [activeChapter, setActiveChapter] = useState('hero');
-  const currentChapterRef = useRef('hero');
+  const [chapter, setChapter] = useState<Chapter>('intro');
+  const [railLabel, setRailLabel] = useState(BEATS[0].label);
+  const [cityIndex, setCityIndex] = useState(0);
 
-  // Cinematic Intro Choreography
+  // Cinematic intro choreography.
   const [introPhase, setIntroPhase] = useState<'loading' | 'moving' | 'revealing' | 'done'>('loading');
   const [orbReady, setOrbReady] = useState(false);
   const revealTextRef = useRef<HTMLDivElement>(null);
 
-  // Lenis inertia, paused until the intro sequence completely finishes.
-  useSmoothScroll(introPhase === 'done');
   const scrollData = useRef({ progress: 0 });
   const holdData = useRef({ clipIndex: -1, progress: 0 });
 
-  // Measured clip durations for the intro film. The orb's flight path anchors
-  // to clip time, so it resolves through this rather than hardcoded progress.
+  /** Measured clip durations. The orb's path anchors to clip time via this. */
   const filmTiming = useRef<FilmTiming | null>(null);
 
-  // The multilingual chapter has no camera move for the orb to lead, so it
-  // leads the cities instead: it pulses as each one arrives.
+  /** The multilingual chapter has no camera move, so the orb leads the cities. */
   const cityPulse = useRef({ at: 0 });
 
-  // Which frame of which clip is on screen, so the app mockups can be warped
-  // onto the phones exactly where they are.
+  /** Which frame of which clip is on screen, for the composited app screens. */
   const playhead = useRef<Playhead | null>(null);
 
-  // The hero renders through a portal (see below), which can only happen once
-  // there is a document to portal into.
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
+  // The page itself never scrolls. All navigation is the film's.
   useEffect(() => {
-    // Nothing should scroll while the cinematic intro is playing.
-    document.documentElement.style.overflow = introPhase === 'done' ? '' : 'hidden';
-    if (introPhase === 'done') ScrollTrigger.refresh();
+    const html = document.documentElement;
+    const previous = html.style.overflow;
+    html.style.overflow = 'hidden';
+    document.body.style.overflow = 'hidden';
+    return () => {
+      html.style.overflow = previous;
+      document.body.style.overflow = '';
+    };
+  }, []);
+
+  // The text reveal, once the orb has landed on the headline.
+  useEffect(() => {
+    if (introPhase !== 'revealing' || !revealTextRef.current) return;
+    const tl = gsap.timeline({ onComplete: () => setIntroPhase('done') });
+
+    tl.to(
+      revealTextRef.current,
+      { clipPath: 'inset(0 0% 0 0)', opacity: 1, x: 0, filter: 'blur(0px)', duration: 1.5, ease: 'power3.inOut' },
+      0,
+    );
+    tl.to('.subheading-word', { opacity: 1, y: 0, duration: 0.8, stagger: 0.035, ease: 'power3.out' }, 0.5);
   }, [introPhase]);
 
-  // UseEffect for matchCutTl removed.
+  /** The hero copy staggers away the moment the film leaves its first beat. */
+  const setHeroVisible = useCallback((visible: boolean) => {
+    if (!heroRef.current) return;
+    if (visible === !heroExitedRef.current) return;
+    heroExitedRef.current = !visible;
 
-  // Handle the text reveal phase
-  useEffect(() => {
-    if (introPhase === 'revealing' && revealTextRef.current) {
-      const tl = gsap.timeline({ onComplete: () => setIntroPhase('done') });
+    const words =
+      heroWordsRef.current ??
+      (heroWordsRef.current = heroRef.current.querySelectorAll('.hero-word, .subheading-word'));
+    const indicator = heroRef.current.querySelector('#hero-scroll-indicator');
 
-      tl.to(revealTextRef.current, {
-        clipPath: 'inset(0 0% 0 0)',
-        opacity: 1,
-        x: 0,
-        filter: 'blur(0px)',
-        duration: 1.5,
-        ease: 'power3.inOut',
-      }, 0);
-
-      // Staggered reveal for the subheading words! Starts 0.5s into the main heading reveal.
-      tl.to('.subheading-word', {
-        opacity: 1,
-        y: 0,
-        duration: 0.8,
-        stagger: 0.035,
-        ease: 'power3.out'
-      }, 0.5);
-    }
-  }, [introPhase]);
-
-  useEffect(() => {
-    const ctx = gsap.context(() => {
-      ScrollTrigger.create({
-        trigger: containerRef.current,
-        start: "top top",
-        end: "+=15000", // Total height of the experience
-        pin: true,
-        onUpdate: (self) => {
-          // INFINITE LOOP: Clean, seamless teleport to top at the very end
-          if (self.progress >= 0.998 && !isLoopingRef.current) {
-            isLoopingRef.current = true;
-
-            // 1. Immediately kill all active tweens
-            gsap.killTweensOf(whiteFlashRef.current);
-            gsap.killTweensOf(finaleFilmContainerRef.current);
-            gsap.killTweensOf(filmContainerRef.current);
-            gsap.killTweensOf(multilingualContainerRef.current);
-
-            // 2. Snap containers directly to starting state with zero flashes or lingering blurs
-            gsap.set(whiteFlashRef.current, { opacity: 0 });
-            gsap.set(finaleFilmContainerRef.current, { opacity: 0, filter: 'blur(0px)', scale: 1 });
-            gsap.set(multilingualContainerRef.current, { opacity: 0, visibility: 'hidden', filter: 'blur(0px)', scale: 1 });
-            gsap.set(filmContainerRef.current, { opacity: 1, filter: 'blur(0px)', scale: 1 });
-
-            // 3. Reset Hero Text Words & Subheading Words immediately
-            heroExitedRef.current = false;
-            if (heroRef.current) {
-              const words = heroRef.current.querySelectorAll('.hero-word, .subheading-word');
-              gsap.killTweensOf(words);
-              gsap.set(words, {
-                y: 0,
-                opacity: 1,
-                overwrite: true
-              });
-            }
-
-            // 4. Reset chapter tracking
-            currentChapterRef.current = 'video';
-            setActiveChapter('video');
-            scrollData.current.progress = 0;
-
-            // 5. Instantly teleport scroll position and cancel residual wheel momentum
-            const lenis = (window as any).lenis;
-            if (lenis) {
-              lenis.scrollTo(0, { immediate: true, force: true });
-              if (typeof lenis.velocity !== 'undefined') lenis.velocity = 0;
-            }
-
-            // 6. Brief guard to swallow residual gesture ticks
-            setTimeout(() => {
-              isLoopingRef.current = false;
-            }, 120);
-
-            return;
-          }
-
-          if (isLoopingRef.current) return;
-
-          // 1. Update the master scroll tracker
-          scrollData.current.progress = self.progress;
-          const p = self.progress;
-
-          // 3. Cinematic Chapter Transitions
-          const oldChapter = currentChapterRef.current;
-          const newChapter = self.progress < 0.5 ? 'video' : self.progress < 0.95 ? 'globe' : 'finale';
-
-          if (oldChapter !== newChapter) {
-            currentChapterRef.current = newChapter;
-            setActiveChapter(newChapter);
-
-            gsap.killTweensOf(finaleFilmContainerRef.current);
-            gsap.killTweensOf(multilingualContainerRef.current);
-            gsap.killTweensOf(filmContainerRef.current);
-            gsap.killTweensOf(whiteFlashRef.current);
-
-            if (newChapter === 'video') {
-              // Entering Intro
-              gsap.set(finaleFilmContainerRef.current, { opacity: 0, filter: 'blur(0px)', scale: 1 });
-
-              if (oldChapter === 'globe') {
-                const tl = gsap.timeline();
-                tl.to(whiteFlashRef.current, { opacity: 1, duration: 0.4, ease: 'power2.inOut' });
-                tl.add(() => {
-                  gsap.set(multilingualContainerRef.current, { opacity: 0, visibility: 'hidden', filter: 'blur(0px)', scale: 1 });
-                  gsap.set(filmContainerRef.current, { opacity: 1 });
-                });
-                tl.to(whiteFlashRef.current, { opacity: 0, duration: 0.4, ease: 'power2.inOut' });
-              } else if (oldChapter === 'finale') {
-                // Direct loop reset from finale
-                gsap.set(multilingualContainerRef.current, { opacity: 0, visibility: 'hidden', filter: 'blur(0px)', scale: 1 });
-                gsap.set(filmContainerRef.current, { opacity: 1 });
-                gsap.set(whiteFlashRef.current, { opacity: 0 });
-              }
-
-            } else if (newChapter === 'globe') {
-              // Entering Multilingual (scrolling down from Intro, OR scrolling up from Finale)
-              gsap.set(multilingualContainerRef.current, { visibility: 'visible' });
-
-              if (oldChapter === 'video' || oldChapter === 'hero') {
-                // Forward transition from intro (White Flash)
-                const tl = gsap.timeline();
-                tl.to(whiteFlashRef.current, { opacity: 1, duration: 0.4, ease: 'power2.inOut' });
-                tl.add(() => {
-                  gsap.set(filmContainerRef.current, { opacity: 0 });
-                  gsap.set(multilingualContainerRef.current, { opacity: 1, visibility: 'visible' });
-                });
-                tl.to(whiteFlashRef.current, { opacity: 0, duration: 0.4, ease: 'power2.inOut' });
-              } else {
-                // Backward transition from Finale to Multilingual: Cinematic Lens Focus Pull
-                gsap.set(multilingualContainerRef.current, { visibility: 'visible' });
-                const tl = gsap.timeline();
-                tl.to(finaleFilmContainerRef.current, {
-                  opacity: 0,
-                  filter: 'blur(20px)',
-                  scale: 0.97,
-                  duration: 0.45,
-                  ease: 'power2.in'
-                });
-                tl.fromTo(multilingualContainerRef.current,
-                  { opacity: 0, filter: 'blur(20px)', scale: 1.03 },
-                  { opacity: 1, filter: 'blur(0px)', scale: 1, duration: 0.45, ease: 'power2.out' },
-                  "-=0.2"
-                );
-              }
-            } else if (newChapter === 'finale') {
-              // Entering Finale (scrolling down from Multilingual): Cinematic Lens Focus Pull
-              gsap.set(finaleFilmContainerRef.current, { visibility: 'visible' });
-              const tl = gsap.timeline();
-              tl.to(multilingualContainerRef.current, {
-                opacity: 0,
-                filter: 'blur(20px)',
-                scale: 1.03,
-                duration: 0.45,
-                ease: 'power2.in',
-                onComplete: () => {
-                  gsap.set(multilingualContainerRef.current, { visibility: 'hidden' });
-                }
-              });
-              tl.fromTo(finaleFilmContainerRef.current,
-                { opacity: 0, filter: 'blur(20px)', scale: 0.97 },
-                { opacity: 1, filter: 'blur(0px)', scale: 1, duration: 0.45, ease: 'power2.out' },
-                "-=0.2"
-              );
-            }
-          }
-
-          // 4. Autonomous Fast Stagger-Out for Hero Text at the glass facade
-          const pScroll = self.progress;
-          const HERO_EXIT_THRESHOLD = 0.03; // Adjusted to match the exact glass facade timing
-
-          if (heroRef.current) {
-            const words =
-              heroWordsRef.current ??
-              (heroWordsRef.current = heroRef.current.querySelectorAll('.hero-word, .subheading-word'));
-            const scrollIndicator = heroRef.current.querySelector('#hero-scroll-indicator');
-
-            if (pScroll >= HERO_EXIT_THRESHOLD && !heroExitedRef.current) {
-              heroExitedRef.current = true;
-              gsap.to(words, {
-                y: 60,
-                opacity: 0,
-                stagger: 0.015,
-                duration: 0.3,
-                ease: 'power3.in',
-                overwrite: true
-              });
-              if (scrollIndicator) {
-                gsap.to(scrollIndicator, {
-                  opacity: 0,
-                  y: 20,
-                  scale: 0.95,
-                  duration: 0.35,
-                  ease: 'power2.inOut',
-                  overwrite: true
-                });
-              }
-            } else if (pScroll < HERO_EXIT_THRESHOLD && heroExitedRef.current) {
-              heroExitedRef.current = false;
-              gsap.to(words, {
-                y: 0,
-                opacity: 1,
-                stagger: -0.015,
-                duration: 0.4,
-                ease: 'power3.out',
-                overwrite: true
-              });
-              if (scrollIndicator) {
-                gsap.to(scrollIndicator, {
-                  opacity: 1,
-                  y: 0,
-                  scale: 1,
-                  duration: 0.4,
-                  ease: 'power2.out',
-                  overwrite: true
-                });
-              }
-            }
-          }
-        }
+    gsap.to(words, {
+      y: visible ? 0 : 60,
+      opacity: visible ? 1 : 0,
+      stagger: visible ? -0.015 : 0.015,
+      duration: visible ? 0.4 : 0.3,
+      ease: visible ? 'power3.out' : 'power3.in',
+      overwrite: true,
+    });
+    if (indicator) {
+      gsap.to(indicator, {
+        opacity: visible ? 1 : 0,
+        y: visible ? 0 : 20,
+        scale: visible ? 1 : 0.95,
+        duration: 0.35,
+        ease: 'power2.inOut',
+        overwrite: true,
       });
-    }, containerRef);
+    }
+  }, []);
 
-    return () => ctx.revert();
+  const handleBeat = useCallback(
+    (beat: Beat) => {
+      setHeroVisible(beat.id === 'hero');
+      setRailLabel(beat.label);
+    },
+    [setHeroVisible],
+  );
+
+  const handleCity = useCallback((index: number) => {
+    setCityIndex(index);
+  }, []);
+
+  const handleChapter = useCallback((next: Chapter) => {
+    setChapter(next);
   }, []);
 
   return (
     <>
       <Cursor />
 
-      {/* 
-        The loader now acts purely as the circular progress ring. 
-        When it finishes loading the videos AND the 3D Orb is ready, it moves on.
-      */}
       {introPhase === 'loading' && (
         <Loader onDone={() => setIntroPhase('moving')} orbReady={orbReady} />
       )}
 
-      {/* LAYER 1: Scroll Rail UI */}
+      {/* The chapter rail */}
       <div
         className="fixed left-0 top-0 bottom-0 z-50 pointer-events-none transition-opacity duration-1000"
         style={{ opacity: introPhase === 'done' ? 1 : 0 }}
       >
-        <ScrollRail scrollData={scrollData} />
+        <ScrollRail scrollData={scrollData} label={railLabel} />
       </div>
 
-      <div ref={containerRef} className="relative w-full h-screen bg-[#070A10] overflow-hidden film-grain-overlay">
-
-        {/* 
-          Keep videos invisible during both 'loading' and 'moving' phases so the glowing 
-          Orb can shine against the pure dark background while it glides. It will fade in when it lands.
+      <div className="fixed inset-0 w-full h-full bg-[#070A10] overflow-hidden film-grain-overlay">
+        {/*
+          The film stays dark through 'loading' and 'moving' so the orb glides
+          against nothing but the sky, then fades up as it lands.
         */}
-        <div className="absolute inset-0 w-full h-full" style={{ opacity: (introPhase === 'loading' || introPhase === 'moving') ? 0 : 1, transition: 'opacity 1s ease-in-out' }}>
-
-          {/* LAYER 1: The Background Globe */}
+        <div
+          className="absolute inset-0 w-full h-full"
+          style={{
+            opacity: introPhase === 'loading' || introPhase === 'moving' ? 0 : 1,
+            transition: 'opacity 1s ease-in-out',
+          }}
+        >
+          {/* The multilingual chapter */}
           <div
-            className="absolute inset-0 z-0 flex items-center justify-center"
+            className="absolute inset-0 z-[15] w-full h-full overflow-hidden"
             style={{
-              visibility: ['video', 'globe', 'finale'].includes(activeChapter)
-                ? 'visible'
-                : 'hidden',
+              opacity: chapter === 'cities' ? 1 : 0,
+              visibility: chapter === 'cities' ? 'visible' : 'hidden',
             }}
           >
-            {/* <TexturedGlobe scrollData={scrollData} /> */}
-          </div>
+            <CityBackdrop
+              index={cityIndex}
+              active={chapter === 'cities'}
+              onSwap={() => {
+                cityPulse.current.at = performance.now();
+              }}
+            />
 
-          {/* LAYER 1.5: Multilingual Drone Shot Section */}
-          <div
-            ref={multilingualContainerRef}
-            className="absolute inset-0 z-[15] w-full h-full opacity-0 invisible overflow-hidden"
-          >
-            {/* The auto-playing drone shot canvas (Mumbai -> Moscow -> etc) */}
-            <div ref={cityBgRef} className="absolute inset-0 w-full h-full">
-              <CityDroneBackground
-                scrollData={scrollData}
-                onCityChange={() => {
-                  cityPulse.current.at = performance.now();
-                }}
-              />
+            {/* Keeps the phone sharp and softens everything around it. */}
+            <div
+              className="absolute inset-0 backdrop-blur-[6px] bg-black/40 pointer-events-none"
+              style={{
+                maskImage: 'radial-gradient(ellipse at 35% center, transparent 15%, black 60%)',
+                WebkitMaskImage: 'radial-gradient(ellipse at 35% center, transparent 15%, black 60%)',
+              }}
+            />
 
-              {/* Radial Vignette Blur Layer - Keeps the phone sharp, blurs the edges */}
-              <div
-                className="absolute inset-0 backdrop-blur-[6px] bg-black/40 pointer-events-none"
-                style={{
-                  maskImage: 'radial-gradient(ellipse at 35% center, transparent 15%, black 60%)',
-                  WebkitMaskImage: 'radial-gradient(ellipse at 35% center, transparent 15%, black 60%)'
-                }}
-              />
-            </div>
-
-            {/* Phone Mockup on the left side */}
             <div
               id="multilingual-phone"
               className="absolute left-[5%] md:left-[18%] top-1/2 -translate-y-1/2 w-[380px] h-auto pointer-events-none"
@@ -380,130 +191,99 @@ export default function ExperiencePage() {
             </div>
           </div>
 
-          {/* LAYER 2: The Intro 4K Video Sequence */}
-          <div ref={filmContainerRef} className="absolute inset-0 z-10 w-full h-full pointer-events-none">
-            {/* Cinematic Vignette Pulse Overlay */}
+          {/* The film itself, plus the overlays that ride specific frames. */}
+          <div className="absolute inset-0 z-10 w-full h-full pointer-events-none">
             <div className="absolute inset-0 z-20 animate-vignette-pulse pointer-events-none" />
 
-            {/* The Scroll-Locked UI Overlay */}
             <BoardroomPresentation holdData={holdData} />
             <BrokerPresentation holdData={holdData} />
             <BuyerPresentation holdData={holdData} />
 
-            <ScrollFilm
+            <FilmStage
               scrollData={scrollData}
               holdData={holdData}
-              sequenceKeys={[
-                { key: 'scene1-3', in: 2, out: 11, holdWeight: 8 }, // Holds here for 8 durations of video to slow down presentation scroll!
-                { key: 'transit-b', in: 2, out: 16.9, holdWeight: 6 }, // Holds on the broker's phone!
-                { key: 'transit-c', in: 0, out: 6.8, holdWeight: 6 }, // Holds on the buyer's phone!
-                'transit-d'
-              ]}
-              startProgress={0}
-              endProgress={0.5}
-              reportsProgress="intro"
-              priority
               timingRef={filmTiming}
               playheadRef={playhead}
-            />
-
-            {/* The app screens, composited into the phones as they move. */}
-            <ScreenTracks playheadRef={playhead} />
-          </div>
-
-          {/* LAYER 2.5: The White Crossfade Layer */}
-          <div ref={whiteFlashRef} className="absolute inset-0 z-[20] w-full h-full bg-white opacity-0 pointer-events-none" />
-
-          {/* LAYER 3: The Finale Video Sequence */}
-          <div ref={finaleFilmContainerRef} className="absolute inset-0 z-[25] w-full h-full opacity-0 pointer-events-none">
-            <ScrollFilm
-              scrollData={scrollData}
-              sequenceKeys={['last-scene']}
-              startProgress={0.95}
-              endProgress={1.0}
-              reportsProgress="finale"
+              enabled={introPhase === 'done'}
+              onChapter={handleChapter}
+              onBeat={handleBeat}
+              onCity={handleCity}
             />
           </div>
         </div>
 
         {/*
-          The hero is portalled to the body rather than left inside the pinned
-          container. ScrollTrigger's pin gives that container its own stacking
-          context, so nothing inside it can paint above the orb's fixed layer —
-          and the orb lands exactly on the "O", which would bury the letter.
-          Out here it can sit above the orb, so the word reads "One" with the
-          orb glowing behind its first letter.
+          The hero is portalled to the body. The stage gives its children their
+          own stacking context, so nothing inside it can paint above the orb's
+          fixed layer — and the orb sits behind the headline, not under it.
         */}
-        {mounted && createPortal(
-          <div className="fixed inset-0 z-[31] pointer-events-none">
+        {mounted &&
+          createPortal(
+            <div className="fixed inset-0 z-[31] pointer-events-none">
+              <div
+                ref={heroRef}
+                className="absolute inset-0 flex flex-col items-center justify-center text-center px-4 pt-16"
+              >
+                <div id="hero-orb-anchor" className="w-16 h-16 md:w-20 md:h-20 pointer-events-none mb-3 md:mb-6" />
 
-          {/* The Hero Content */}
-          <div
-            ref={heroRef}
-            className="absolute inset-0 flex flex-col items-center justify-center text-center px-4 pt-16"
-          >
-            {/* The Orb Hero Anchor - Centered directly above the headline */}
-            <div id="hero-orb-anchor" className="w-16 h-16 md:w-20 md:h-20 pointer-events-none mb-3 md:mb-6" />
-
-            <div
-              ref={revealTextRef}
-              style={{
-                clipPath: 'inset(0 100% 0 0)',
-                opacity: 0,
-                filter: 'blur(10px)',
-                transform: 'translateX(-20px)'
-              }}
-            >
-              <h1 id="hero-heading" className="text-[clamp(2.25rem,5.5vw,4.5rem)] leading-none text-white tracking-tight flex flex-wrap items-center justify-center gap-x-[0.3em]" style={{ fontFamily: 'var(--font-inter)' }}>
-                {/* The orb lands on this "O" — the letter stays visible beneath it. */}
-                <span className="hero-word inline-block">
-                  <span id="hero-o-anchor">O</span>ne
-                </span>
-                <span className="hero-word inline-block">source</span>
-                <span className="hero-word inline-block">of</span>
-                <span className="hero-word inline-block">truth.</span>
-              </h1>
-            </div>
-            <p
-              className="mt-4 md:mt-6 text-sm sm:text-base md:text-lg text-gray-300 max-w-xl md:max-w-2xl leading-relaxed flex flex-wrap justify-center gap-x-[0.4em] gap-y-2"
-              style={{ fontFamily: 'var(--font-inter)' }}
-            >
-              {"Live developer inventory, translated into conversation — so every broker and every buyer speaks the same language.".split(' ').map((word, i) => (
-                <span key={i} className="inline-flex overflow-hidden">
-                  <span
-                    className="subheading-word inline-block"
-                    style={{
-                      opacity: 0,
-                      transform: 'translateY(100%)',
-                    }}
+                <div
+                  ref={revealTextRef}
+                  style={{
+                    clipPath: 'inset(0 100% 0 0)',
+                    opacity: 0,
+                    filter: 'blur(10px)',
+                    transform: 'translateX(-20px)',
+                  }}
+                >
+                  <h1
+                    id="hero-heading"
+                    className="text-[clamp(2.25rem,5.5vw,4.5rem)] leading-none text-white tracking-tight flex flex-wrap items-center justify-center gap-x-[0.3em]"
+                    style={{ fontFamily: 'var(--font-inter)' }}
                   >
-                    {word}
-                  </span>
-                </span>
-              ))}
-            </p>
+                    <span className="hero-word inline-block">
+                      <span id="hero-o-anchor">O</span>ne
+                    </span>
+                    <span className="hero-word inline-block">source</span>
+                    <span className="hero-word inline-block">of</span>
+                    <span className="hero-word inline-block">truth.</span>
+                  </h1>
+                </div>
 
-            {/* Scroll Indicator */}
-            <div
-              id="hero-scroll-indicator"
-              className={`absolute bottom-8 md:bottom-12 left-1/2 -translate-x-1/2 flex flex-col items-center gap-3 transition-all duration-700 ${introPhase === 'done' ? 'opacity-100 translate-y-0 delay-[1000ms]' : 'opacity-0 translate-y-4'
-                }`}
-            >
-              <span className="text-[11px] tracking-[0.4em] text-white/50 font-medium font-sans">SCROLL</span>
-              <div className="w-[1px] h-12 bg-white/10 relative overflow-hidden">
-                <div className="absolute inset-0 bg-white origin-top animate-scroll-line"></div>
+                <p
+                  className="mt-4 md:mt-6 text-sm sm:text-base md:text-lg text-gray-300 max-w-xl md:max-w-2xl leading-relaxed flex flex-wrap justify-center gap-x-[0.4em] gap-y-2"
+                  style={{ fontFamily: 'var(--font-inter)' }}
+                >
+                  {'Live developer inventory, translated into conversation — so every broker and every buyer speaks the same language.'
+                    .split(' ')
+                    .map((word, i) => (
+                      <span key={i} className="inline-flex overflow-hidden">
+                        <span
+                          className="subheading-word inline-block"
+                          style={{ opacity: 0, transform: 'translateY(100%)' }}
+                        >
+                          {word}
+                        </span>
+                      </span>
+                    ))}
+                </p>
+
+                <div
+                  id="hero-scroll-indicator"
+                  className={`absolute bottom-8 md:bottom-12 left-1/2 -translate-x-1/2 flex flex-col items-center gap-3 transition-all duration-700 ${
+                    introPhase === 'done' ? 'opacity-100 translate-y-0 delay-[1000ms]' : 'opacity-0 translate-y-4'
+                  }`}
+                >
+                  <span className="text-[11px] tracking-[0.4em] text-white/50 font-medium font-sans">SCROLL</span>
+                  <div className="w-[1px] h-12 bg-white/10 relative overflow-hidden">
+                    <div className="absolute inset-0 bg-white origin-top animate-scroll-line"></div>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
-
-          </div>,
-          document.body,
-        )}
-
+            </div>,
+            document.body,
+          )}
       </div>
 
-      {/* LAYER 3.5: The Spline orb, blending over the film */}
-      {/* Moved OUTSIDE containerRef to prevent ScrollTrigger DOM-surgery from reloading the iframe! */}
       <OrbStage
         scrollData={scrollData}
         timingRef={filmTiming}

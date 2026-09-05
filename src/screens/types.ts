@@ -20,7 +20,7 @@ export type ScreenTrack = {
   samples: TrackSample[];
 };
 
-/** Where the film's playhead is right now, published by ScrollFilm. */
+/** Where the film's playhead is right now, published by FilmStage. */
 export type Playhead = { clip: string; t: number };
 
 export type Rect = { x: number; y: number; width: number; height: number };

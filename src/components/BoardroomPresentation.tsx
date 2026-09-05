@@ -147,6 +147,12 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
 
   /** Smooth animated slide transition whenever activeSlide updates */
   useEffect(() => {
+    // Tell the film which slide is up, however it got here — a scroll step, a
+    // dot, or an arrow key — so its own counter cannot drift out of step.
+    window.dispatchEvent(
+      new CustomEvent('rechitta:beat-sync', { detail: { beat: 'boardroom', step: activeSlide } }),
+    );
+
     if (!slidesRef.current) return;
 
     // Animate the sliding track with high-end spring ease
@@ -172,6 +178,38 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
     });
   }, [activeSlide]);
 
+  /**
+   * Scroll steps drive the deck.
+   *
+   * A scroll inside this beat turns a slide rather than moving the film. Only
+   * once the deck runs out does the next scroll hand off to the hallway, and
+   * the film asks for that hand-off through `rechitta:boardroom-upload` so the
+   * upload-and-sync choreography still plays either way.
+   */
+  useEffect(() => {
+    const onStep = (e: Event) => {
+      const detail = (e as CustomEvent<{ beat?: string; step?: number }>).detail;
+      if (detail?.beat !== 'boardroom' || typeof detail.step !== 'number') return;
+      if (!isVisibleRef.current) return;
+      setActiveSlide(Math.min(SLIDES.length - 1, Math.max(0, detail.step)));
+    };
+
+    const onHandOff = () => {
+      if (!isVisibleRef.current) {
+        window.dispatchEvent(new CustomEvent('rechitta:release'));
+        return;
+      }
+      handleUploadClickRef.current();
+    };
+
+    window.addEventListener('rechitta:beat-step', onStep);
+    window.addEventListener('rechitta:boardroom-upload', onHandOff);
+    return () => {
+      window.removeEventListener('rechitta:beat-step', onStep);
+      window.removeEventListener('rechitta:boardroom-upload', onHandOff);
+    };
+  }, []);
+
   /** Keyboard arrow navigation when boardroom is active */
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -189,7 +227,11 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
 
   /** Advance from Boardroom scene into the Broker phone scene */
   const handleUploadClick = () => {
-    if (isUploading || isSynced) return;
+    if (isUploading || isSynced) {
+      // Already handed off. Let the film move rather than wait on us.
+      window.dispatchEvent(new CustomEvent('rechitta:release'));
+      return;
+    }
     setIsUploading(true);
 
     // 1. Simulate data indexing & packaging (micro-spinner)
@@ -224,6 +266,9 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
       }, 350);
     }, 900);
   };
+
+  const handleUploadClickRef = useRef(handleUploadClick);
+  handleUploadClickRef.current = handleUploadClick;
 
   /** Entrance and Exit visibility watcher */
   useEffect(() => {

@@ -51,3 +51,7 @@ public/demo-cities/
 public/textures/
 public/globe_stitch_frame.png
 .superpowers/
+
+# The pre-2026-09 all-intra masters, kept locally in case a re-encode has
+# to be redone. Not shipped: see tools/reencode_film.sh.
+public/film/video-allintra-backup/
