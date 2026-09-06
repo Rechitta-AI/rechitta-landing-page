@@ -22,7 +22,7 @@ import { CITIES, cityTime } from '@/film/score';
  */
 
 /** Crossfade between two cities, ms. */
-const FADE_MS = 900;
+const FADE_MS = 400;
 
 const posterFor = (key: string) => `/film/places/frames/${key}.jpg`;
 const clipFor = (key: string) => `/film/places/${key}.mp4`;

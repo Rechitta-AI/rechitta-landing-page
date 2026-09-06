@@ -1,176 +1,198 @@
-/*
- * The chapter rail: a pulsing dot travelling the foot of the screen.
- *
- * The named-chapter version this replaces is kept at the bottom of the file,
- * commented out. Its inner comments were stripped so the block nests.
- */
-
-.dotRail {
+.railContainer {
   position: fixed;
   left: 0;
   right: 0;
   bottom: 0;
   z-index: 120;
-  pointer-events: none;
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 clamp(1rem, 4vw, 3rem) 1.25rem;
+  user-select: none;
+}
+
+/* Active Chapter Telemetry Floating Badge */
+.telemetryDock {
+  margin-bottom: 0.65rem;
   display: flex;
   justify-content: center;
-  padding: 0 clamp(1.25rem, 5vw, 4rem) 1.125rem;
+  pointer-events: none;
 }
 
-.dotTrack {
-  position: relative;
-  width: 100%;
-  max-width: 46rem;
-  height: 1px;
-  background: linear-gradient(
-    to right,
-    rgba(232, 236, 244, 0) 0%,
-    rgba(232, 236, 244, 0.16) 12%,
-    rgba(232, 236, 244, 0.16) 88%,
-    rgba(232, 236, 244, 0) 100%
-  );
+.telemetryTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.85rem;
+  border-radius: 9999px;
+  background: rgba(10, 14, 24, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 20px rgba(86, 141, 255, 0.12);
+  transition: all 0.3s ease;
 }
 
-/* Carries the dot along the track. */
-.dotCarriage {
-  position: absolute;
-  top: 50%;
-  left: 0;
-  width: 100%;
-  height: 0;
-  will-change: transform;
-}
-
-/* Pulses in place, so it never fights the carriage for the transform. */
-.dot {
-  position: absolute;
-  top: 50%;
-  left: 0;
-  width: 7px;
-  height: 7px;
-  margin: -3.5px 0 0 -3.5px;
+.pulseBeacon {
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
-  background: var(--accent);
-  box-shadow: 0 0 10px 1px rgba(86, 141, 255, 0.75);
-  animation: rail-dot-pulse 2.4s ease-in-out infinite;
+  background: #568DFF;
+  box-shadow: 0 0 10px 2px rgba(86, 141, 255, 0.9);
+  animation: beacon-pulse 2s ease-in-out infinite;
 }
 
-@keyframes rail-dot-pulse {
-  0%,
-  100% {
+@keyframes beacon-pulse {
+  0%, 100% {
     transform: scale(1);
     opacity: 0.85;
   }
   50% {
-    transform: scale(1.45);
+    transform: scale(1.4);
     opacity: 1;
+    box-shadow: 0 0 14px 4px rgba(86, 141, 255, 1);
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .dot {
-    animation: none;
-  }
+.chapterNum {
+  font-family: var(--font-inter), system-ui, sans-serif;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: #568DFF;
 }
 
-@media (max-width: 809px) {
-  .dotRail {
-    padding-bottom: 0.875rem;
-  }
+.chapterTitle {
+  font-family: var(--font-inter), system-ui, sans-serif;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: #FFFFFF;
 }
 
-/* ── The named-chapter rail, kept for reference ───────────────────────────
-.rail {
-  position: fixed;
+/* Main Track Dock */
+.dock {
+  position: relative;
+  width: 100%;
+  max-width: 48rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.trackBackground {
+  position: relative;
+  width: 100%;
+  height: 3px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.12);
+  overflow: visible;
+}
+
+.trackFill {
+  position: absolute;
+  top: 0;
   left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 120;
-  pointer-events: none;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0 clamp(1rem, 4vw, 3rem) 1rem;
-  background: linear-gradient(to top, rgba(7, 10, 16, 0.72) 0%, rgba(7, 10, 16, 0) 100%);
-}
-
-.chapters {
-  display: flex;
   width: 100%;
-  max-width: 62rem;
-  gap: clamp(0.75rem, 2.4vw, 2rem);
-}
-
-.chapter {
-  flex: 1 1 0;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.ticks {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-}
-
-.tick {
-  flex: 1;
-  height: 2px;
-  border-radius: 2px;
-  background: rgba(232, 236, 244, 0.16);
-  overflow: hidden;
-}
-
-.tickFill {
-  display: block;
   height: 100%;
-  width: 100%;
-  background: var(--accent);
+  border-radius: 9999px;
+  background: linear-gradient(90deg, rgba(86, 141, 255, 0.4) 0%, #568DFF 100%);
+  box-shadow: 0 0 12px 1px rgba(86, 141, 255, 0.75);
   transform-origin: left;
   transform: scaleX(0);
   will-change: transform;
-  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.label {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  font-size: 0.5625rem;
-  letter-spacing: 0.24em;
-  text-transform: uppercase;
-  color: rgba(232, 236, 244, 0.34);
-  transition: color 0.4s ease;
+.glowLead {
+  position: absolute;
+  top: 50%;
+  left: 0%;
+  width: 9px;
+  height: 9px;
+  margin: -4.5px 0 0 -4.5px;
+  border-radius: 50%;
+  background: #FFFFFF;
+  border: 1.5px solid #568DFF;
+  box-shadow: 0 0 12px 3px rgba(86, 141, 255, 0.95), 0 0 20px 6px rgba(86, 141, 255, 0.5);
+  transform: translateZ(0);
+  will-change: left;
+  pointer-events: none;
 }
 
-.labelActive {
-  color: rgba(255, 255, 255, 0.95);
+/* Clickable Segments Row */
+.segmentsRow {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0 2px;
 }
 
-.labelSolo {
-  display: none;
-  font-size: 0.5625rem;
-  letter-spacing: 0.28em;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.92);
+.segmentBtn {
+  background: none;
+  border: none;
+  outline: none;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.2rem 0.4rem;
+  transition: all 0.25s ease;
+  color: rgba(255, 255, 255, 0.45);
 }
 
-@media (max-width: 809px) {
-  .rail {
-    padding-bottom: 0.75rem;
-    gap: 0.45rem;
+.segmentBtn:hover {
+  color: #FFFFFF;
+}
+
+.segmentTick {
+  width: 12px;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 1px;
+  transition: all 0.25s ease;
+}
+
+.segmentLabel {
+  font-family: var(--font-inter), system-ui, sans-serif;
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  transition: all 0.25s ease;
+}
+
+.segmentActive {
+  color: #FFFFFF;
+}
+
+.segmentActive .segmentTick {
+  width: 22px;
+  height: 3px;
+  background: #568DFF;
+  box-shadow: 0 0 10px rgba(86, 141, 255, 0.9);
+}
+
+.segmentActive .segmentLabel {
+  color: #FFFFFF;
+  text-shadow: 0 0 12px rgba(86, 141, 255, 0.7);
+}
+
+.segmentPassed .segmentTick {
+  background: rgba(86, 141, 255, 0.6);
+}
+
+@media (max-width: 640px) {
+  .railContainer {
+    padding-bottom: 0.85rem;
   }
-  .chapters {
-    gap: 0.4rem;
-  }
-  .label {
+  .segmentLabel {
     display: none;
   }
-  .labelSolo {
-    display: block;
+  .segmentTick {
+    width: 8px;
+  }
+  .segmentActive .segmentTick {
+    width: 14px;
   }
 }
-──────────────────────────────────────────────────────────────────────── */

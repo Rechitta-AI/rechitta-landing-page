@@ -11,6 +11,17 @@ import ScrollRail from '@/components/ScrollRail';
 import Cursor from '@/components/Cursor';
 import OrbStage from '@/components/OrbStage';
 import CityBackdrop from '@/components/CityBackdrop';
+import MacroFocusPullTransition from '@/components/MacroFocusPullTransition';
+import dynamic from 'next/dynamic';
+
+const FinaleWorldMapPresentation = dynamic(
+  () => import('@/components/FinaleWorldMapPresentation'),
+  { ssr: false }
+);
+const MonitorCalibrator = dynamic(
+  () => import('@/components/MonitorCalibrator'),
+  { ssr: false }
+);
 import type { FilmTiming } from '@/orb/types';
 import type { Playhead } from '@/screens/types';
 import { CITIES, type Beat, type Chapter } from '@/film/score';
@@ -139,6 +150,10 @@ export default function ExperiencePage() {
   return (
     <>
       <Cursor />
+      <MonitorCalibrator />
+
+      {/* "6/6 Briefings Delivered" — Macro UI Focus Pull Transition */}
+      <MacroFocusPullTransition />
 
       {introPhase === 'loading' && (
         <Loader onDone={() => setIntroPhase('moving')} orbReady={orbReady} />
@@ -170,6 +185,7 @@ export default function ExperiencePage() {
         >
           {/* The multilingual chapter */}
           <div
+            id="multilingual-chapter"
             className="absolute inset-0 z-[15] w-full h-full overflow-hidden"
             style={{
               opacity: chapter === 'cities' ? 1 : 0,
@@ -260,6 +276,7 @@ export default function ExperiencePage() {
             <BoardroomPresentation holdData={holdData} />
             <BrokerPresentation holdData={holdData} />
             <BuyerPresentation holdData={holdData} />
+            <FinaleWorldMapPresentation chapter={chapter} beatIndex={beatIndex} />
 
             <FilmStage
               scrollData={scrollData}

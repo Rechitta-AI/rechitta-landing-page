@@ -238,6 +238,14 @@ export default function FilmStage({
           show(v, FADE_MS);
           if (playheadRef) playheadRef.current = { clip: beat.clip, t: beat.park };
         }
+      } else if (beat.id === 'city-paris' || beat.id === 'city-riyadh') {
+        // Pre-park the finale presentation clip ('last') at 1.0s in the background
+        // so the hardware decoder is already primed before the clouds appear.
+        const nextBeat = BEATS.find((b) => b.id === 'finale-screen');
+        if (nextBeat?.clip) {
+          const v = acquire(nextBeat.clip);
+          park(v, nextBeat.park ?? 1.0);
+        }
       }
     };
 
@@ -412,6 +420,7 @@ export default function FilmStage({
     };
 
     /** Chapters are separated by a white flash, the film's only hard cut. */
+    /** Chapters are separated by a white flash, the film's only hard cut. */
     const crossChapter = async (target: Beat, swap: () => void | Promise<void>) => {
       if (reduceMotion) {
         await swap();
@@ -427,6 +436,35 @@ export default function FilmStage({
       flash(0, FLASH_OUT_MS);
       void target;
     };
+
+    /**
+     * "6/6 Briefings Delivered" — Macro UI Focus Pull transition between the
+     * multilingual cities chapter and the finale presentation.
+     */
+    const runFocusPullTransition = (
+      dir: 1 | -1,
+      swap: () => void | Promise<void>,
+    ): Promise<void> =>
+      new Promise<void>((resolve) => {
+        let settled = false;
+        const done = () => {
+          if (settled) return;
+          settled = true;
+          window.clearTimeout(timer);
+          resolve();
+        };
+        const timer = window.setTimeout(done, 800);
+
+        window.dispatchEvent(
+          new CustomEvent('rechitta:macro-focus-pull-transition', {
+            detail: {
+              dir,
+              swap,
+              done,
+            },
+          }),
+        );
+      });
 
     // ── The move ─────────────────────────────────────────────────────
 
@@ -468,33 +506,68 @@ export default function FilmStage({
       }
 
       if (chapterChange) {
-        await crossChapter(target, async () => {
-          if (target.chapter === 'cities') {
-            setLayerVisible(false);
-            show(null, 0);
-          } else {
-            setLayerVisible(true);
-            if (target.clip) {
-              const v = acquire(target.clip);
-              await park(
-                v,
-                dir === 1 && target.enter && !playsOut ? target.enter.from : target.park,
-              );
-              show(v, 0);
-            }
-          }
-          if (target.city !== undefined) callbacks.current.onCity?.(target.city);
-          if (target.chapter !== currentChapter) {
-            currentChapter = target.chapter;
-            callbacks.current.onChapter?.(target.chapter);
-          }
-        });
-        if (disposed) return;
+        const isCitiesFinaleBoundary =
+          (source.chapter === 'cities' && target.chapter === 'finale') ||
+          (source.chapter === 'finale' && target.chapter === 'cities');
 
-        if (!playsOut && dir === 1 && target.enter && target.chapter !== 'cities') {
-          await playForward(target, from, to);
+        if (isCitiesFinaleBoundary) {
+          await runFocusPullTransition(dir, async () => {
+            if (target.chapter === 'cities') {
+              setLayerVisible(false);
+              show(null, 0);
+            } else {
+              setLayerVisible(true);
+              if (target.clip) {
+                const v = acquire(target.clip);
+                await park(
+                  v,
+                  dir === 1 && target.enter && !playsOut ? target.enter.from : target.park,
+                );
+                show(v, 0);
+              }
+            }
+            if (target.city !== undefined) callbacks.current.onCity?.(target.city);
+            if (target.chapter !== currentChapter) {
+              currentChapter = target.chapter;
+              callbacks.current.onChapter?.(target.chapter);
+            }
+          });
+          if (disposed) return;
+
+          if (!playsOut && dir === 1 && target.enter && target.chapter !== 'cities') {
+            await playForward(target, from, to);
+          } else {
+            publish(beatProgress(target));
+          }
         } else {
-          publish(beatProgress(target));
+          await crossChapter(target, async () => {
+            if (target.chapter === 'cities') {
+              setLayerVisible(false);
+              show(null, 0);
+            } else {
+              setLayerVisible(true);
+              if (target.clip) {
+                const v = acquire(target.clip);
+                await park(
+                  v,
+                  dir === 1 && target.enter && !playsOut ? target.enter.from : target.park,
+                );
+                show(v, 0);
+              }
+            }
+            if (target.city !== undefined) callbacks.current.onCity?.(target.city);
+            if (target.chapter !== currentChapter) {
+              currentChapter = target.chapter;
+              callbacks.current.onChapter?.(target.chapter);
+            }
+          });
+          if (disposed) return;
+
+          if (!playsOut && dir === 1 && target.enter && target.chapter !== 'cities') {
+            await playForward(target, from, to);
+          } else {
+            publish(beatProgress(target));
+          }
         }
       } else if (target.chapter === 'cities') {
         // Cities move by dissolve; the backdrop runs its own short push-in and
@@ -614,7 +687,7 @@ export default function FilmStage({
       const y = e.touches[0]?.clientY;
       if (y === undefined || touchY === null) return;
       // Dragging a finger up means going forward, the same way a page scrolls.
-      feed((touchY - y) * 2.2);
+      feed((touchY - y) * 2.0);
       touchY = y;
     };
     const onTouchEnd = () => {
@@ -650,7 +723,16 @@ export default function FilmStage({
       const steps = BEATS[state.index]?.steps ?? 1;
       state.step = Math.max(0, Math.min(steps - 1, detail.step));
     };
-    window.addEventListener('rechitta:beat-sync', onStepSync);
+    /** Jump directly to a beat from Navbar or ScrollRail */
+    const onJumpEvent = (e: Event) => {
+      const detail = (e as CustomEvent<{ index: number }>).detail;
+      if (typeof detail?.index === 'number' && detail.index >= 0 && detail.index < BEATS.length) {
+        if (state.index === detail.index || state.phase === 'moving') return;
+        const dir = detail.index > state.index ? 1 : -1;
+        void runMove(state.index, detail.index, dir);
+      }
+    };
+    window.addEventListener('rechitta:jump-to-beat', onJumpEvent);
 
     window.addEventListener('wheel', onWheel, { passive: false });
     window.addEventListener('touchstart', onTouchStart, { passive: true });
@@ -722,6 +804,7 @@ export default function FilmStage({
       window.removeEventListener('touchend', onTouchEnd);
       window.removeEventListener('keydown', onKey);
       window.removeEventListener('rechitta:beat-sync', onStepSync);
+      window.removeEventListener('rechitta:jump-to-beat', onJumpEvent);
       RELEASE_EVENTS.forEach((e) => window.removeEventListener(e, onReleaseEvent));
       setMediaHost(null);
     };
@@ -732,6 +815,7 @@ export default function FilmStage({
     <>
       <div
         ref={hostRef}
+        id="film-stage-host"
         className="absolute inset-0 z-10 w-full h-full overflow-hidden pointer-events-none"
       />
       <div

@@ -19,17 +19,23 @@
 
 import type { Beat } from './score';
 
-/** Accumulated input needed to commit to a move. */
-export const THRESHOLD = 100;
+/** Accumulated input needed to commit to a move. High responsiveness for Option C. */
+export const THRESHOLD = 80;
 
 /** Per-event cap, so one violent wheel spin is still one step. */
-export const MAX_DELTA = 60;
+export const MAX_DELTA = 70;
 
 /** Quiet for this long and the accumulator forgets what it was doing. */
-export const IDLE_RESET_MS = 220;
+export const IDLE_RESET_MS = 200;
 
 /** Dead time after a transition lands, so its tail-off is not read as input. */
-export const COOLDOWN_MS = 260;
+export const COOLDOWN_MS = 180;
+
+/** Cooldown between sub-steps (e.g. boardroom slides) so one swipe only advances 1 step. */
+export const STEP_COOLDOWN_MS = 160;
+
+/** Grace period after transition starts before any mid-flight skip is permitted. */
+export const SKIP_GRACE_MS = 140;
 
 /** How many refusals a gated beat gives before it lets the viewer through. */
 export const NUDGE_LIMIT = 3;
@@ -45,6 +51,7 @@ export type DirectorState = {
   lastInputAt: number;
   lockedUntil: number;
   nudges: number;
+  transitionStartedAt: number;
 };
 
 export type Command =
@@ -67,6 +74,7 @@ export function createDirector(index = 0): DirectorState {
     lastInputAt: -Infinity,
     lockedUntil: -Infinity,
     nudges: 0,
+    transitionStartedAt: -Infinity,
   };
 }
 
@@ -88,9 +96,14 @@ export function feedInput(
   if (delta === 0) return { type: 'none' };
 
   // A transition owns the screen while it plays. Scrolling forward through it
-  // is not an accident, though — it means "I have seen this, move on" — so the
-  // same threshold cuts to the end of the shot rather than being discarded.
+  // is only allowed after a grace period so residual momentum from the move's
+  // trigger does not accidentally cut the video short.
   if (state.phase === 'moving') {
+    if (now - (state.transitionStartedAt ?? 0) < SKIP_GRACE_MS) {
+      state.intent = 0;
+      state.lastInputAt = now;
+      return { type: 'none' };
+    }
     if (now - state.lastInputAt > IDLE_RESET_MS) state.intent = 0;
     if (state.intent < 0) state.intent = 0;
     state.lastInputAt = now;
@@ -133,12 +146,15 @@ export function commit(
   const steps = beat?.steps ?? 1;
 
   // Sub-steps first: the boardroom walks its slides before the film moves on.
+  // We lock input briefly so one continuous flick only advances one slide at a time.
   if (dir === 1 && state.step < steps - 1) {
     state.step += 1;
+    state.lockedUntil = now + STEP_COOLDOWN_MS;
     return { type: 'step', index: state.index, step: state.step, dir };
   }
   if (dir === -1 && state.step > 0) {
     state.step -= 1;
+    state.lockedUntil = now + STEP_COOLDOWN_MS;
     return { type: 'step', index: state.index, step: state.step, dir };
   }
 
@@ -156,6 +172,7 @@ export function commit(
   if (to === state.index) return { type: 'none' };
 
   state.phase = 'moving';
+  state.transitionStartedAt = now;
   state.nudges = 0;
   return { type: 'move', from: state.index, to, dir };
 }
@@ -191,6 +208,7 @@ export function release(state: DirectorState, now: number, beats: Beat[]): Comma
   const to = nextIndex(state.index, 1, beats.length);
   if (to === state.index) return { type: 'none' };
   state.phase = 'moving';
+  state.transitionStartedAt = now;
   state.intent = 0;
   state.nudges = 0;
   return { type: 'move', from: state.index, to, dir: 1 };

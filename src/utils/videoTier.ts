@@ -53,4 +53,7 @@ export function pickTier(): Tier {
   return 'h264';
 }
 
-export const fullUrl = (key: string, tier: Tier = pickTier()) => `/film/video/${key}.${tier}.mp4`;
+export const fullUrl = (key: string, tier: Tier = pickTier()) => {
+  if (key === 'last' || key === 'last-scene') return '/upscaled-ones/last.mp4';
+  return `/film/video/${key}.${tier}.mp4`;
+};

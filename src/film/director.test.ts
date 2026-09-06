@@ -71,12 +71,14 @@ describe('scroll threshold', () => {
     expect(s.phase).toBe('moving');
   });
 
-  it('cuts to the end of the shot when scrolled forward again mid-transition', () => {
+  it('ignores skip requests during grace period, and cuts when scrolled forward after', () => {
     const s = createDirector();
     push(s, MAX_DELTA);
     expect(s.phase).toBe('moving');
-    expect(feedInput(s, MAX_DELTA, 1000, beats)).toEqual({ type: 'none' });
-    expect(feedInput(s, MAX_DELTA, 1010, beats)).toEqual({ type: 'skip' });
+    // During grace period (e.g. 100ms after start), skip inputs are discarded
+    expect(feedInput(s, MAX_DELTA, 100, beats)).toEqual({ type: 'none' });
+    // After grace period, accumulating enough intent commits to a skip
+    expect(push(s, MAX_DELTA, 1000)).toEqual({ type: 'skip' });
     // Still moving: the stage decides when the skip has landed.
     expect(s.phase).toBe('moving');
   });

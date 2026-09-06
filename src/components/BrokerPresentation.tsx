@@ -613,30 +613,35 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
         </div>
 
         {/* --- BOTTOM ACTION CONTROLS --- */}
-        <div className="hud-action-reveal flex flex-row flex-wrap sm:flex-row items-center gap-2.5 sm:gap-3 pt-1">
+        <div className="hud-action-reveal flex flex-row flex-wrap sm:flex-row items-center gap-2.5 sm:gap-3 pt-2">
+          {/* External Platform Link */}
           <a
             href="https://rechitta.com/brokers"
             target="_blank"
             rel="noreferrer"
-            className="flex-1 min-w-0 py-3 sm:py-3.5 px-4 sm:px-5 rounded-xl bg-white hover:bg-neutral-100 text-neutral-950 text-xs sm:text-[13px] font-bold tracking-tight transition-all flex items-center justify-center gap-2 group shadow-xl hover:shadow-white/10 cursor-pointer text-center"
+            className="flex-1 min-w-0 py-3 sm:py-3.5 px-4 sm:px-5 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] text-neutral-200 hover:text-white text-xs sm:text-[13px] font-semibold tracking-tight transition-all duration-300 flex items-center justify-center gap-2 group border border-white/15 hover:border-white/30 backdrop-blur-md cursor-pointer text-center"
+            style={{ fontFamily: 'var(--font-inter)' }}
           >
-            <span className="whitespace-nowrap">{stacked ? 'Broker Experience' : 'Explore Broker Experience'}</span>
-            <span className="text-neutral-600 font-bold transition-transform group-hover:translate-x-1">
-              →
+            <span className="whitespace-nowrap">{stacked ? 'Broker Platform' : 'Explore Broker Platform'}</span>
+            <span className="text-neutral-400 group-hover:text-white transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5">
+              ↗
             </span>
           </a>
 
+          {/* 3D Scene Flight Trigger */}
           <button
             onClick={handleFlyToBuyer}
-            className={`flex-1 min-w-0 py-3 sm:py-3.5 px-4 sm:px-5 rounded-xl text-white text-xs sm:text-[13px] font-bold tracking-tight transition-all flex items-center justify-center gap-2 cursor-pointer group border ${
+            className={`flex-1 min-w-0 py-3 sm:py-3.5 px-4 sm:px-5 rounded-xl text-white text-xs sm:text-[13px] font-bold tracking-tight transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer group border ${
               showScrollPrompt
-                ? 'bg-[#568DFF] border-[#8FB4FF] shadow-[0_0_28px_rgba(86,141,255,0.55)] scale-[1.02]'
-                : 'bg-gradient-to-r from-blue-600 to-[#568DFF] border-blue-400/30 shadow-md shadow-blue-500/25 hover:shadow-blue-500/40'
+                ? 'bg-[#568DFF] border-[#8FB4FF] shadow-[0_0_32px_rgba(86,141,255,0.7)] scale-[1.02]'
+                : 'bg-[#568DFF]/90 hover:bg-[#568DFF] border-[#568DFF]/60 hover:border-[#8FB4FF] shadow-[0_0_20px_rgba(86,141,255,0.4)] hover:shadow-[0_0_28px_rgba(86,141,255,0.6)]'
             }`}
             style={{ fontFamily: 'var(--font-inter)' }}
+            aria-label="Fly to Buyer Perspective"
           >
-            <span className="whitespace-nowrap">Buyer&apos;s Perspective</span>
-            <span className="text-white/80 font-bold transition-transform group-hover:translate-x-1">
+            <span className="h-2 w-2 rounded-full bg-white shadow-[0_0_8px_#ffffff] animate-pulse" />
+            <span className="whitespace-nowrap">Fly to Buyer</span>
+            <span className="text-white/90 font-bold transition-transform group-hover:translate-x-1">
               →
             </span>
           </button>
