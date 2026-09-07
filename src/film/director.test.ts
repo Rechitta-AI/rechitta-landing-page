@@ -56,9 +56,28 @@ describe('scroll threshold', () => {
 
   it('clears intent when the direction reverses', () => {
     const s = createDirector();
-    feedInput(s, MAX_DELTA, 0, beats);
-    feedInput(s, -MAX_DELTA, 10, beats);
-    expect(s.intent).toBe(-MAX_DELTA);
+    const half = Math.floor(THRESHOLD / 2);
+    feedInput(s, half, 0, beats);
+    feedInput(s, -half, 10, beats);
+    expect(s.intent).toBe(-half);
+  });
+
+  it('lets one decisive event commit, forwards and backwards', () => {
+    // The per-event cap has to clear the threshold, or a mouse wheel - one
+    // discrete event per detent - can never move the film at all.
+    expect(MAX_DELTA).toBeGreaterThanOrEqual(THRESHOLD);
+
+    const forward = createDirector();
+    expect(feedInput(forward, 120, 0, beats)).toEqual({ type: 'move', from: 0, to: 1, dir: 1 });
+
+    const back = createDirector(3);
+    expect(feedInput(back, -120, 0, beats)).toEqual({ type: 'move', from: 3, to: 2, dir: -1 });
+  });
+
+  it('commits a backward move on the same input a forward move takes', () => {
+    const s = createDirector(2);
+    // Well past the idle reset, so nothing is carried over from before.
+    expect(push(s, -MAX_DELTA, 10_000)).toEqual({ type: 'move', from: 2, to: 1, dir: -1 });
   });
 
   it('ignores a backward scroll while a transition plays', () => {
@@ -93,9 +112,12 @@ describe('scroll threshold', () => {
 
   it('caps a violent wheel spin at one step', () => {
     const s = createDirector();
-    const out = feedInput(s, 100000, 0, beats);
-    expect(out).toEqual({ type: 'none' });
-    expect(s.intent).toBe(MAX_DELTA);
+    expect(feedInput(s, 100000, 0, beats)).toEqual({ type: 'move', from: 0, to: 1, dir: 1 });
+    // Everything after it is swallowed until the transition lands.
+    for (let i = 1; i <= 20; i++) {
+      expect(feedInput(s, 100000, i * 10, beats)).toEqual({ type: 'none' });
+    }
+    expect(s.index).toBe(0);
   });
 });
 

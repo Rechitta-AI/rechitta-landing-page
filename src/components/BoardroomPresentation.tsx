@@ -21,7 +21,7 @@ const SLIDE_3_QUESTIONS = [
   {
     chip: 'Elevator & Burj Views',
     q: 'Which units have sunset Burj Khalifa views?',
-    a: 'Levels 42–58: West-facing 3-bed duplexes feature private high-speed elevators and 270° unobstructed Burj skyline vistas.',
+    a: 'Levels 42-58. West-facing 3-bed duplexes have private high-speed elevators and 270° unobstructed Burj skyline views.',
   },
 ];
 
@@ -31,19 +31,19 @@ const SLIDES = [
     id: 1,
     tag: '01 / THE STATUS QUO',
     headline: 'Every project starts with a pitch.',
-    body: 'A deck, a brochure, a sales team working the phones — repeated for every broker, every buyer, every question.',
+    body: 'A deck, a brochure, a sales team working the phones. Repeated for every broker, every buyer, every question.',
   },
   {
     id: 2,
     tag: '02 / THE SHIFT',
     headline: 'Rechitta turns that pitch into a briefing.',
-    body: 'Upload the project once — media, pricing, floor plans, the story. Every broker gets briefed exactly the same way, instantly.',
+    body: 'Upload the project once: media, pricing, floor plans, the story. Every broker gets briefed exactly the same way, instantly.',
   },
   {
     id: 3,
     tag: '03 / INSTANT KNOWLEDGE',
     headline: 'Ask it anything.',
-    body: "Payment plans, unit views, handover dates — answered in real time, the way a broker would if they'd built the project themselves.",
+    body: "Payment plans, unit views, handover dates, answered in real time. The way a broker would if they'd built the project themselves.",
   },
   {
     id: 4,
@@ -454,16 +454,19 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
                     slide.id === 4 && quizState !== 'prompt' ? 'translateY(-16px)' : 'translateY(0)',
                 }}
               >
-                {/* Section Eyebrow Badge */}
-                <span
-                  className="inline-block text-[11px] md:text-xs tracking-[0.28em] text-neutral-500 font-bold mb-2 uppercase"
-                  style={{ fontFamily: 'var(--font-inter)' }}
-                >
-                  {slide.tag}
-                </span>
+                {/* Section eyebrow, on the shared editorial tier. */}
+                <div className="mb-2 flex flex-col items-center gap-1.5">
+                  <span
+                    className="eyebrow text-neutral-500"
+                    style={{ fontFamily: 'var(--font-inter)' }}
+                  >
+                    {slide.tag}
+                  </span>
+                  <span className="eyebrow-rule" data-align="center" aria-hidden="true" />
+                </div>
 
                 {/* Headline in Clean Editorial Sans (Inter) */}
-                <div className="overflow-hidden mb-2.5">
+                <div className="overflow-hidden mb-2">
                   <h2
                     className="text-2xl sm:text-3xl md:text-[2.65rem] lg:text-[2.9rem] font-bold text-neutral-900 tracking-tight leading-[1.12]"
                     style={{ fontFamily: 'var(--font-inter)' }}
@@ -474,7 +477,7 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
 
                 {/* Body in Clean Editorial Sans (Inter) */}
                 <p
-                  className="text-sm sm:text-[15px] md:text-base text-neutral-700 font-normal leading-relaxed max-w-lg mb-3"
+                  className="text-sm sm:text-[15px] md:text-base text-neutral-600 font-normal leading-relaxed max-w-[34ch] text-balance mb-3"
                   style={{ fontFamily: 'var(--font-inter)' }}
                 >
                   {slide.body}

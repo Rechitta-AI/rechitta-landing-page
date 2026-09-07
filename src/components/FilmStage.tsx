@@ -711,11 +711,11 @@ export default function FilmStage({
       if (modalOpen()) return;
       if (FORWARD_KEYS.includes(e.key)) {
         e.preventDefault();
-        if (!enabledRef.current) return;
+        if (!enabledRef.current || state.phase === 'moving') return;
         dispatch(commit(state, 1, performance.now(), BEATS, isBlocked));
       } else if (BACK_KEYS.includes(e.key)) {
         e.preventDefault();
-        if (!enabledRef.current) return;
+        if (!enabledRef.current || state.phase === 'moving') return;
         dispatch(commit(state, -1, performance.now(), BEATS));
       }
     };
@@ -741,6 +741,7 @@ export default function FilmStage({
         void runMove(state.index, detail.index, dir);
       }
     };
+    window.addEventListener('rechitta:beat-sync', onStepSync);
     window.addEventListener('rechitta:jump-to-beat', onJumpEvent);
 
     window.addEventListener('wheel', onWheel, { passive: false });

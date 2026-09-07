@@ -6,6 +6,10 @@
  * beat. Everything below the threshold is discarded, which is what stops a
  * trackpad's resting drift from nudging the film a frame at a time.
  *
+ * The threshold is direction-agnostic: scrolling back commits exactly the
+ * same way as scrolling on, and only the forward direction is ever gated (see
+ * `gate` and `isBlocked` below).
+ *
  * Three further rules keep a commit from being accidental:
  *   - Intent decays to nothing after IDLE_RESET_MS of quiet, so a slow scroll
  *     spread over seconds never adds up to a move.
@@ -19,20 +23,34 @@
 
 import type { Beat } from './score';
 
-/** Accumulated input needed to commit to a move. High responsiveness for Option C. */
-export const THRESHOLD = 80;
+/**
+ * Accumulated input needed to commit to a move.
+ *
+ * This has to sit *below* MAX_DELTA, not above it. When it sat above, a single
+ * wheel event could never reach it however hard it was thrown, so a mouse
+ * wheel - which fires one discrete event per detent, often more than
+ * IDLE_RESET_MS apart - could never move the film in either direction, and a
+ * short backward flick on a trackpad stalled at the cap.
+ */
+export const THRESHOLD = 60;
 
 /** Per-event cap, so one violent wheel spin is still one step. */
-export const MAX_DELTA = 70;
+export const MAX_DELTA = 90;
 
 /** Quiet for this long and the accumulator forgets what it was doing. */
-export const IDLE_RESET_MS = 200;
+export const IDLE_RESET_MS = 260;
 
-/** Dead time after a transition lands, so its tail-off is not read as input. */
-export const COOLDOWN_MS = 180;
+/**
+ * Dead time after a transition lands, so its tail-off is not read as input.
+ *
+ * A trackpad keeps sending momentum for the best part of a second after the
+ * fingers have left it, and with one decisive event now enough to commit, a
+ * short cooldown let that tail carry the film two beats on one gesture.
+ */
+export const COOLDOWN_MS = 320;
 
 /** Cooldown between sub-steps (e.g. boardroom slides) so one swipe only advances 1 step. */
-export const STEP_COOLDOWN_MS = 160;
+export const STEP_COOLDOWN_MS = 300;
 
 /** Grace period after transition starts before any mid-flight skip is permitted. */
 export const SKIP_GRACE_MS = 650;
@@ -218,7 +236,7 @@ export function arrive(
   state.step = dir === 1 ? 0 : steps - 1;
 }
 
-/** Clears a gate's refusal count — the viewer pressed the button after all. */
+/** Clears a gate's refusal count: the viewer pressed the button after all. */
 export function release(state: DirectorState, now: number, beats: Beat[]): Command {
   if (state.phase === 'moving') return { type: 'none' };
   const to = nextIndex(state.index, 1, beats.length);

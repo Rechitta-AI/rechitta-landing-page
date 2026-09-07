@@ -314,6 +314,16 @@ export default function ExperiencePage() {
                     transform: 'translateX(-20px)',
                   }}
                 >
+                  {/*
+                    The tier above the headline. The scenes downstream all open
+                    on an eyebrow of their own, so the hero opening on a bare
+                    headline left the film's first frame reading flatter than
+                    every frame after it.
+                  */}
+                  <p className="hero-word eyebrow text-center text-white/45 mb-3 md:mb-4">
+                    AI briefings for Dubai real estate
+                  </p>
+
                   <h1
                     id="hero-heading"
                     className="text-[clamp(2.25rem,5.5vw,4.5rem)] leading-none text-white tracking-tight flex flex-wrap items-center justify-center gap-x-[0.3em]"
@@ -329,10 +339,10 @@ export default function ExperiencePage() {
                 </div>
 
                 <p
-                  className="mt-4 md:mt-6 text-sm sm:text-base md:text-lg text-gray-300 max-w-xl md:max-w-2xl leading-relaxed flex flex-wrap justify-center gap-x-[0.4em] gap-y-2"
+                  className="mt-5 md:mt-7 text-sm sm:text-base md:text-lg text-white/55 max-w-md md:max-w-xl leading-relaxed flex flex-wrap justify-center gap-x-[0.4em] gap-y-2"
                   style={{ fontFamily: 'var(--font-inter)' }}
                 >
-                  {'Live developer inventory, translated into conversation — so every broker and every buyer speaks the same language.'
+                  {'Live developer inventory, translated into conversation. Every broker and every buyer speaks the same language.'
                     .split(' ')
                     .map((word, i) => (
                       <span key={i} className="inline-flex overflow-hidden">
@@ -348,11 +358,12 @@ export default function ExperiencePage() {
 
                 <div
                   id="hero-scroll-indicator"
-                  className={`absolute bottom-8 md:bottom-12 left-1/2 -translate-x-1/2 flex flex-col items-center gap-3 transition-all duration-700 ${
+                  /* Clear of the chapter rail, which owns the bottom ~100px. */
+                  className={`absolute bottom-28 md:bottom-32 left-1/2 -translate-x-1/2 flex flex-col items-center gap-3 transition-all duration-700 ${
                     introPhase === 'done' ? 'opacity-100 translate-y-0 delay-[1000ms]' : 'opacity-0 translate-y-4'
                   }`}
                 >
-                  <span className="text-[11px] tracking-[0.4em] text-white/50 font-medium font-sans">SCROLL</span>
+                  <span className="eyebrow text-white/40">Scroll</span>
                   <div className="w-[1px] h-12 bg-white/10 relative overflow-hidden">
                     <div className="absolute inset-0 bg-white origin-top animate-scroll-line"></div>
                   </div>

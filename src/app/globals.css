@@ -46,7 +46,9 @@ body {
   color: var(--bone);
   font-family: var(--font-inter), system-ui, -apple-system, sans-serif;
   overflow-x: hidden;
-  
+  font-optical-sizing: auto;
+  text-rendering: optimizeLegibility;
+
   /* Permanently hide scrollbars to keep a cinematic feel */
   -ms-overflow-style: none; /* IE and Edge */
   scrollbar-width: none; /* Firefox */
@@ -229,12 +231,14 @@ h1 {
   font-variation-settings: "opsz" 32;
   font-weight: 640;
   letter-spacing: -0.03em;
+  text-wrap: balance;
 }
 
 h2 {
   font-variation-settings: "opsz" 32;
   font-weight: 620;
   letter-spacing: -0.025em;
+  text-wrap: balance;
 }
 
 h3,
@@ -242,19 +246,61 @@ h4 {
   font-variation-settings: "opsz" 24;
   font-weight: 600;
   letter-spacing: -0.015em;
+  text-wrap: balance;
 }
 
 p {
   font-variation-settings: "opsz" 18;
   font-weight: 400;
   letter-spacing: -0.005em;
+  /* Never leave a single word alone on the last line of a paragraph. */
+  text-wrap: pretty;
 }
 
-/* Small uppercase chrome — nav, counters, chapter names. Letterspaced type
+/* Small uppercase chrome: nav, counters, chapter names. Letterspaced type
    at small sizes needs weight to hold its colour on a dark ground. */
 .type-label {
   font-variation-settings: "opsz" 14;
   font-weight: 500;
+}
+
+/*
+ * The editorial eyebrow: the tier that sits above a headline.
+ *
+ * The hero and the boardroom deck were each letterspacing this by hand at a
+ * slightly different size and weight, so the same tier read differently from
+ * shot to shot. The mono telemetry strips in the phone scenes are a separate
+ * voice on purpose and keep their own styling.
+ */
+.eyebrow {
+  font-variation-settings: "opsz" 14;
+  font-weight: 600;
+  font-size: 0.6875rem;
+  line-height: 1;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+}
+
+/*
+ * The hairline that separates an eyebrow from the headline under it. Short,
+ * accent-coloured, and fading out to nothing so it reads as a tick rather
+ * than as a rule across the column.
+ */
+.eyebrow-rule {
+  display: block;
+  width: 2.25rem;
+  height: 1px;
+  border: 0;
+  background: linear-gradient(to right, var(--accent), transparent);
+}
+.eyebrow-rule[data-align='center'] {
+  margin-inline: auto;
+  background: linear-gradient(to right, transparent, var(--accent), transparent);
+}
+
+::selection {
+  background: var(--accent);
+  color: #fff;
 }
 
 @keyframes notificationDrop {

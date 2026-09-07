@@ -420,14 +420,11 @@ export default function BuyerPresentation({ holdData }: BuyerPresentationProps) 
   // Words for the Optical Mask Split-Reveal headline
   const headlineLine1 = [
     { text: 'Ask', isHighlight: false },
-    { text: 'anything', isHighlight: false },
-    { text: '—', isHighlight: false },
+    { text: 'anything.', isHighlight: false },
   ];
 
   const headlineLine2 = [
-    { text: 'get', isHighlight: true },
-    { text: 'it', isHighlight: true },
-    { text: 'back', isHighlight: true },
+    { text: 'Answered', isHighlight: true },
     { text: 'in', isHighlight: true },
     { text: 'your', isHighlight: true },
     { text: 'language.', isHighlight: true },
@@ -789,7 +786,7 @@ export default function BuyerPresentation({ holdData }: BuyerPresentationProps) 
         {/* --- 1 CLEAN SUB-HEADLINE SENTENCE --- */}
         <div className={`overflow-hidden mb-4 ${stacked ? 'hidden' : ''}`}>
           <p className="buyer-split-sub text-[11px] sm:text-xs md:text-[13px] text-neutral-400 font-normal leading-relaxed translate-y-[110%] opacity-0 filter blur-[4px]">
-            From elevator wait times to offshore currency conversion — answered in real time with native cultural fluency.
+            From elevator wait times to offshore currency conversion. Answered in real time, with native cultural fluency.
           </p>
         </div>
 

@@ -526,7 +526,7 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
         {/* --- 1 CLEAN SUB-HEADLINE SENTENCE --- */}
         <div className={`overflow-hidden mb-5 ${stacked ? 'hidden' : ''}`}>
           <p className="split-sub text-[11px] sm:text-xs md:text-[13px] text-neutral-400 font-normal leading-relaxed translate-y-[110%] opacity-0 filter blur-[4px]">
-            Every unit, price, and payment plan across Dubai — queried live by voice or text.
+            Every unit, price, and payment plan across Dubai. Queried live, by voice or text.
           </p>
         </div>
 
