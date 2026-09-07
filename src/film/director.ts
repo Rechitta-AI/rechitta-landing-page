@@ -58,6 +58,12 @@ export type Command =
   | { type: 'none' }
   /** A gated beat refused to advance. */
   | { type: 'nudge'; index: number }
+  /**
+   * A beat refused to let go because something on it is unfinished — the
+   * boardroom's last slide asks a question, and the film should not move on
+   * before it is answered. Unlike a nudge this never relents.
+   */
+  | { type: 'blocked'; index: number }
   /** Movement inside the current beat: the boardroom changed slide. */
   | { type: 'step'; index: number; step: number; dir: 1 | -1 }
   /** Commit to a transition. */
@@ -92,6 +98,7 @@ export function feedInput(
   delta: number,
   now: number,
   beats: Beat[],
+  isBlocked?: (index: number) => boolean,
 ): Command {
   if (delta === 0) return { type: 'none' };
 
@@ -132,7 +139,7 @@ export function feedInput(
   const dir = sign(state.intent);
   state.intent = 0;
 
-  return commit(state, dir, now, beats);
+  return commit(state, dir, now, beats, isBlocked);
 }
 
 /** Commits a move in `dir`, applying the beat's own step and gate rules. */
@@ -141,6 +148,8 @@ export function commit(
   dir: 1 | -1,
   now: number,
   beats: Beat[],
+  /** Asked before a forward move whether the beat is ready to be left. */
+  isBlocked?: (index: number) => boolean,
 ): Command {
   const beat = beats[state.index];
   const steps = beat?.steps ?? 1;
@@ -156,6 +165,13 @@ export function commit(
     state.step -= 1;
     state.lockedUntil = now + STEP_COOLDOWN_MS;
     return { type: 'step', index: state.index, step: state.step, dir };
+  }
+
+  // An overlay can refuse to let go. This is not the gate below: a gate is a
+  // preference the film relents on, this is a requirement it does not.
+  if (dir === 1 && isBlocked?.(state.index)) {
+    state.lockedUntil = now + COOLDOWN_MS;
+    return { type: 'blocked', index: state.index };
   }
 
   // A gated beat wants its call to action pressed. It relents after a few

@@ -18,10 +18,6 @@ const FinaleWorldMapPresentation = dynamic(
   () => import('@/components/FinaleWorldMapPresentation'),
   { ssr: false }
 );
-const MonitorCalibrator = dynamic(
-  () => import('@/components/MonitorCalibrator'),
-  { ssr: false }
-);
 import type { FilmTiming } from '@/orb/types';
 import type { Playhead } from '@/screens/types';
 import { CITIES, type Beat, type Chapter } from '@/film/score';
@@ -153,7 +149,6 @@ export default function ExperiencePage() {
   return (
     <>
       <Cursor />
-      <MonitorCalibrator />
 
       {/* "6/6 Briefings Delivered" — Macro UI Focus Pull Transition */}
       <MacroFocusPullTransition />

@@ -202,8 +202,23 @@ export default function FinaleWorldMapPresentation({
   const portraitLeft = (viewport.width - portraitWidth) / 2;
   const portraitTop = (viewport.height - portraitHeight) / 2;
 
-  // Active state: visible when in finale chapter at beat 10 (presentation screen) and not moving, OR while calibrator is open
-  const isVisible = (chapter === 'finale' && beatIndex === 10 && !isMoving) || isCalibrating;
+  /*
+   * On screen while the film is parked on the presentation, and held through
+   * the pull-back that follows.
+   *
+   * The map is warped onto the monitor using one calibrated quad, measured at
+   * the frame the film parks on. That quad is only right for that frame, so
+   * once the camera starts moving the map would slide off the screen it is
+   * supposed to be on. Rather than cut it dead the moment the shot begins —
+   * which read as the map blinking out — it now rides the start of the move
+   * and dissolves over it, so the room pulls away from a lit screen.
+   *
+   * Holding it all the way through the pull-back needs the monitor's corners
+   * tracked across the clip, the way the phones are in screens/tracks.ts.
+   */
+  const onPresentation = chapter === 'finale' && beatIndex === 10;
+  const isVisible = (onPresentation && !isMoving) || isCalibrating;
+  const isDissolving = onPresentation && isMoving && !isCalibrating;
 
   // Network ignition animation when landing via match-cut transition
   const triggerIgnition = () => {
@@ -251,13 +266,17 @@ export default function FinaleWorldMapPresentation({
       gsap.killTweensOf(el);
       gsap.to(el, {
         opacity: 0,
-        duration: 0.3,
-        ease: 'power2.inOut',
+        // A dissolve across the camera move, rather than a cut at the start
+        // of it. Anywhere else, the shorter exit.
+        duration: isDissolving ? 1.5 : 0.3,
+        ease: isDissolving ? 'power1.in' : 'power2.inOut',
         onComplete: () => {
           gsap.set(el, { display: 'none' });
         },
       });
     }
+    // isDissolving only ever changes alongside isVisible.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isVisible]);
 
   if (!mounted) return null;
@@ -425,8 +444,17 @@ export default function FinaleWorldMapPresentation({
           ))}
         </g>
 
-        {/* 4. Synchronized Hub Nodes & Anti-Collision Labels */}
-        {GLOBAL_HUBS.map((hub) => {
+        {/*
+          4. Synchronized Hub Nodes & Anti-Collision Labels
+
+          SVG has no z-index: it paints in document order. Dubai sits in the
+          middle of the list and the hubs after it — Mumbai and Shanghai are
+          right on top of it — were painting over the one node that is meant to
+          read as the centre of the network. It goes last so it stays on top.
+        */}
+        {[...GLOBAL_HUBS]
+          .sort((a, b) => Number(Boolean(a.isHQ)) - Number(Boolean(b.isHQ)))
+          .map((hub) => {
           const isHQ = Boolean(hub.isHQ);
 
           return (

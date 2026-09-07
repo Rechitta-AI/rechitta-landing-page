@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import gsap from 'gsap';
 import { coverRect } from '@/screens/warp';
 import { isPortraitFor } from '@/hooks/useDeviceMode';
+import { setHold } from '@/film/holds';
 
 /** Interactive questions on Slide 3 showcasing Rechitta's instant intelligence */
 const SLIDE_3_QUESTIONS = [
@@ -65,7 +66,6 @@ interface BoardroomPresentationProps {
 export default function BoardroomPresentation({ holdData }: BoardroomPresentationProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const slidesRef = useRef<HTMLDivElement>(null);
-  const dotsRef = useRef<(HTMLButtonElement | null)[]>([]);
 
   const isVisibleRef = useRef(false);
 
@@ -165,6 +165,18 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
     screenHeight = (HEIGHT / 100) * rect.height;
   }
 
+  /*
+   * Where the slide controls sit, measured from the top of the screen area.
+   *
+   * The display in the footage runs from 17% to 65.6% down the frame, its
+   * casing ends around 69%, and the credenza starts around 76%. Putting the
+   * controls a little over a tenth of the frame below the screen lands them in
+   * that gap — clear of the picture, clear of the furniture.
+   */
+  const controlsTop = flat
+    ? screenHeight + 18
+    : screenHeight + coverRect(viewport.width, viewport.height).height * 0.055;
+
   const scaleRatio = screenWidth / BASE_W;
   // A deck lying flat should not carry the wall's perspective.
   const tilt = flat
@@ -192,20 +204,6 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
       duration: 0.65,
       ease: 'power3.inOut',
       overwrite: 'auto',
-    });
-
-    // Update the fluid capsule dots
-    dotsRef.current.forEach((dot, i) => {
-      if (!dot) return;
-      if (i === activeSlide) {
-        dot.style.width = '2.2rem';
-        dot.style.opacity = '1';
-        dot.style.backgroundColor = '#111827';
-      } else {
-        dot.style.width = '0.5rem';
-        dot.style.opacity = '0.35';
-        dot.style.backgroundColor = '#4b5563';
-      }
     });
   }, [activeSlide]);
 
@@ -254,6 +252,36 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  /**
+   * The deck's last slide asks a question, and the film waits for the answer.
+   *
+   * Scrolling past it used to carry on to the broker regardless, which made
+   * the question decorative. The film asks before every forward move whether
+   * a beat is ready to be left; while this one is not, it holds.
+   */
+  const [nudgeQuiz, setNudgeQuiz] = useState(false);
+  useEffect(() => {
+    setHold('boardroom', quizState === 'prompt');
+  }, [quizState]);
+
+  useEffect(() => {
+    // Never leave the film held by an overlay that has gone away.
+    return () => setHold('boardroom', false);
+  }, []);
+
+  /** The film refused to move on; draw the eye to the question. */
+  useEffect(() => {
+    const onBlocked = (e: Event) => {
+      const detail = (e as CustomEvent<{ beat?: string }>).detail;
+      if (detail?.beat !== 'boardroom') return;
+      setActiveSlide(SLIDES.length - 1);
+      setNudgeQuiz(true);
+      window.setTimeout(() => setNudgeQuiz(false), 1400);
+    };
+    window.addEventListener('rechitta:blocked', onBlocked);
+    return () => window.removeEventListener('rechitta:blocked', onBlocked);
   }, []);
 
   /** Advance from Boardroom scene into the Broker phone scene */
@@ -609,25 +637,33 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
                         >
                           Think there&apos;s a solution?
                         </span>
+                        {/*
+                          Matched styling on purpose. The filled-dark "Yes"
+                          against an outlined "No" read as an answer already
+                          given, which is exactly what this slide must not do.
+                        */}
                         <div className="flex items-center gap-3">
-                          <button
-                            onClick={() => setQuizState('yes')}
-                            className="px-6 py-2 rounded-full bg-neutral-900 hover:bg-neutral-800 text-white text-xs md:text-sm font-semibold hover:scale-105 active:scale-95 transition-all shadow-sm shadow-neutral-900/20 cursor-pointer flex items-center gap-1.5"
-                            style={{ fontFamily: 'var(--font-inter)' }}
-                          >
-                            <span>Yes</span>
-                            <span className="text-[#568DFF]">✓</span>
-                          </button>
-                          <button
-                            onClick={() => setQuizState('no')}
-                            className="px-6 py-2 rounded-full border border-neutral-300 text-neutral-800 bg-white hover:bg-neutral-50 text-xs md:text-sm font-semibold hover:scale-105 active:scale-95 transition-all shadow-xs cursor-pointer"
-                            style={{ fontFamily: 'var(--font-inter)' }}
-                          >
-                            No
-                          </button>
+                          {(['yes', 'no'] as const).map((choice) => (
+                            <button
+                              key={choice}
+                              onClick={() => setQuizState(choice)}
+                              className={`px-7 py-2 rounded-full border text-xs md:text-sm font-semibold capitalize transition-all duration-200 cursor-pointer bg-white/70 hover:bg-white hover:scale-[1.04] active:scale-95 ${
+                                nudgeQuiz
+                                  ? 'border-[#568DFF] text-neutral-900 shadow-[0_0_0_3px_rgba(86,141,255,0.18)]'
+                                  : 'border-neutral-300 text-neutral-700 hover:border-neutral-500 hover:text-neutral-900 shadow-xs'
+                              }`}
+                              style={{ fontFamily: 'var(--font-inter)' }}
+                            >
+                              {choice}
+                            </button>
+                          ))}
                         </div>
-                        <span className="text-[10px] text-neutral-400 font-medium">
-                          Select an option to activate deployment OS
+                        <span
+                          className={`text-[10px] font-medium transition-colors duration-200 ${
+                            nudgeQuiz ? 'text-[#3f74e0]' : 'text-neutral-400'
+                          }`}
+                        >
+                          {nudgeQuiz ? 'Pick one to continue' : 'Select an option to activate deployment OS'}
                         </span>
                       </div>
                     ) : (
@@ -731,61 +767,69 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
         </div>
       </div>
 
-      {/* Fluid Capsule Pagination & Arrow Controls (Pure Button-driven) */}
       {/*
+        The slide controls, in the gap between the display and the credenza.
+
         The canvas overflows this container by design — it is a fixed reference
-        size scaled down — so the controls cannot simply follow it in flow.
-        They are placed against the canvas's painted height instead.
+        size scaled down — so they cannot simply follow it in flow, and are
+        placed against the screen's painted height instead.
       */}
       <div
-        className="absolute left-0 right-0 flex items-center justify-center gap-4 pointer-events-auto"
-        style={{ top: `${flat ? screenHeight + 18 : BASE_H}px`, zIndex: 100 }}
+        className="absolute left-0 right-0 flex justify-center pointer-events-auto"
+        style={{ top: `${controlsTop}px`, zIndex: 100 }}
       >
-        {/* Left Arrow */}
-        <button
-          onClick={() => slideBy(-1)}
-          disabled={activeSlide === 0}
-          className={`p-1.5 rounded-full transition-all w-8 h-8 flex items-center justify-center text-xs font-semibold cursor-pointer border ${activeSlide === 0
-            ? 'opacity-25 pointer-events-none border-neutral-300 text-neutral-400 bg-white/40'
-            : 'opacity-90 hover:opacity-100 bg-neutral-900 text-white border-neutral-900 hover:scale-105 active:scale-95'
-            }`}
-          aria-label="Previous slide"
+        <div
+          className="flex items-center gap-1 rounded-full px-1.5 py-1.5 shadow-[0_12px_36px_-12px_rgba(0,0,0,0.7)]"
+          style={{
+            background: 'rgba(12, 16, 24, 0.55)',
+            backdropFilter: 'blur(18px) saturate(160%)',
+            WebkitBackdropFilter: 'blur(18px) saturate(160%)',
+            border: '1px solid rgba(255, 255, 255, 0.14)',
+          }}
         >
-          ←
-        </button>
+          <button
+            onClick={() => slideBy(-1)}
+            disabled={activeSlide === 0}
+            className={`flex h-7 w-7 items-center justify-center rounded-full text-[13px] leading-none transition-all duration-200 ${
+              activeSlide === 0
+                ? 'text-white/25'
+                : 'text-white/80 hover:bg-white/12 hover:text-white active:scale-90 cursor-pointer'
+            }`}
+            aria-label="Previous slide"
+          >
+            ←
+          </button>
 
-        {/* Dynamic Fluid Capsule Dots */}
-        <div className="flex items-center gap-2">
-          {SLIDES.map((slide, i) => (
-            <button
-              key={slide.id}
-              ref={(el) => {
-                dotsRef.current[i] = el;
-              }}
-              onClick={() => setActiveSlide(i)}
-              className="h-2 rounded-full transition-all duration-400 ease-out cursor-pointer"
-              style={{
-                width: i === 0 ? '2.2rem' : '0.5rem',
-                backgroundColor: i === 0 ? '#111827' : '#4b5563',
-                opacity: i === 0 ? 1 : 0.35,
-              }}
-              aria-label={`Go to slide ${i + 1}`}
-            />
-          ))}
+          <div className="flex items-center gap-1.5 px-2">
+            {SLIDES.map((slide, i) => (
+              <button
+                key={slide.id}
+                onClick={() => setActiveSlide(i)}
+                className="h-1.5 rounded-full transition-all duration-[400ms] ease-out cursor-pointer"
+                style={{
+                  width: i === activeSlide ? '1.5rem' : '0.375rem',
+                  backgroundColor: i === activeSlide ? '#8FB4FF' : '#ffffff',
+                  opacity: i === activeSlide ? 1 : 0.3,
+                }}
+                aria-label={`Go to slide ${i + 1}`}
+                aria-current={i === activeSlide}
+              />
+            ))}
+          </div>
+
+          <button
+            onClick={() => slideBy(1)}
+            disabled={activeSlide === SLIDES.length - 1}
+            className={`flex h-7 w-7 items-center justify-center rounded-full text-[13px] leading-none transition-all duration-200 ${
+              activeSlide === SLIDES.length - 1
+                ? 'text-white/25'
+                : 'text-white/80 hover:bg-white/12 hover:text-white active:scale-90 cursor-pointer'
+            }`}
+            aria-label="Next slide"
+          >
+            →
+          </button>
         </div>
-
-        {/* Right Arrow */}
-        <button
-          onClick={() => slideBy(1)}
-          disabled={activeSlide === 3}
-          className={`p-1.5 rounded-full transition-all w-8 h-8 flex items-center justify-center text-xs font-semibold cursor-pointer border ${activeSlide === 3
-            ? 'opacity-25 pointer-events-none border-neutral-300 text-neutral-400 bg-white/40'
-            : 'opacity-90 hover:opacity-100 bg-neutral-900 text-white border-neutral-900 hover:scale-105 active:scale-95'
-            }`}
-          aria-label="Next slide"
-        >
-          →
-        </button>
       </div>
 
     </div>
