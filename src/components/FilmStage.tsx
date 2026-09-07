@@ -322,8 +322,8 @@ export default function FilmStage({
           }
 
           // Whatever happens, the shot ends: overrun, or the viewer scrolling
-          // forward again to say they have seen enough of it.
-          if (now > deadline || skipRequested) {
+          // forward again to say they have seen enough of it (unless beat has noSkip).
+          if (now > deadline || (skipRequested && !beat.noSkip)) {
             skipRequested = false;
             cutShort = true;
             v.pause();

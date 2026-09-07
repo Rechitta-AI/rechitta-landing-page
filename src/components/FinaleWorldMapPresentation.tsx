@@ -115,11 +115,13 @@ const STREAM_ARCS = GLOBAL_HUBS.filter((h) => !h.isHQ).map((h) => ({
 interface FinaleWorldMapPresentationProps {
   chapter: string;
   beatIndex: number;
+  isMoving?: boolean;
 }
 
 export default function FinaleWorldMapPresentation({
   chapter,
   beatIndex,
+  isMoving = false,
 }: FinaleWorldMapPresentationProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [viewport, setViewport] = useState({ width: 1920, height: 1080 });
@@ -200,8 +202,37 @@ export default function FinaleWorldMapPresentation({
   const portraitLeft = (viewport.width - portraitWidth) / 2;
   const portraitTop = (viewport.height - portraitHeight) / 2;
 
-  // Active state: visible when in finale chapter at beat 10 (presentation screen) OR while calibrator is open
-  const isVisible = (chapter === 'finale' && beatIndex === 10) || isCalibrating;
+  // Active state: visible when in finale chapter at beat 10 (presentation screen) and not moving, OR while calibrator is open
+  const isVisible = (chapter === 'finale' && beatIndex === 10 && !isMoving) || isCalibrating;
+
+  // Network ignition animation when landing via match-cut transition
+  const triggerIgnition = () => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const nodes = el.querySelectorAll('.city-hub-node');
+    if (nodes.length > 0) {
+      gsap.fromTo(
+        nodes,
+        { scale: 0.82, opacity: 0 },
+        { scale: 1, opacity: 1, duration: 0.45, stagger: 0.04, ease: 'back.out(1.5)', delay: 0.08 }
+      );
+    }
+    const arcs = el.querySelectorAll('.laser-stream-arc');
+    if (arcs.length > 0) {
+      gsap.fromTo(
+        arcs,
+        { opacity: 0 },
+        { opacity: 1, duration: 0.4, stagger: 0.03, ease: 'power2.out', delay: 0.04 }
+      );
+    }
+  };
+
+  useEffect(() => {
+    const onIgnite = () => triggerIgnition();
+    window.addEventListener('rechitta:ignite-world-map', onIgnite);
+    return () => window.removeEventListener('rechitta:ignite-world-map', onIgnite);
+  }, []);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -213,8 +244,9 @@ export default function FinaleWorldMapPresentation({
       gsap.fromTo(
         el,
         { opacity: 0 },
-        { opacity: 1, duration: 0.45, ease: 'power2.out' }
+        { opacity: 1, duration: 0.42, ease: 'power2.out' }
       );
+      triggerIgnition();
     } else {
       gsap.killTweensOf(el);
       gsap.to(el, {
@@ -368,7 +400,7 @@ export default function FinaleWorldMapPresentation({
         {/* 3. Streaming Data Arcs Connecting All 6 Hubs to Dubai HQ */}
         <g>
           {STREAM_ARCS.map((arc) => (
-            <g key={arc.key}>
+            <g key={arc.key} className="laser-stream-arc">
               {/* Underlying dashed guide rail */}
               <path
                 d={arc.path}
@@ -398,7 +430,12 @@ export default function FinaleWorldMapPresentation({
           const isHQ = Boolean(hub.isHQ);
 
           return (
-            <g key={hub.key} transform={`translate(${hub.x}, ${hub.y})`}>
+            <g
+              key={hub.key}
+              className="city-hub-node"
+              transform={`translate(${hub.x}, ${hub.y})`}
+              style={{ transformBox: 'fill-box', transformOrigin: 'center' }}
+            >
               {/* Radar Ping Ripple */}
               <circle
                 r="6"

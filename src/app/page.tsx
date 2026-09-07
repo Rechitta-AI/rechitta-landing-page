@@ -43,6 +43,7 @@ export default function ExperiencePage() {
 
   const [chapter, setChapter] = useState<Chapter>('intro');
   const [beatIndex, setBeatIndex] = useState(0);
+  const [isMoving, setIsMoving] = useState(false);
   /** Where the film is as a fractional beat, for the chapter rail. */
   const beatPosition = useRef(0);
   const [cityIndex, setCityIndex] = useState(0);
@@ -125,6 +126,7 @@ export default function ExperiencePage() {
 
   const handleBeat = useCallback(
     (beat: Beat, index: number) => {
+      setIsMoving(false);
       setHeroVisible(beat.id === 'hero');
       setBeatIndex(index);
     },
@@ -134,6 +136,7 @@ export default function ExperiencePage() {
   /** The copy leaves the moment the film commits, not when the shot lands. */
   const handleMoveStart = useCallback(
     (_from: number, to: number) => {
+      setIsMoving(true);
       setHeroVisible(to === 0);
     },
     [setHeroVisible],
@@ -276,7 +279,7 @@ export default function ExperiencePage() {
             <BoardroomPresentation holdData={holdData} />
             <BrokerPresentation holdData={holdData} />
             <BuyerPresentation holdData={holdData} />
-            <FinaleWorldMapPresentation chapter={chapter} beatIndex={beatIndex} />
+            <FinaleWorldMapPresentation chapter={chapter} beatIndex={beatIndex} isMoving={isMoving} />
 
             <FilmStage
               scrollData={scrollData}

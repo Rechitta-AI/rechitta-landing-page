@@ -122,6 +122,9 @@ export type Beat = {
    */
   progress?: number;
   progressFrom?: number;
+
+  /** Disables mid-transition skipping so cinematic sequences play uninterrupted. */
+  noSkip?: boolean;
 };
 
 const cityProgress = (i: number) =>
@@ -201,10 +204,11 @@ export const BEATS: Beat[] = [
     label: 'VII · Horizon',
     clip: 'last',
     park: 11.0,
-    enter: { from: 1.0, to: 11.0, rate: 2.5 },
+    enter: { from: 1.0, to: 11.0, rate: 1.2 },
     flash: false,
     progress: FINALE_SPAN.end,
     progressFrom: 0.96,
+    noSkip: true,
   },
 ];
 

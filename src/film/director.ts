@@ -35,7 +35,7 @@ export const COOLDOWN_MS = 180;
 export const STEP_COOLDOWN_MS = 160;
 
 /** Grace period after transition starts before any mid-flight skip is permitted. */
-export const SKIP_GRACE_MS = 140;
+export const SKIP_GRACE_MS = 650;
 
 /** How many refusals a gated beat gives before it lets the viewer through. */
 export const NUDGE_LIMIT = 3;
