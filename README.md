@@ -1,1 +1,1 @@
-Rechitta landing page V2 Final
+Rechitta landing page V2
