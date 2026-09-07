@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, useMemo } from 'react';
+import { useEffect, useRef, useMemo } from 'react';
 import { BEATS, CITIES } from '@/film/score';
 import styles from './ScrollRail.module.css';
 
@@ -61,7 +61,6 @@ export default function ScrollRail({
 }) {
   const fillRef = useRef<HTMLDivElement>(null);
   const glowLeadRef = useRef<HTMLSpanElement>(null);
-  const [activeChapterIndex, setActiveChapterIndex] = useState(0);
 
   // Derive active chapter details
   const activeChapter = useMemo(() => {
@@ -88,10 +87,6 @@ export default function ScrollRail({
       chapterIndex: Math.max(0, chIdx),
     };
   }, [beatIndex]);
-
-  useEffect(() => {
-    setActiveChapterIndex(activeChapter.chapterIndex);
-  }, [activeChapter]);
 
   // Smooth progress track loop
   useEffect(() => {
@@ -133,7 +128,7 @@ export default function ScrollRail({
       <div className={styles.telemetryDock}>
         <div className={styles.telemetryTag}>
           <span className={styles.pulseBeacon} />
-          <span className={styles.chapterNum}>{activeChapter.num} //</span>
+          <span className={styles.chapterNum}>{activeChapter.num} {'//'}</span>
           <span className={styles.chapterTitle}>{activeChapter.label}</span>
         </div>
       </div>
@@ -150,8 +145,8 @@ export default function ScrollRail({
         {/* Clickable Chapter Segments */}
         <div className={styles.segmentsRow}>
           {RAIL_CHAPTERS.map((ch, idx) => {
-            const isActive = activeChapterIndex === idx;
-            const isPassed = activeChapterIndex > idx;
+            const isActive = activeChapter.chapterIndex === idx;
+            const isPassed = activeChapter.chapterIndex > idx;
             return (
               <button
                 key={ch.id}
