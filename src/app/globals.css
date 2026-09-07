@@ -335,3 +335,18 @@ p {
 .animate-briefing-in {
   animation: briefing-in 0.75s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
+
+/* The click prompt's idle bob, so it reads as something asking to be pressed
+   rather than as one more static label on the screen. */
+@keyframes clickPromptBob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
+}
+.animate-click-prompt-bob {
+  animation: clickPromptBob 1.7s ease-in-out infinite;
+}

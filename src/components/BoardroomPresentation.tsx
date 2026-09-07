@@ -5,6 +5,7 @@ import gsap from 'gsap';
 import { coverRect } from '@/screens/warp';
 import { isPortraitFor } from '@/hooks/useDeviceMode';
 import { setHold } from '@/film/holds';
+import ClickPrompt from './ClickPrompt';
 
 /** Interactive questions on Slide 3 showcasing Rechitta's instant intelligence */
 const SLIDE_3_QUESTIONS = [
@@ -49,7 +50,12 @@ const SLIDES = [
     id: 4,
     tag: '04 / THE REALITY',
     headline: "Reaching 40,000 brokers with a 30-person sales team shouldn't take three months.",
-    body: 'There are 40,000+ registered brokers in Dubai. A typical sales team of 30 spends about three months trying to reach them all.',
+    /*
+     * No body on purpose. It restated the headline's own numbers back at the
+     * viewer, and on the one slide that asks for a click it was three lines of
+     * reading between the question and the buttons.
+     */
+    body: '',
     isInteractive: true,
   },
 ];
@@ -475,13 +481,15 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
                   </h2>
                 </div>
 
-                {/* Body in Clean Editorial Sans (Inter) */}
-                <p
-                  className="text-sm sm:text-[15px] md:text-base text-neutral-600 font-normal leading-relaxed max-w-[34ch] text-balance mb-3"
-                  style={{ fontFamily: 'var(--font-inter)' }}
-                >
-                  {slide.body}
-                </p>
+                {/* Body in Clean Editorial Sans (Inter). Slide 4 has none. */}
+                {slide.body && (
+                  <p
+                    className="text-sm sm:text-[15px] md:text-base text-neutral-600 font-normal leading-relaxed max-w-[34ch] text-balance mb-3"
+                    style={{ fontFamily: 'var(--font-inter)' }}
+                  >
+                    {slide.body}
+                  </p>
+                )}
 
                 {/* SLIDE 1 VISUAL CENTERPIECE: The Unread Document Graveyard */}
                 {slide.id === 1 && (
@@ -629,31 +637,47 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
                   </div>
                 )}
 
-                {/* SLIDE 4: Concept 3 - Slide-Up OS Command Bar (Apple TV / Tesla Style) */}
+                {/*
+                  SLIDE 4: the question, then the one thing to press.
+
+                  This used to answer itself. Both branches paid out a full
+                  sentence of explanation inside a pill, above a status dock
+                  carrying a second headline, a status line, a footnote row and
+                  the button - so the control the film is actually waiting on
+                  was the smallest thing on the slide. Now the branch is four
+                  words and the call to action is the only object under it.
+                */}
                 {slide.isInteractive && (
-                  <div className="w-full flex flex-col items-center pointer-events-auto mt-2 min-h-[116px] justify-center transition-all duration-500 ease-out">
+                  <div className="w-full flex flex-col items-center pointer-events-auto mt-1 min-h-[128px] justify-center transition-all duration-500 ease-out">
                     {quizState === 'prompt' ? (
-                      <div className="flex flex-col items-center gap-2.5 animate-hud-expand">
+                      <div className="flex flex-col items-center gap-4 animate-hud-expand">
                         <span
-                          className="text-xs md:text-sm font-semibold text-neutral-800 tracking-wide"
+                          className="text-sm md:text-base font-semibold text-neutral-800 tracking-tight"
                           style={{ fontFamily: 'var(--font-inter)' }}
                         >
                           Think there&apos;s a solution?
                         </span>
+
                         {/*
                           Matched styling on purpose. The filled-dark "Yes"
                           against an outlined "No" read as an answer already
                           given, which is exactly what this slide must not do.
                         */}
-                        <div className="flex items-center gap-3">
+                        <div className="relative flex items-center gap-3.5">
+                          <ClickPrompt
+                            label={nudgeQuiz ? 'Pick one to continue' : 'Choose one to continue'}
+                            visible
+                            placement="bottom"
+                            urgent={nudgeQuiz}
+                          />
                           {(['yes', 'no'] as const).map((choice) => (
                             <button
                               key={choice}
                               onClick={() => setQuizState(choice)}
-                              className={`px-7 py-2 rounded-full border text-xs md:text-sm font-semibold capitalize transition-all duration-200 cursor-pointer bg-white/70 hover:bg-white hover:scale-[1.04] active:scale-95 ${
+                              className={`min-w-[6.5rem] px-9 py-3 rounded-full border-2 text-base md:text-lg font-bold capitalize transition-all duration-200 cursor-pointer bg-white hover:scale-[1.05] active:scale-95 ${
                                 nudgeQuiz
-                                  ? 'border-[#568DFF] text-neutral-900 shadow-[0_0_0_3px_rgba(86,141,255,0.18)]'
-                                  : 'border-neutral-300 text-neutral-700 hover:border-neutral-500 hover:text-neutral-900 shadow-xs'
+                                  ? 'border-[#568DFF] text-neutral-900 shadow-[0_0_0_4px_rgba(86,141,255,0.2)]'
+                                  : 'border-neutral-300 text-neutral-800 hover:border-neutral-900 hover:text-neutral-900 shadow-sm hover:shadow-md'
                               }`}
                               style={{ fontFamily: 'var(--font-inter)' }}
                             >
@@ -661,105 +685,74 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
                             </button>
                           ))}
                         </div>
-                        <span
-                          className={`text-[10px] font-medium transition-colors duration-200 ${
-                            nudgeQuiz ? 'text-[#3f74e0]' : 'text-neutral-400'
-                          }`}
-                        >
-                          {nudgeQuiz ? 'Pick one to continue' : 'Select an option to activate deployment OS'}
-                        </span>
                       </div>
                     ) : (
-                      /* CONCEPT 3: SLIDE-UP OS COMMAND BAR (APPLE TV / TESLA STYLE) */
-                      <div className="w-full max-w-lg flex flex-col items-center animate-slide-up-dock">
-                        {/* Architectural Verdict Pill */}
-                        <div className="mb-2 px-3.5 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-950 text-[11px] md:text-xs font-medium flex items-center gap-1.5 animate-fade-in text-center shadow-xs">
-                          <span className="text-blue-600 font-bold">
-                            {quizState === 'yes' ? '✓ Instinct Confirmed:' : '⚡ Bottleneck Solved:'}
-                          </span>
-                          <span className="text-neutral-700">
-                            {quizState === 'yes'
-                              ? '12-second instant AI briefing replaces 3 months of manual WhatsApp outreach.'
-                              : 'Rechitta replaces 3 months of sales lag with 40,000 live conversational agents.'}
-                          </span>
-                        </div>
-
-                        {/* Floating Low-Profile OS Command Bar Dock */}
-                        <div
-                          className="w-full h-14 px-3 sm:px-4 rounded-2xl bg-neutral-950 text-white shadow-2xl flex items-center justify-between border border-neutral-800/80 relative overflow-hidden"
-                          style={{
-                            boxShadow:
-                              '0 20px 40px -10px rgba(0, 0, 0, 0.4), inset 0 1px 1px 0 rgba(255, 255, 255, 0.15)',
-                          }}
+                      /* gap-12 rather than a tighter one: the click prompt
+                         needs a lane of its own between the line and the
+                         button, or it sits on the line's descenders. */
+                      <div className="w-full max-w-lg flex flex-col items-center gap-12 animate-slide-up-dock">
+                        {/* The whole branch, in one line. */}
+                        <p
+                          className="text-lg md:text-xl font-bold text-neutral-900 tracking-tight text-center"
+                          style={{ fontFamily: 'var(--font-inter)' }}
                         >
-                          {/* Left: System Status & Intelligence */}
-                          <div className="flex items-center gap-2.5 min-w-0 pr-2">
-                            <span className="relative flex h-2.5 w-2.5 shrink-0">
-                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#568DFF] opacity-75" />
-                              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#568DFF] shadow-sm shadow-[#568DFF]/80" />
-                            </span>
-                            <div className="flex flex-col text-left overflow-hidden">
-                              <span className="text-[9px] tracking-widest font-bold uppercase text-[#568DFF] leading-none">
-                                {quizState === 'yes' ? 'SYSTEM READY' : 'AGENTS ARMED'}
-                              </span>
-                              <span className="text-[11px] font-medium text-neutral-300 truncate mt-0.5 leading-none">
-                                {quizState === 'yes' ? '40,000 Brokers Live' : 'Instant 0s Response'}
-                              </span>
-                            </div>
-                          </div>
+                          {quizState === 'yes' ? 'Exactly. ' : 'There is. '}
+                          <span className="text-[#3f74e0]">It&apos;s Rechitta.</span>
+                        </p>
 
-                          {/* Subtle Divider */}
-                          <div className="h-6 w-px bg-neutral-800 shrink-0 mx-1 sm:mx-2 hidden xs:block" />
+                        <div className="relative">
+                          <ClickPrompt
+                            label="Click to deploy"
+                            visible={!isUploading && !isSynced}
+                            placement="top"
+                            urgent
+                          />
+                          <button
+                            onClick={handleUploadClick}
+                            disabled={isUploading || isSynced}
+                            className="px-7 sm:px-9 py-3.5 rounded-full bg-neutral-950 hover:bg-neutral-800 text-white text-sm sm:text-base font-bold tracking-tight active:scale-[0.97] transition-all flex items-center gap-2.5 cursor-pointer relative overflow-hidden group disabled:cursor-default disabled:opacity-90"
+                            style={{
+                              fontFamily: 'var(--font-inter)',
+                              boxShadow:
+                                '0 18px 34px -12px rgba(0,0,0,0.55), inset 0 1px 1px 0 rgba(255,255,255,0.14)',
+                            }}
+                          >
+                            {/* Shimmer on hover */}
+                            <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/18 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
 
-                          {/* Right: Master Action CTA & Reset */}
-                          <div className="flex items-center gap-2 shrink-0">
-                            <button
-                              onClick={handleUploadClick}
-                              disabled={isUploading || isSynced}
-                              className="py-2 px-3.5 sm:px-4 rounded-xl bg-white hover:bg-neutral-100 text-neutral-950 text-xs sm:text-[13px] font-semibold tracking-tight hover:shadow-md active:scale-98 transition-all flex items-center gap-1.5 sm:gap-2 cursor-pointer relative overflow-hidden group shadow-sm disabled:opacity-80"
-                              style={{ fontFamily: 'var(--font-inter)' }}
-                            >
-                              {/* Shimmer on hover */}
-                              <span className="absolute inset-0 bg-gradient-to-r from-transparent via-black/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
-
-                              {isSynced ? (
-                                <>
-                                  <span className="w-2 h-2 rounded-full bg-[#568DFF]" />
-                                  <span>Synced Worldwide ✓</span>
-                                </>
-                              ) : isUploading ? (
-                                <>
-                                  <span className="w-3.5 h-3.5 border-2 border-neutral-400 border-t-neutral-950 rounded-full animate-spin" />
-                                  <span>Broadcasting to 40k Brokers...</span>
-                                </>
-                              ) : (
-                                <>
-                                  <span className="hidden sm:inline">Upload Project Data & Deploy Agents</span>
-                                  <span className="sm:hidden">Deploy Agents</span>
-                                  <span className="text-[#568DFF] font-bold text-sm">→</span>
-                                </>
-                              )}
-                            </button>
-
-                            {/* Reset Control Button */}
-                            <button
-                              onClick={() => setQuizState('prompt')}
-                              title="Reset"
-                              className="w-7 h-7 rounded-xl flex items-center justify-center text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors cursor-pointer text-xs shrink-0"
-                            >
-                              ✕
-                            </button>
-                          </div>
+                            {isSynced ? (
+                              <>
+                                <span className="w-2 h-2 rounded-full bg-[#568DFF]" />
+                                <span>Synced worldwide</span>
+                              </>
+                            ) : isUploading ? (
+                              <>
+                                <span className="w-4 h-4 border-2 border-neutral-600 border-t-white rounded-full animate-spin" />
+                                <span>Broadcasting...</span>
+                              </>
+                            ) : (
+                              <>
+                                <span className="relative flex h-2 w-2 shrink-0">
+                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#568DFF] opacity-75" />
+                                  <span className="relative inline-flex h-2 w-2 rounded-full bg-[#568DFF]" />
+                                </span>
+                                <span>Brief 40,000 brokers</span>
+                                <span className="text-[#8FB4FF] font-bold transition-transform group-hover:translate-x-0.5">
+                                  &rarr;
+                                </span>
+                              </>
+                            )}
+                          </button>
                         </div>
 
-                        {/* Trust Footnote */}
-                        <div className="mt-1.5 flex items-center justify-center gap-3 text-[9px] md:text-[10px] text-neutral-400 font-medium animate-fade-in">
-                          <span>✓ DLD Verified</span>
-                          <span>•</span>
-                          <span>✓ Instant Briefing</span>
-                          <span>•</span>
-                          <span>✓ 0s Latency</span>
-                        </div>
+                        {!isUploading && !isSynced && (
+                          <button
+                            onClick={() => setQuizState('prompt')}
+                            className="-mt-8 text-[10px] font-medium text-neutral-500 underline underline-offset-2 decoration-neutral-300 hover:text-neutral-800 transition-colors cursor-pointer"
+                          >
+                            Ask me again
+                          </button>
+                        )}
                       </div>
                     )}
                   </div>

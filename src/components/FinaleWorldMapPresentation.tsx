@@ -83,7 +83,16 @@ const GLOBAL_HUBS: GlobalHub[] = [
     time: '09:41',
     lang: 'HI',
     status: 'DELIVERED',
-    labelOffset: { x: 30, y: 28 },
+    /*
+     * Out to the right and a little lower than the rest.
+     *
+     * Mumbai's node sits 93px from Dubai's, and the two badges are 176 and
+     * 210 wide, so at a modest offset they overlapped by 70x17px. Dubai is
+     * painted last so it always won, and Mumbai read as a clipped "...MBAI".
+     * This clears the HQ badge in both axes rather than relying on paint
+     * order to hide the problem.
+     */
+    labelOffset: { x: 118, y: 46 },
   },
   {
     key: 'shanghai',
