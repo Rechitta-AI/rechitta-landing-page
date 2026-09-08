@@ -189,8 +189,15 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
     return () => window.removeEventListener('rechitta:nudge', onNudge);
   }, []);
 
-  // Launch the 60fps hardware flight to the Buyer's Phone
-  const handleFlyToBuyer = () => {
+  /*
+   * Hands the film on out of the broker's hands.
+   *
+   * The next stop used to be the buyer's phone, which is where the event name
+   * comes from — it is one of the film's release events, so it is left alone
+   * while the beat behind it is retired. What actually plays now is the flight
+   * into the clouds and the multilingual chapter.
+   */
+  const handleFlyOn = () => {
     isLockedRef.current = false;
 
     // 1. Smoothly dissolve the Broker Scene UI
@@ -656,17 +663,17 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
               urgent={showScrollPrompt}
             />
             <button
-              onClick={handleFlyToBuyer}
+              onClick={handleFlyOn}
               className={`w-full min-w-0 py-3.5 sm:py-4 px-4 sm:px-5 rounded-xl text-white text-[13px] sm:text-sm font-bold tracking-tight transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer group border ${
                 showScrollPrompt
                   ? 'bg-[#568DFF] border-[#8FB4FF] shadow-[0_0_32px_rgba(86,141,255,0.7)] scale-[1.02]'
                   : 'bg-[#568DFF]/90 hover:bg-[#568DFF] border-[#568DFF]/60 hover:border-[#8FB4FF] shadow-[0_0_20px_rgba(86,141,255,0.4)] hover:shadow-[0_0_28px_rgba(86,141,255,0.6)]'
               }`}
               style={{ fontFamily: 'var(--font-inter)' }}
-              aria-label="Fly to Buyer Perspective"
+              aria-label="Take the briefing global"
             >
               <span className="h-2 w-2 rounded-full bg-white shadow-[0_0_8px_#ffffff] animate-pulse" />
-              <span className="whitespace-nowrap">Fly to Buyer</span>
+              <span className="whitespace-nowrap">Take it global</span>
               <span className="text-white/90 font-bold transition-transform group-hover:translate-x-1">
                 &rarr;
               </span>

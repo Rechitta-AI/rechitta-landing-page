@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { coverRect } from '@/screens/warp';
 import { isPortraitFor } from '@/hooks/useDeviceMode';
+import { beatIndexById } from '@/film/score';
 
 export type CornerPoint = [number, number]; // [xPercent, yPercent] relative to coverRect (0-100)
 
@@ -450,13 +451,15 @@ export const MONITOR_CORNERS = {
             <button
               onClick={() => {
                 window.dispatchEvent(
-                  new CustomEvent('rechitta:jump-to-beat', { detail: { index: 10 } })
+                  new CustomEvent('rechitta:jump-to-beat', {
+                    detail: { index: beatIndexById('finale-screen') },
+                  })
                 );
               }}
               className="flex-1 py-1.5 px-2 rounded-lg bg-indigo-600/30 hover:bg-indigo-600/50 border border-indigo-500/40 text-indigo-200 font-mono text-[10px] cursor-pointer flex items-center justify-center gap-1 transition-colors"
               title="Jump the video straight to the boardroom finale scene"
             >
-              <span>📺 Jump to Finale Beat 10</span>
+              <span>📺 Jump to Finale Beat</span>
             </button>
             <button
               onClick={() => setForcePreview((prev) => !prev)}

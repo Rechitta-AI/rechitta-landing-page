@@ -96,63 +96,89 @@ export const ORB_PATH: Keyframe[] = [
     note: 'K9 — slides clear of the phone and flares. The app mockup lights.',
   },
 
-  // ── Act III — through the phone ─────────────────────────────────────
+  /*
+   * ── Act III — through the phone ───────────────────────────────────
+   *
+   * Retired with the buyer's scene. Every beat here was anchored to
+   * transit-c or to the head of transit-d, which are no longer in the cut,
+   * so they would resolve to nothing even if they were left in the list.
+   *
+   * {
+   *   anchor: { clip: 'transit-c', t: 4.0 },
+   *   x: 50, y: 50, scale: 1.4, opacity: 1, blur: 0,
+   *   ease: 'inOut',
+   *   note: 'K10 — full whiteout. The orb is the only object on screen.',
+   * },
+   * {
+   *   anchor: { clip: 'transit-c', t: 5.3 },
+   *   x: 56, y: 56, scale: 0.68, opacity: 1, blur: 0,
+   *   ease: 'inOut',
+   *   note: 'K11a — re-condenses over the bay as the beach comes into view.',
+   * },
+   * {
+   *   anchor: { clip: 'transit-c', t: 6.2 },
+   *   x: 62, y: 72, scale: 0.42, opacity: 1, blur: 0,
+   *   ease: 'out',
+   *   note: 'K11b — sweeps in an arc clear of the phone screen toward the bottom dock.',
+   * },
+   * {
+   *   anchor: { clip: 'transit-c', t: 6.8 },
+   *   pulse: true,
+   *   portrait: { x: 84, y: 20, scale: 0.4 },
+   *   x: 46.5, y: 84.1, scale: 0.26, opacity: 1, blur: 0,
+   *   ease: 'out',
+   *   note: 'K11c — touches down into the buyer phone voice dock and flares.',
+   * },
+   * {
+   *   anchor: { clip: 'transit-d', t: 0.0 },
+   *   portrait: { x: 84, y: 20, scale: 0.4 },
+   *   x: 46.5, y: 84.1, scale: 0.26, opacity: 1, blur: 0,
+   *   ease: 'in',
+   *   note: 'K11d — holds docked through the presentation pause, then lifts off.',
+   * },
+   */
+
+  // ── Act III — up through the cloud ──────────────────────────────────
   {
-    anchor: { clip: 'transit-c', t: 4.0 },
-    x: 50, y: 50, scale: 1.4, opacity: 1, blur: 0,
-    ease: 'inOut',
-    note: 'K10 — full whiteout. The orb is the only object on screen.',
-  },
-  {
-    anchor: { clip: 'transit-c', t: 5.3 },
-    x: 56, y: 56, scale: 0.68, opacity: 1, blur: 0,
-    ease: 'inOut',
-    note: 'K11a — re-condenses over the bay as the beach comes into view.',
-  },
-  {
-    anchor: { clip: 'transit-c', t: 6.2 },
-    x: 62, y: 72, scale: 0.42, opacity: 1, blur: 0,
-    ease: 'out',
-    note: 'K11b — sweeps in an arc clear of the phone screen toward the bottom dock.',
-  },
-  {
-    anchor: { clip: 'transit-c', t: 6.8 },
-    pulse: true,
-    // The voice dock it touches down on is only there in the composite.
-    portrait: { x: 84, y: 20, scale: 0.4 },
-    x: 46.5, y: 84.1, scale: 0.26, opacity: 1, blur: 0,
-    ease: 'out',
-    note: 'K11c — smoothly touches down dead-centre into the buyer phone voice dock R circle and flares.',
-  },
-  {
-    anchor: { clip: 'transit-d', t: 0.0 },
-    portrait: { x: 84, y: 20, scale: 0.4 },
-    x: 46.5, y: 84.1, scale: 0.26, opacity: 1, blur: 0,
+    anchor: { clip: 'transit-e', t: 1.4 },
+    x: 42, y: 62, scale: 0.44, opacity: 1, blur: 0,
     ease: 'in',
-    note: 'K11d — holds docked in the phone voice dock through the presentation pause, then lifts off.',
+    note: 'K11 — enters the cloud low and left, small, the way a thing seen from below is.',
   },
   {
-    anchor: { clip: 'transit-d', t: 5.9 },
+    anchor: { clip: 'transit-e', t: 1.9 },
     x: 50, y: 48, scale: 0.9, opacity: 1, blur: 0,
     ease: 'inOut',
     note: 'K12 — expands into the cloud whiteout, seeding the white flash.',
   },
 
-  // ── Act IV — the multilingual chapter ───────────────────────────────
+  /*
+   * ── Act IV — the multilingual chapter ─────────────────────────────
+   *
+   * The orb docks at the foot of the handset rather than hanging in the sky
+   * opposite it. The chapter's whole claim is that the briefing arrives on
+   * that phone, and an orb parked over the skyline was the one object on
+   * screen not saying so. On its dock it reads as the agent that delivered
+   * the message, which is what it is everywhere else in the film.
+   *
+   * The mockup's foot moves with the viewport — 78vh capped at 780px, so its
+   * bottom edge sits between 82% and 89% down a landscape screen — so the
+   * pose is a little inside the frame rather than on its very edge.
+   */
   {
     anchor: { progress: 0.52 },
-    // The mockup is centred on a portrait screen, so the orb takes the sky.
-    portrait: { x: 82, y: 17, scale: 0.5 },
-    x: 72, y: 19, scale: 0.62, opacity: 0.95, blur: 0,
+    // Portrait puts the handset mid-screen and shorter; its foot is higher.
+    portrait: { x: 46, y: 72, scale: 0.7 },
+    x: 40, y: 82, scale: 0.85, opacity: 1, blur: 0,
     ease: 'out',
-    note: 'K13 — arrives in the sky above the city name, opposite the phone.',
+    note: 'K13 — settles onto the foot of the phone as the chapter opens.',
   },
   {
     anchor: { progress: 0.93 },
-    portrait: { x: 82, y: 17, scale: 0.5 },
-    x: 72, y: 19, scale: 0.62, opacity: 0.95, blur: 0,
+    portrait: { x: 46, y: 72, scale: 0.7 },
+    x: 40, y: 82, scale: 0.85, opacity: 1, blur: 0,
     ease: 'linear',
-    note: 'K14 — holds, pulsing on every city change with a filament to the phone.',
+    note: 'K14 — holds on the dock, pulsing as each city takes over.',
   },
 
   // ── Act V — home ────────────────────────────────────────────────────
@@ -194,15 +220,23 @@ export const EXCLUSION_ZONES: ExclusionZone[] = [
     window: { clip: 'transit-b', from: 15, to: 17 },
     rect: { x0: 41, y0: 7, x1: 63, y1: 90 },
   },
+  /* The buyer's phone, retired with its scene. The zone is kept against the
+     day the scene comes back; it resolves to nothing while transit-c is out
+     of the cut, so it costs nothing to leave here.
+     {
+       label: "buyer's phone content area",
+       window: { clip: 'transit-c', from: 5.5, to: 8 },
+       rect: { x0: 40, y0: 15, x1: 60, y1: 76 },
+     }, */
   {
-    label: "buyer's phone content area",
-    window: { clip: 'transit-c', from: 5.5, to: 8 },
-    rect: { x0: 40, y0: 15, x1: 60, y1: 76 },
-  },
-  {
-    label: 'phone mockup, multilingual chapter',
+    /*
+     * The lit part of the mockup only. The foot of the handset is the orb's
+     * dock in this chapter, the way the voice dock was in the buyer's, so the
+     * zone stops above it rather than covering the whole object.
+     */
+    label: 'phone mockup screen, multilingual chapter',
     window: { from: 0.5, to: 0.95 },
-    rect: { x0: 26, y0: 6, x1: 54, y1: 94 },
+    rect: { x0: 26, y0: 6, x1: 54, y1: 70 },
   },
   {
     label: 'city name, multilingual chapter',

@@ -6,6 +6,7 @@ import { coverRect } from '@/screens/warp';
 import { isPortraitFor } from '@/hooks/useDeviceMode';
 import { setHold } from '@/film/holds';
 import ClickPrompt from './ClickPrompt';
+import BuilderCarousel from './BuilderCarousel';
 
 /** Interactive questions on Slide 3 showcasing Rechitta's instant intelligence */
 const SLIDE_3_QUESTIONS = [
@@ -72,6 +73,15 @@ interface BoardroomPresentationProps {
 export default function BoardroomPresentation({ holdData }: BoardroomPresentationProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const slidesRef = useRef<HTMLDivElement>(null);
+  /*
+   * The builders' reel lives outside the screen container.
+   *
+   * It cannot be a child of it: the entrance scales that container, which
+   * would make it a containing block for anything fixed inside, and the reel
+   * is placed against the footage rather than against the display. It fades
+   * on the same cues instead.
+   */
+  const reelRef = useRef<HTMLDivElement>(null);
 
   const isVisibleRef = useRef(false);
 
@@ -149,6 +159,11 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
   const BASE_W = flat ? PORTRAIT_BASE.w : LANDSCAPE_BASE.w;
   const BASE_H = flat ? PORTRAIT_BASE.h : LANDSCAPE_BASE.h;
 
+  // Where the 16:9 footage actually lands in the viewport. Everything placed
+  // against the room — the screen, the arrows on the wall, the builders' reel
+  // — is measured off this rather than off the viewport.
+  const rect = coverRect(viewport.width, viewport.height);
+
   let screenLeft: number;
   let screenTop: number;
   let screenWidth: number;
@@ -164,7 +179,6 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
     screenLeft = (viewport.width - screenWidth) / 2;
     screenTop = (viewport.height - screenHeight) / 2 - viewport.height * 0.03;
   } else {
-    const rect = coverRect(viewport.width, viewport.height);
     screenLeft = rect.x + (LEFT / 100) * rect.width;
     screenTop = rect.y + (TOP / 100) * rect.height;
     screenWidth = (WIDTH / 100) * rect.width;
@@ -178,10 +192,42 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
    * casing ends around 69%, and the credenza starts around 76%. Putting the
    * controls a little over a tenth of the frame below the screen lands them in
    * that gap — clear of the picture, clear of the furniture.
+   *
+   * On a wide screen only the dots live down there now: the arrows have moved
+   * onto the wall either side of the display, where they read as part of the
+   * room instead of as a toolbar under it.
    */
-  const controlsTop = flat
-    ? screenHeight + 18
-    : screenHeight + coverRect(viewport.width, viewport.height).height * 0.055;
+  const controlsTop = flat ? screenHeight + 18 : screenHeight + rect.height * 0.055;
+
+  /*
+   * The arrows on the wall.
+   *
+   * The beige panel the display is mounted on runs from about 15.5% to 29% of
+   * the frame on the left and mirrors that on the right. Half of that gap out
+   * from the screen's edge puts each arrow in the middle of its own panel,
+   * clear of both the bezel and the windows beyond it.
+   */
+  const armOffset = rect.width * 0.065;
+  const armSize = Math.min(80, Math.max(56, rect.width * 0.04));
+
+  /*
+   * The builders' reel, over the window on the far left.
+   *
+   * It cannot share the wall with the left arrow — that panel is only 13% of
+   * the frame wide — so it sits outboard of it, floating over the glass the
+   * way the film's other HUD panels do.
+   */
+  const reelWidth = Math.min(230, Math.max(150, rect.width * 0.125));
+  const reelLeft = Math.max(16, rect.x + rect.width * 0.022);
+  const reelCentreY = rect.y + rect.height * 0.42;
+  const reelHeight = Math.min(rect.height * 0.34, 280);
+
+  /*
+   * A viewport far taller than 16:9 crops the footage hard from the sides, and
+   * the outboard strip the reel wants stops existing. Rather than let it slide
+   * under the arrow — or off the edge — it steps out until there is room.
+   */
+  const reelFits = !flat && screenLeft - armOffset - armSize / 2 - (reelLeft + reelWidth) >= 16;
 
   const scaleRatio = screenWidth / BASE_W;
   // A deck lying flat should not carry the wall's perspective.
@@ -306,16 +352,17 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
       // 2. 350ms "sight pause" after notification appears, initiate native hardware video playback flight!
       setTimeout(() => {
         // Immediately dissolve the boardroom slides so the hallway flight is 100% unobstructed
-        if (containerRef.current) {
+        const leaving = [containerRef.current, reelRef.current].filter(Boolean);
+        if (leaving.length) {
           isVisibleRef.current = false;
-          gsap.killTweensOf(containerRef.current);
-          gsap.to(containerRef.current, {
+          gsap.killTweensOf(leaving);
+          gsap.to(leaving, {
             opacity: 0,
             scale: 0.95,
             duration: 0.45,
             ease: 'power2.inOut',
             onComplete: () => {
-              if (containerRef.current) gsap.set(containerRef.current, { autoAlpha: 0 });
+              gsap.set(leaving, { autoAlpha: 0 });
               setActiveSlide(0);
             },
           });
@@ -341,16 +388,18 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
 
       const { clipIndex } = holdData.current;
       const isNowVisible = clipIndex === 0;
+      // The deck and the reel arrive and leave together.
+      const panels = [containerRef.current, reelRef.current].filter(Boolean);
 
       // Detect Entrance
       if (isNowVisible && !isVisibleRef.current) {
         isVisibleRef.current = true;
-        gsap.killTweensOf(containerRef.current);
-        gsap.set(containerRef.current, { autoAlpha: 1 });
+        gsap.killTweensOf(panels);
+        gsap.set(panels, { autoAlpha: 1 });
 
         // Smooth Framer-level Fade & Scale In
         gsap.fromTo(
-          containerRef.current,
+          panels,
           { opacity: 0, scale: 0.96 },
           { opacity: 1, scale: 1, duration: 0.8, ease: 'power3.out' }
         );
@@ -358,16 +407,16 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
       // Detect Exit
       else if (!isNowVisible && isVisibleRef.current) {
         isVisibleRef.current = false;
-        gsap.killTweensOf(containerRef.current);
+        gsap.killTweensOf(panels);
 
         // Smooth Fade Out
-        gsap.to(containerRef.current, {
+        gsap.to(panels, {
           opacity: 0,
           scale: 0.96,
           duration: 0.5,
           ease: 'power2.inOut',
           onComplete: () => {
-            gsap.set(containerRef.current, { autoAlpha: 0 });
+            gsap.set(panels, { autoAlpha: 0 });
             setActiveSlide(0);
           },
         });
@@ -381,6 +430,25 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
   }, [holdData]);
 
   return (
+    <>
+      {/*
+        Who the deck is actually about. On a portrait screen the deck comes off
+        the wall and fills the viewport, so there is nowhere to put this.
+      */}
+      {reelFits && (
+        <div
+          ref={reelRef}
+          className="absolute pointer-events-none opacity-0 invisible select-none"
+          style={{ left: `${reelLeft}px`, top: `${reelCentreY}px`, zIndex: 49 }}
+        >
+          {/* The centring lives on its own element: the fade tweens the
+              wrapper's transform, and would eat a translate set alongside it. */}
+          <div style={{ transform: 'translateY(-50%)' }}>
+            <BuilderCarousel width={reelWidth} height={reelHeight} />
+          </div>
+        </div>
+      )}
+
     <div
       ref={containerRef}
       className="absolute pointer-events-none opacity-0 invisible select-none"
@@ -783,18 +851,21 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
             border: '1px solid rgba(255, 255, 255, 0.14)',
           }}
         >
-          <button
-            onClick={() => slideBy(-1)}
-            disabled={activeSlide === 0}
-            className={`flex h-7 w-7 items-center justify-center rounded-full text-[13px] leading-none transition-all duration-200 ${
-              activeSlide === 0
-                ? 'text-white/25'
-                : 'text-white/80 hover:bg-white/12 hover:text-white active:scale-90 cursor-pointer'
-            }`}
-            aria-label="Previous slide"
-          >
-            ←
-          </button>
+          {/* Portrait keeps its arrows here: there is no wall to put them on. */}
+          {flat && (
+            <button
+              onClick={() => slideBy(-1)}
+              disabled={activeSlide === 0}
+              className={`flex h-7 w-7 items-center justify-center rounded-full text-[13px] leading-none transition-all duration-200 ${
+                activeSlide === 0
+                  ? 'text-white/25'
+                  : 'text-white/80 hover:bg-white/12 hover:text-white active:scale-90 cursor-pointer'
+              }`}
+              aria-label="Previous slide"
+            >
+              ←
+            </button>
+          )}
 
           <div className="flex items-center gap-1.5 px-2">
             {SLIDES.map((slide, i) => (
@@ -813,21 +884,71 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
             ))}
           </div>
 
-          <button
-            onClick={() => slideBy(1)}
-            disabled={activeSlide === SLIDES.length - 1}
-            className={`flex h-7 w-7 items-center justify-center rounded-full text-[13px] leading-none transition-all duration-200 ${
-              activeSlide === SLIDES.length - 1
-                ? 'text-white/25'
-                : 'text-white/80 hover:bg-white/12 hover:text-white active:scale-90 cursor-pointer'
-            }`}
-            aria-label="Next slide"
-          >
-            →
-          </button>
+          {flat && (
+            <button
+              onClick={() => slideBy(1)}
+              disabled={activeSlide === SLIDES.length - 1}
+              className={`flex h-7 w-7 items-center justify-center rounded-full text-[13px] leading-none transition-all duration-200 ${
+                activeSlide === SLIDES.length - 1
+                  ? 'text-white/25'
+                  : 'text-white/80 hover:bg-white/12 hover:text-white active:scale-90 cursor-pointer'
+              }`}
+              aria-label="Next slide"
+            >
+              →
+            </button>
+          )}
         </div>
       </div>
 
+      {/*
+        The arrows, on the wall either side of the display.
+
+        They are placed against the screen's own painted box rather than laid
+        out in flow, for the same reason the dots are: the deck inside is a
+        fixed reference canvas scaled to fit, so it overflows this container
+        and nothing can simply follow it.
+      */}
+      {!flat &&
+        ([
+          { dir: -1 as const, glyph: '←', label: 'Previous slide', at: -armOffset, off: activeSlide === 0 },
+          {
+            dir: 1 as const,
+            glyph: '→',
+            label: 'Next slide',
+            at: screenWidth + armOffset,
+            off: activeSlide === SLIDES.length - 1,
+          },
+        ]).map((arm) => (
+          <button
+            key={arm.dir}
+            onClick={() => slideBy(arm.dir)}
+            disabled={arm.off}
+            className={`absolute flex items-center justify-center rounded-full transition-all duration-200 pointer-events-auto ${
+              arm.off ? 'text-white/20' : 'text-white/85 hover:text-white active:scale-90 cursor-pointer'
+            }`}
+            style={{
+              left: `${arm.at}px`,
+              top: '50%',
+              width: `${armSize}px`,
+              height: `${armSize}px`,
+              transform: 'translate(-50%, -50%)',
+              fontSize: `${Math.round(armSize * 0.42)}px`,
+              lineHeight: 1,
+              zIndex: 100,
+              background: arm.off ? 'rgba(12, 16, 24, 0.32)' : 'rgba(12, 16, 24, 0.55)',
+              border: '1px solid rgba(255, 255, 255, 0.16)',
+              backdropFilter: 'blur(18px) saturate(160%)',
+              WebkitBackdropFilter: 'blur(18px) saturate(160%)',
+              boxShadow: arm.off ? 'none' : '0 16px 40px -14px rgba(0,0,0,0.8)',
+            }}
+            aria-label={arm.label}
+          >
+            {arm.glyph}
+          </button>
+        ))}
+
     </div>
+    </>
   );
 }

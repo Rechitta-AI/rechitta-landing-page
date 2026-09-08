@@ -4,6 +4,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import gsap from 'gsap';
 import { coverRect, matrix3dFor } from '@/screens/warp';
 import { isPortraitFor } from '@/hooks/useDeviceMode';
+import { beatIndexById } from '@/film/score';
+import BuilderCarousel from './BuilderCarousel';
 import { MONITOR_CORNERS, DEFAULT_CALIBRATION, sanitizeCalibration, type CalibrationCoords } from './MonitorCalibrator';
 
 /**
@@ -133,6 +135,9 @@ export default function FinaleWorldMapPresentation({
   isMoving = false,
 }: FinaleWorldMapPresentationProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  /* The builders' reel sits beside the monitor, not on it: the map container
+     is warped onto the screen's quad and everything inside it warps with it. */
+  const reelRef = useRef<HTMLDivElement>(null);
   const [viewport, setViewport] = useState({ width: 1920, height: 1080 });
   const [calibration, setCalibration] = useState<CalibrationCoords>(() => {
     if (typeof window !== 'undefined') {
@@ -212,6 +217,22 @@ export default function FinaleWorldMapPresentation({
   const portraitTop = (viewport.height - portraitHeight) / 2;
 
   /*
+   * The builders' reel, matched to the opening boardroom.
+   *
+   * Same fractions of the frame as BoardroomPresentation uses, so the panel
+   * lands in the same place on the wall when the film comes back to the room
+   * at the end — it reads as the same object, not a second one.
+   */
+  const reelWidth = Math.min(230, Math.max(150, rect.width * 0.125));
+  const reelLeft = Math.max(16, rect.x + rect.width * 0.022);
+  const reelCentreY = rect.y + rect.height * 0.42;
+  const reelHeight = Math.min(rect.height * 0.34, 280);
+  /* The monitor's left edge, in the calibrated quad. A viewport far taller
+     than 16:9 crops the frame until there is nothing outboard of it to sit
+     in; the reel steps out rather than climbing onto the screen. */
+  const reelFits = !flat && tlPx[0] - (reelLeft + reelWidth) >= 16;
+
+  /*
    * On screen while the film is parked on the presentation, and held through
    * the pull-back that follows.
    *
@@ -225,7 +246,7 @@ export default function FinaleWorldMapPresentation({
    * Holding it all the way through the pull-back needs the monitor's corners
    * tracked across the clip, the way the phones are in screens/tracks.ts.
    */
-  const onPresentation = chapter === 'finale' && beatIndex === 10;
+  const onPresentation = chapter === 'finale' && beatIndex === beatIndexById('finale-screen');
   const isVisible = (onPresentation && !isMoving) || isCalibrating;
   const isDissolving = onPresentation && isMoving && !isCalibrating;
 
@@ -261,26 +282,28 @@ export default function FinaleWorldMapPresentation({
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
+    // The map and the reel beside it are lit and dimmed as one.
+    const panels = [el, reelRef.current].filter(Boolean);
 
     if (isVisible) {
-      gsap.killTweensOf(el);
-      gsap.set(el, { display: 'block' });
+      gsap.killTweensOf(panels);
+      gsap.set(panels, { display: 'block' });
       gsap.fromTo(
-        el,
+        panels,
         { opacity: 0 },
         { opacity: 1, duration: 0.42, ease: 'power2.out' }
       );
       triggerIgnition();
     } else {
-      gsap.killTweensOf(el);
-      gsap.to(el, {
+      gsap.killTweensOf(panels);
+      gsap.to(panels, {
         opacity: 0,
         // A dissolve across the camera move, rather than a cut at the start
         // of it. Anywhere else, the shorter exit.
         duration: isDissolving ? 1.5 : 0.3,
         ease: isDissolving ? 'power1.in' : 'power2.inOut',
         onComplete: () => {
-          gsap.set(el, { display: 'none' });
+          gsap.set(panels, { display: 'none' });
         },
       });
     }
@@ -291,6 +314,26 @@ export default function FinaleWorldMapPresentation({
   if (!mounted) return null;
 
   return (
+    <>
+      {reelFits && (
+        <div
+          ref={reelRef}
+          className="fixed pointer-events-none select-none"
+          style={{
+            display: 'none',
+            left: `${reelLeft}px`,
+            top: `${reelCentreY}px`,
+            zIndex: 49,
+          }}
+        >
+          {/* Centring on its own element, so the fade's transform has nothing
+              of ours to overwrite. */}
+          <div style={{ transform: 'translateY(-50%)' }}>
+            <BuilderCarousel width={reelWidth} height={reelHeight} />
+          </div>
+        </div>
+      )}
+
     <div
       ref={containerRef}
       id="finale-world-map-screen"
@@ -647,5 +690,6 @@ export default function FinaleWorldMapPresentation({
         }
       `}</style>
     </div>
+    </>
   );
 }

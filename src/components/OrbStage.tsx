@@ -285,24 +285,16 @@ export default function OrbStage({
         dot.style.opacity = String(intensity * age * 0.5 * pose.opacity);
       });
 
-      // ── The filament, drawn to the phone on a city change ──────────
-      if (filamentRef.current) {
-        const active = flare > 0.01 && progress > 0.5 && progress < 0.95;
-        if (!active) {
-          filamentRef.current.style.opacity = '0';
-        } else {
-          const phone = document.getElementById('multilingual-phone');
-          const rect = phone?.getBoundingClientRect();
-          if (rect) {
-            const dx = rect.left + rect.width / 2 - (vw / 2 + px);
-            const dy = rect.top + rect.height / 2 - (vh / 2 + py);
-            filamentRef.current.style.width = `${Math.hypot(dx, dy)}px`;
-            filamentRef.current.style.transform =
-              `translate(${px}px, ${py}px) rotate(${Math.atan2(dy, dx)}rad)`;
-            filamentRef.current.style.opacity = String(flare * 0.75);
-          }
-        }
-      }
+      /*
+       * The filament that used to reach across to the phone on a city change.
+       *
+       * It drew a line from the orb to the middle of the handset, which made
+       * sense while the orb hung in the sky on the far side of the frame. The
+       * orb now sits on the phone's own foot, so the line would be a stub
+       * across the briefing it is supposed to be delivering. The flare on
+       * every city change carries that beat on its own.
+       */
+      if (filamentRef.current) filamentRef.current.style.opacity = '0';
 
       // Above the drifted-orb threshold the orb should sit over the film,
       // below it the film's own overlays win.

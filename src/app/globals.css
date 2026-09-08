@@ -350,3 +350,31 @@ p {
 .animate-click-prompt-bob {
   animation: clickPromptBob 1.7s ease-in-out infinite;
 }
+
+/*
+ * The builders' reel beside the boardroom screen.
+ *
+ * The list is rendered twice inside the track, so travelling exactly half the
+ * track's height lands the second copy where the first started and the loop
+ * has no seam. Duration is set per instance.
+ */
+@keyframes builder-reel {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(0, -50%, 0);
+  }
+}
+.animate-builder-reel {
+  animation-name: builder-reel;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-builder-reel {
+    animation: none;
+  }
+}

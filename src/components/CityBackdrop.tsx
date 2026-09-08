@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import { CITIES, cityTime } from '@/film/score';
+import CityNav from './CityNav';
 
 /**
  * The multilingual chapter's backdrop.
@@ -31,11 +32,14 @@ export default function CityBackdrop({
   index,
   active,
   onSwap,
+  isMoving = false,
 }: {
   index: number;
   active: boolean;
   /** Fires as a crossfade begins, so the orb can pulse in step. */
   onSwap?: () => void;
+  /** A transition is playing; the chapter's own controls step aside for it. */
+  isMoving?: boolean;
 }) {
   const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
   const onSwapRef = useRef(onSwap);
@@ -141,14 +145,32 @@ export default function CityBackdrop({
                    left-0 right-0 top-[92px] text-center
                    md:left-auto md:right-[7%] md:top-1/2 md:-translate-y-1/2 md:text-right md:max-w-[46vw]"
       >
-        <h2
-          className="text-white leading-[0.92] tracking-tighter
-                     text-[clamp(1.75rem,9vw,2.75rem)] md:text-[clamp(3.25rem,7.5vw,7rem)]
-                     [text-shadow:0_2px_28px_rgba(7,10,16,0.6)]"
-          style={{ fontFamily: 'var(--font-inter)' }}
-        >
-          {city.label}
-        </h2>
+        {/*
+          Wide: the arrows sit on their own tier above the name, aligned to
+          its right edge like an eyebrow would be.
+        */}
+        <CityNav cityIndex={index} isMoving={isMoving} className="hidden md:flex justify-end mb-5" />
+
+        {/*
+          Portrait: they flank the name instead. The band between the header
+          and the top of the handset is barely two lines deep on a phone, and
+          a row of its own does not fit in it — either side of the name costs
+          no height at all.
+        */}
+        <div className="flex items-center justify-center gap-2 md:block">
+          <CityNav cityIndex={index} isMoving={isMoving} only={-1} size="sm" className="md:hidden" />
+
+          <h2
+            className="text-white leading-[0.92] tracking-tighter
+                       text-[clamp(1.75rem,9vw,2.75rem)] md:text-[clamp(3.25rem,7.5vw,7rem)]
+                       [text-shadow:0_2px_28px_rgba(7,10,16,0.6)]"
+            style={{ fontFamily: 'var(--font-inter)' }}
+          >
+            {city.label}
+          </h2>
+
+          <CityNav cityIndex={index} isMoving={isMoving} only={1} size="sm" className="md:hidden" />
+        </div>
 
         <div className="mt-2 md:mt-5 flex flex-wrap items-baseline justify-center md:justify-end gap-x-3 gap-y-1">
           <span className="font-mono text-[11px] md:text-[13px] tracking-[0.3em] text-[#8FB4FF] [text-shadow:0_1px_12px_rgba(7,10,16,0.85)]">

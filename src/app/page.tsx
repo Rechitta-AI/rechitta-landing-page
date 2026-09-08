@@ -5,7 +5,8 @@ import gsap from 'gsap';
 import FilmStage from '@/components/FilmStage';
 import BoardroomPresentation from '@/components/BoardroomPresentation';
 import BrokerPresentation from '@/components/BrokerPresentation';
-import BuyerPresentation from '@/components/BuyerPresentation';
+// The buyer scene is retired; the film goes broker -> clouds -> multilingual.
+// import BuyerPresentation from '@/components/BuyerPresentation';
 import Loader from '@/components/Loader';
 import ScrollRail from '@/components/ScrollRail';
 import Cursor from '@/components/Cursor';
@@ -190,12 +191,19 @@ export default function ExperiencePage() {
               visibility: chapter === 'cities' ? 'visible' : 'hidden',
             }}
           >
+            {/*
+              Turning the chapter by hand. Six beats that share a composition
+              read as one long page to scroll through; an arrow says they are
+              six things to step between. It sits with the city's name, which
+              is the thing it turns.
+            */}
             <CityBackdrop
               index={cityIndex}
               active={chapter === 'cities'}
               onSwap={() => {
                 cityPulse.current.at = performance.now();
               }}
+              isMoving={isMoving}
             />
 
             {/*
@@ -273,7 +281,7 @@ export default function ExperiencePage() {
 
             <BoardroomPresentation holdData={holdData} />
             <BrokerPresentation holdData={holdData} />
-            <BuyerPresentation holdData={holdData} />
+            {/* <BuyerPresentation holdData={holdData} /> */}
             <FinaleWorldMapPresentation chapter={chapter} beatIndex={beatIndex} isMoving={isMoving} />
 
             <FilmStage

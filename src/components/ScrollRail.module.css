@@ -12,10 +12,16 @@
   user-select: none;
 }
 
-/* Active Chapter Telemetry Floating Badge */
+/*
+ * The active-chapter badge — phones only.
+ *
+ * On a wide rail every chapter is named under the track, and this repeated
+ * whichever one was lit. Below 640px those names are hidden, so this is the
+ * only place the chapter is written down.
+ */
 .telemetryDock {
+  display: none;
   margin-bottom: 0.65rem;
-  display: flex;
   justify-content: center;
   pointer-events: none;
 }
@@ -31,7 +37,6 @@
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 20px rgba(86, 141, 255, 0.12);
-  transition: all 0.3s ease;
 }
 
 .pulseBeacon {
@@ -185,6 +190,10 @@
 @media (max-width: 640px) {
   .railContainer {
     padding-bottom: 0.85rem;
+  }
+  /* The names under the track go; the badge above it takes over. */
+  .telemetryDock {
+    display: flex;
   }
   .segmentLabel {
     display: none;

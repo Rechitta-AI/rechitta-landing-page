@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useMemo } from 'react';
-import { BEATS, CITIES } from '@/film/score';
+import { BEATS, CITIES, beatIndexById } from '@/film/score';
 import styles from './ScrollRail.module.css';
 
 /**
@@ -9,15 +9,18 @@ import styles from './ScrollRail.module.css';
  *
  * The film returns to the boardroom for its closing presentation, so that
  * name appears twice on purpose.
+ *
+ * Beat numbers are looked up rather than typed. They used to be literals, and
+ * retiring one beat — the buyer — silently slid every chapter after it onto
+ * the wrong slot: the rail read BOARDROOM while the film was on DUSK.
  */
 export const RAIL_CHAPTERS = [
-  { id: 'hero', num: '01', label: 'DAWN', beatIndex: 0 },
-  { id: 'boardroom', num: '02', label: 'BOARDROOM', beatIndex: 1 },
-  { id: 'broker', num: '03', label: 'BROKER', beatIndex: 2 },
-  { id: 'buyer', num: '04', label: 'BUYER', beatIndex: 3 },
-  { id: 'cities', num: '05', label: 'GLOBAL', beatIndex: 4 },
-  { id: 'finale-screen', num: '06', label: 'BOARDROOM', beatIndex: 10 },
-  { id: 'finale', num: '07', label: 'DUSK', beatIndex: 11 },
+  { id: 'hero', label: 'START', beatIndex: beatIndexById('hero') },
+  { id: 'boardroom', label: 'BOARDROOM', beatIndex: beatIndexById('boardroom') },
+  { id: 'broker', label: 'BROKER', beatIndex: beatIndexById('broker') },
+  { id: 'cities', label: 'GLOBAL', beatIndex: beatIndexById('city-mumbai') },
+  { id: 'finale-screen', label: 'BOARDROOM', beatIndex: beatIndexById('finale-screen') },
+  { id: 'finale', label: 'END', beatIndex: beatIndexById('finale') },
 ];
 
 /**
@@ -62,31 +65,35 @@ export default function ScrollRail({
   const fillRef = useRef<HTMLDivElement>(null);
   const glowLeadRef = useRef<HTMLSpanElement>(null);
 
-  // Derive active chapter details
-  const activeChapter = useMemo(() => {
-    if (beatIndex >= 4 && beatIndex <= 9) {
-      const cityIdx = beatIndex - 4;
-      const cityName = CITIES[cityIdx]?.label ?? 'GLOBAL';
-      return {
-        num: '05',
-        label: `GLOBAL · ${cityName}`,
-        chapterIndex: 4,
-      };
-    }
-    if (beatIndex === 10) {
-      return { num: '06', label: 'BOARDROOM · CLOSING', chapterIndex: 5 };
-    }
-    if (beatIndex >= 11) {
-      return { num: '07', label: 'DUSK', chapterIndex: 6 };
-    }
-    const ch = RAIL_CHAPTERS.find((c) => c.beatIndex === beatIndex) ?? RAIL_CHAPTERS[0];
-    const chIdx = RAIL_CHAPTERS.indexOf(ch);
-    return {
-      num: ch.num,
-      label: ch.label,
-      chapterIndex: Math.max(0, chIdx),
-    };
+  /**
+   * Which name is lit.
+   *
+   * A chapter owns every beat from its own up to the next one's, so the
+   * multilingual chapter keeps GLOBAL lit across all six cities without
+   * needing a case of its own.
+   */
+  const activeChapterIndex = useMemo(() => {
+    let index = 0;
+    RAIL_CHAPTERS.forEach((chapter, i) => {
+      if (beatIndex >= chapter.beatIndex) index = i;
+    });
+    return index;
   }, [beatIndex]);
+
+  /**
+   * The name of the chapter on screen, for the badge above the rail.
+   *
+   * The badge is the phone's only label — the row under the track drops its
+   * names below 640px, where six of them will not fit — so it carries the city
+   * as well, which is the one thing that changes while the name does not.
+   */
+  const activeLabel = useMemo(() => {
+    const chapter = RAIL_CHAPTERS[activeChapterIndex];
+    const num = String(activeChapterIndex + 1).padStart(2, '0');
+    if (chapter.id !== 'cities') return { num, label: chapter.label };
+    const city = CITIES[beatIndex - chapter.beatIndex];
+    return { num, label: city ? `${chapter.label} · ${city.label}` : chapter.label };
+  }, [activeChapterIndex, beatIndex]);
 
   // Smooth progress track loop
   useEffect(() => {
@@ -124,12 +131,19 @@ export default function ScrollRail({
 
   return (
     <div className={styles.railContainer} aria-label="Progress Rail">
-      {/* Chapter Telemetry Badge */}
+      {/*
+        The floating chapter badge, on a phone only.
+
+        On a wide screen it named the chapter the rail already names directly
+        underneath it, one line up. Below 640px the row under the track drops
+        its names — six of them will not fit — so up here is the only place
+        the chapter is written down.
+      */}
       <div className={styles.telemetryDock}>
         <div className={styles.telemetryTag}>
           <span className={styles.pulseBeacon} />
-          <span className={styles.chapterNum}>{activeChapter.num} {'//'}</span>
-          <span className={styles.chapterTitle}>{activeChapter.label}</span>
+          <span className={styles.chapterNum}>{activeLabel.num} {'//'}</span>
+          <span className={styles.chapterTitle}>{activeLabel.label}</span>
         </div>
       </div>
 
@@ -145,8 +159,8 @@ export default function ScrollRail({
         {/* Clickable Chapter Segments */}
         <div className={styles.segmentsRow}>
           {RAIL_CHAPTERS.map((ch, idx) => {
-            const isActive = activeChapter.chapterIndex === idx;
-            const isPassed = activeChapter.chapterIndex > idx;
+            const isActive = activeChapterIndex === idx;
+            const isPassed = activeChapterIndex > idx;
             return (
               <button
                 key={ch.id}

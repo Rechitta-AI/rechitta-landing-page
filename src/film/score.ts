@@ -12,12 +12,28 @@
  * the orb's path together instead of sliding them apart.
  */
 
-/** The intro film's clips, in cut order, with their trims. */
+/**
+ * The intro film's clips, in cut order, with their trims.
+ *
+ * transit-c and transit-d were the buyer's two shots — the push through the
+ * broker's phone, and the beach the other end of it being swallowed by
+ * weather. Both are out of the cut with that scene. They are left here rather
+ * than deleted because the orb's path and the tracked screens still describe
+ * them, and putting the scene back means putting these two lines back:
+ *
+ *   { key: 'transit-c', in: 0, out: 6.8, holdWeight: 6 },
+ *   { key: 'transit-d', in: 0, out: 6.0, holdWeight: 0 },
+ *
+ * The cloud that carries the film into the multilingual chapter is transit-e's
+ * opening instead. Neither retired shot has a frame of cloud without the beach
+ * or the handset somewhere in it — the camera cranes back off the subject
+ * rather than losing it — so trimming or cropping them could never show
+ * "just the clouds". transit-e can: it opens inside one.
+ */
 export const CLIP_SEQUENCE = [
   { key: 'scene1-3', in: 2, out: 11, holdWeight: 8 },
   { key: 'transit-b', in: 2, out: 16.9, holdWeight: 6 },
-  { key: 'transit-c', in: 0, out: 6.8, holdWeight: 6 },
-  { key: 'transit-d', in: 0, out: 6.0, holdWeight: 0 },
+  { key: 'transit-e', in: 1.35, out: 1.92, holdWeight: 0 },
 ] as const;
 
 /** The film's slice of the global 0–1 progress line the orb flies against. */
@@ -127,6 +143,22 @@ export type Beat = {
   noSkip?: boolean;
 };
 
+/**
+ * The cloud passage, in transit-e's source time.
+ *
+ * transit-e is the dawn descent into Dubai: it starts inside cloud and comes
+ * out of it over the skyline. Only its first two seconds are used here, and
+ * the out point is hard — the Burj's mast breaks the cloud line at 1.95, and
+ * a tower has no business in the second before Mumbai.
+ *
+ * The window is barely half a second of footage, so it is played well under
+ * speed. That is not a compromise: cloud at 0.4x reads as altitude, and the
+ * shot is the only thing on screen.
+ */
+const CLOUD_IN = 1.35;
+const CLOUD_OUT = 1.92;
+const CLOUD_RATE = 0.4;
+
 const cityProgress = (i: number) =>
   CITIES_SPAN.start + (i / (CITIES.length - 1)) * (CITIES_SPAN.end - CITIES_SPAN.start);
 
@@ -159,22 +191,35 @@ export const BEATS: Beat[] = [
     hold: 1,
     gate: true,
   },
-  {
-    id: 'buyer',
-    chapter: 'intro',
-    label: 'IV · The buyer',
-    clip: 'transit-c',
-    park: 6.8,
-    enter: { from: 0, to: 6.8, rate: 2.4 },
-    hold: 2,
-    gate: true,
-  },
   /*
-   * The flight out of the buyer's phone into the clouds used to be a beat of
-   * its own, so the film parked on a white frame and sat there until the
-   * viewer scrolled again. It is a transition, not a destination: the footage
-   * now plays as the way into Mumbai and the chapter turns over at the end of
-   * it, in one move.
+   * The buyer's phone, retired.
+   *
+   * The film used to stop on a second handset — the same live briefing seen
+   * from the other side of the deal — before it left for the clouds. It is
+   * kept here rather than deleted because the footage, the tracked screen and
+   * the overlay are all still in the repo; restoring the scene is putting this
+   * beat back and pointing `city-mumbai` at the top of transit-d again.
+   *
+   * {
+   *   id: 'buyer',
+   *   chapter: 'intro',
+   *   label: 'IV · The buyer',
+   *   clip: 'transit-c',
+   *   park: 6.8,
+   *   enter: { from: 0, to: 6.8, rate: 2.4 },
+   *   hold: 2,
+   *   gate: true,
+   * },
+   */
+  /*
+   * The flight into the clouds used to be a beat of its own, so the film
+   * parked on a white frame and sat there until the viewer scrolled again. It
+   * is a transition, not a destination: the footage now plays as the way into
+   * Mumbai and the chapter turns over at the end of it, in one move.
+   *
+   * With the buyer gone the cloud is transit-e's opening rather than the tail
+   * of the beach shot, so the frame holds nothing but weather from the first
+   * frame to the flash.
    */
   ...CITIES.map((city, i) => ({
     id: `city-${city.key}`,
@@ -184,7 +229,7 @@ export const BEATS: Beat[] = [
     city: i,
     flash: i === 0,
     ...(i === 0
-      ? { clip: 'transit-d', enter: { from: 0, to: 6.0, rate: 2.4 } }
+      ? { clip: 'transit-e', enter: { from: CLOUD_IN, to: CLOUD_OUT, rate: CLOUD_RATE } }
       : null),
     progress: cityProgress(i),
     progressFrom: i === 0 ? INTRO_SPAN.end : cityProgress(i - 1),
@@ -223,7 +268,9 @@ export const EAGER_CLIPS = [{ key: 'scene1-3', from: 2, to: 11 }];
 /** Fetched in this order once the loader is gone. */
 export const LAZY_CLIPS = [
   { key: 'transit-b', from: 2, to: 17 },
-  { key: 'transit-c', from: 0, to: 6.8 },
-  { key: 'transit-d', from: 0, to: 6.0 },
+  /* The buyer's two shots. Nothing plays them while that scene is retired.
+   * { key: 'transit-c', from: 0, to: 6.8 },
+   * { key: 'transit-d', from: 0, to: 6.0 }, */
+  { key: 'transit-e', from: 1.0, to: CLOUD_OUT },
   { key: 'last', from: 1.0, to: 11.0 },
 ];

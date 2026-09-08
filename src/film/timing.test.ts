@@ -42,15 +42,19 @@ describe('film timing', () => {
 
   it('rises monotonically through the cut', () => {
     const timing = buildTiming();
-    const samples = [
-      progressForClipTime(timing, 'scene1-3', 11)!,
-      progressForClipTime(timing, 'transit-b', 16.9)!,
-      progressForClipTime(timing, 'transit-c', 6.8)!,
-      progressForClipTime(timing, 'transit-d', 6.0)!,
-    ];
+    // Walked from the sequence rather than typed, so a recut cannot leave the
+    // check asserting against clips the film no longer plays.
+    const samples = CLIP_SEQUENCE.map((clip) => progressForClipTime(timing, clip.key, clip.out)!);
+    expect(samples).toHaveLength(CLIP_SEQUENCE.length);
     for (let i = 1; i < samples.length; i++) {
       expect(samples[i]).toBeGreaterThan(samples[i - 1]);
     }
+  });
+
+  it('has no place left for the retired buyer shots', () => {
+    const timing = buildTiming();
+    expect(progressForClipTime(timing, 'transit-c', 1)).toBeNull();
+    expect(progressForClipTime(timing, 'transit-d', 1)).toBeNull();
   });
 
   it('returns null for a clip outside the intro film', () => {

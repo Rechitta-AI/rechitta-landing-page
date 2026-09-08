@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BEATS } from '@/film/score';
+import { BEATS, CITIES } from '@/film/score';
 import { RAIL_CHAPTERS, railFraction } from './ScrollRail';
 
 /** Where each chapter's label sits, as a fraction of the rail. The row is
@@ -7,9 +7,10 @@ import { RAIL_CHAPTERS, railFraction } from './ScrollRail';
 const slot = (i: number) => i / (RAIL_CHAPTERS.length - 1);
 
 describe('the chapter rail', () => {
-  it('names the closing boardroom and the dusk', () => {
+  it('names the closing boardroom and the end', () => {
     const labels = RAIL_CHAPTERS.map((c) => c.label);
-    expect(labels.slice(-2)).toEqual(['BOARDROOM', 'DUSK']);
+    expect(labels[0]).toBe('START');
+    expect(labels.slice(-2)).toEqual(['BOARDROOM', 'END']);
   });
 
   it('starts empty and completes on the last beat', () => {
@@ -29,11 +30,19 @@ describe('the chapter rail', () => {
 
   it('crosses each city without leaving the global slot', () => {
     const global = RAIL_CHAPTERS.findIndex((c) => c.id === 'cities');
-    for (let beat = 4; beat <= 9; beat++) {
+    const from = RAIL_CHAPTERS[global].beatIndex;
+    const to = RAIL_CHAPTERS[global + 1].beatIndex;
+    expect(to - from).toBe(CITIES.length);
+    for (let beat = from; beat < to; beat++) {
       const f = railFraction(beat);
       expect(f).toBeGreaterThanOrEqual(slot(global));
       expect(f).toBeLessThan(slot(global + 1));
     }
+  });
+
+  it('has no name left over from the retired buyer beat', () => {
+    expect(RAIL_CHAPTERS.map((c) => c.label)).not.toContain('BUYER');
+    RAIL_CHAPTERS.forEach((chapter) => expect(chapter.beatIndex).toBeGreaterThanOrEqual(0));
   });
 
   it('never goes backwards', () => {
