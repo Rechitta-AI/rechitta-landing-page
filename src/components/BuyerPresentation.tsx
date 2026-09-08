@@ -5,6 +5,7 @@ import gsap from 'gsap';
 import { coverRect, toViewport, matrix3dFor } from '@/screens/warp';
 import { isPortraitFor, modeFor } from '@/hooks/useDeviceMode';
 import type { Quad } from '@/screens/types';
+import ClickPrompt from './ClickPrompt';
 
 interface BuyerPresentationProps {
   holdData: React.RefObject<{
@@ -170,6 +171,17 @@ export default function BuyerPresentation({ holdData }: BuyerPresentationProps) 
   const [showScrollPrompt, setShowScrollPrompt] = useState(false);
   const promptTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  /*
+   * The film will not leave this beat on a scroll: the call to action has to
+   * be pressed. Rather than let the viewer find that out by trying to scroll
+   * and failing, the prompt appears on its own once the scene has settled.
+   */
+  const [ctaHint, setCtaHint] = useState(false);
+  const ctaHintTimerRef = useRef<NodeJS.Timeout | null>(null);
+  useEffect(() => () => {
+    if (ctaHintTimerRef.current) clearTimeout(ctaHintTimerRef.current);
+  }, []);
+
   // Responsive viewport tracking for homography mapping
   const [viewport, setViewport] = useState({ width: 1920, height: 1080 });
 
@@ -306,6 +318,10 @@ export default function BuyerPresentation({ holdData }: BuyerPresentationProps) 
         isVisibleRef.current = true;
         isLockedRef.current = true;
 
+        // After the HUD has finished cascading in, not on top of it.
+        if (ctaHintTimerRef.current) clearTimeout(ctaHintTimerRef.current);
+        ctaHintTimerRef.current = setTimeout(() => setCtaHint(true), 2200);
+
         gsap.killTweensOf(containerRef.current);
         if (phoneRef.current) gsap.killTweensOf(phoneRef.current);
         if (hudContentRef.current) gsap.killTweensOf(hudContentRef.current);
@@ -395,6 +411,9 @@ export default function BuyerPresentation({ holdData }: BuyerPresentationProps) 
         isVisibleRef.current = false;
         isLockedRef.current = false;
 
+        if (ctaHintTimerRef.current) clearTimeout(ctaHintTimerRef.current);
+        setCtaHint(false);
+
         gsap.killTweensOf(containerRef.current);
         if (phoneRef.current) gsap.killTweensOf(phoneRef.current);
         if (hudContentRef.current) gsap.killTweensOf(hudContentRef.current);
@@ -420,14 +439,11 @@ export default function BuyerPresentation({ holdData }: BuyerPresentationProps) 
   // Words for the Optical Mask Split-Reveal headline
   const headlineLine1 = [
     { text: 'Ask', isHighlight: false },
-    { text: 'anything', isHighlight: false },
-    { text: '—', isHighlight: false },
+    { text: 'anything.', isHighlight: false },
   ];
 
   const headlineLine2 = [
-    { text: 'get', isHighlight: true },
-    { text: 'it', isHighlight: true },
-    { text: 'back', isHighlight: true },
+    { text: 'Answered', isHighlight: true },
     { text: 'in', isHighlight: true },
     { text: 'your', isHighlight: true },
     { text: 'language.', isHighlight: true },
@@ -789,7 +805,7 @@ export default function BuyerPresentation({ holdData }: BuyerPresentationProps) 
         {/* --- 1 CLEAN SUB-HEADLINE SENTENCE --- */}
         <div className={`overflow-hidden mb-4 ${stacked ? 'hidden' : ''}`}>
           <p className="buyer-split-sub text-[11px] sm:text-xs md:text-[13px] text-neutral-400 font-normal leading-relaxed translate-y-[110%] opacity-0 filter blur-[4px]">
-            From elevator wait times to offshore currency conversion — answered in real time with native cultural fluency.
+            From elevator wait times to offshore currency conversion. Answered in real time, with native cultural fluency.
           </p>
         </div>
 
@@ -883,23 +899,31 @@ export default function BuyerPresentation({ holdData }: BuyerPresentationProps) 
             </span>
           </a>
 
-          {/* 3D Scene Flight Trigger */}
-          <button
-            onClick={handleFlyToGlobal}
-            className={`flex-1 min-w-0 py-3 sm:py-3.5 px-4 sm:px-5 rounded-xl text-white text-xs sm:text-[13px] font-bold tracking-tight transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer group border ${
-              showScrollPrompt
-                ? 'bg-[#568DFF] border-[#8FB4FF] shadow-[0_0_32px_rgba(86,141,255,0.7)] scale-[1.02]'
-                : 'bg-[#568DFF]/90 hover:bg-[#568DFF] border-[#568DFF]/60 hover:border-[#8FB4FF] shadow-[0_0_20px_rgba(86,141,255,0.4)] hover:shadow-[0_0_28px_rgba(86,141,255,0.6)]'
-            }`}
-            style={{ fontFamily: 'var(--font-inter)' }}
-            aria-label="Fly to Global Reach"
-          >
-            <span className="h-2 w-2 rounded-full bg-white shadow-[0_0_8px_#ffffff] animate-pulse" />
-            <span className="whitespace-nowrap">Global Dialects</span>
-            <span className="text-white/90 font-bold transition-transform group-hover:translate-x-1">
-              →
-            </span>
-          </button>
+          {/* 3D Scene Flight Trigger. The film waits on this one. */}
+          <div className="relative flex-1 min-w-0 flex">
+            <ClickPrompt
+              label={showScrollPrompt ? 'Click here to continue' : 'Click to continue'}
+              visible={ctaHint || showScrollPrompt}
+              placement="top"
+              urgent={showScrollPrompt}
+            />
+            <button
+              onClick={handleFlyToGlobal}
+              className={`w-full min-w-0 py-3.5 sm:py-4 px-4 sm:px-5 rounded-xl text-white text-[13px] sm:text-sm font-bold tracking-tight transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer group border ${
+                showScrollPrompt
+                  ? 'bg-[#568DFF] border-[#8FB4FF] shadow-[0_0_32px_rgba(86,141,255,0.7)] scale-[1.02]'
+                  : 'bg-[#568DFF]/90 hover:bg-[#568DFF] border-[#568DFF]/60 hover:border-[#8FB4FF] shadow-[0_0_20px_rgba(86,141,255,0.4)] hover:shadow-[0_0_28px_rgba(86,141,255,0.6)]'
+              }`}
+              style={{ fontFamily: 'var(--font-inter)' }}
+              aria-label="Fly to Global Reach"
+            >
+              <span className="h-2 w-2 rounded-full bg-white shadow-[0_0_8px_#ffffff] animate-pulse" />
+              <span className="whitespace-nowrap">Global Dialects</span>
+              <span className="text-white/90 font-bold transition-transform group-hover:translate-x-1">
+                &rarr;
+              </span>
+            </button>
+          </div>
         </div>
       </div>
 

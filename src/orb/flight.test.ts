@@ -1,8 +1,13 @@
 import { describe, it, expect } from 'vitest';
 import { resolveAnchor, resolvePath, poseAt, findExclusionViolations } from './flight';
+import { buildTiming } from '@/film/timing';
 import type { ExclusionZone, FilmTiming, Keyframe, ResolvedKeyframe } from './types';
 
-/** The real intro film: scene1-3 (9s + 8 hold), transit-b (15s), across scroll 0–0.5. */
+/**
+ * A synthetic four-clip film, for exercising the resolver against fixed
+ * numbers. It deliberately does not track the real cut — the tests below that
+ * check the authored path use `buildTiming()` for that.
+ */
 const timing: FilmTiming = {
   startProgress: 0,
   endProgress: 0.5,
@@ -157,15 +162,19 @@ describe('findExclusionViolations', () => {
 });
 
 describe('the authored path', () => {
+  // The path anchors to the film as it is actually cut, so these read the
+  // real timing table rather than the fixture above.
+  const cut = buildTiming();
+
   it('never enters a mockup surface', async () => {
     const { ORB_PATH, EXCLUSION_ZONES } = await import('./path');
-    const resolved = resolvePath(ORB_PATH, timing);
-    expect(findExclusionViolations(resolved, EXCLUSION_ZONES, timing)).toEqual([]);
+    const resolved = resolvePath(ORB_PATH, cut);
+    expect(findExclusionViolations(resolved, EXCLUSION_ZONES, cut)).toEqual([]);
   });
 
   it('resolves every keyframe it authors', async () => {
     const { ORB_PATH } = await import('./path');
-    expect(resolvePath(ORB_PATH, timing)).toHaveLength(ORB_PATH.length);
+    expect(resolvePath(ORB_PATH, cut)).toHaveLength(ORB_PATH.length);
   });
 
   it('starts and ends on the same pose so the loop is invisible', async () => {

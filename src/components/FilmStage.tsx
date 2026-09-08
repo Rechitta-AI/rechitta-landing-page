@@ -26,6 +26,7 @@ import {
   preloadSpan,
   setMediaHost,
 } from '@/film/media';
+import { isHeld } from '@/film/holds';
 import { registerLoadTask, setLoadProgress } from '@/utils/loadProgress';
 import type { FilmTiming } from '@/orb/types';
 import type { Playhead } from '@/screens/types';
@@ -615,6 +616,9 @@ export default function FilmStage({
 
     // ── Input ────────────────────────────────────────────────────────
 
+    /** An overlay can hold the film on its beat — see film/holds.ts. */
+    const isBlocked = (index: number) => isHeld(BEATS[index]?.id ?? '');
+
     const dispatch = (cmd: Command) => {
       switch (cmd.type) {
         case 'move':
@@ -629,6 +633,11 @@ export default function FilmStage({
           break;
         case 'skip':
           skipRequested = true;
+          break;
+        case 'blocked':
+          window.dispatchEvent(
+            new CustomEvent('rechitta:blocked', { detail: { beat: BEATS[cmd.index].id } }),
+          );
           break;
         case 'nudge':
           callbacks.current.onNudge?.(BEATS[cmd.index]);
@@ -664,7 +673,7 @@ export default function FilmStage({
     const feed = (delta: number) => {
       if (!enabledRef.current) return;
       if (modalOpen()) return;
-      dispatch(feedInput(state, delta, performance.now(), BEATS));
+      dispatch(feedInput(state, delta, performance.now(), BEATS, isBlocked));
     };
 
     const modalOpen = () => document.documentElement.hasAttribute('data-modal-open');
@@ -702,11 +711,11 @@ export default function FilmStage({
       if (modalOpen()) return;
       if (FORWARD_KEYS.includes(e.key)) {
         e.preventDefault();
-        if (!enabledRef.current) return;
-        dispatch(commit(state, 1, performance.now(), BEATS));
+        if (!enabledRef.current || state.phase === 'moving') return;
+        dispatch(commit(state, 1, performance.now(), BEATS, isBlocked));
       } else if (BACK_KEYS.includes(e.key)) {
         e.preventDefault();
-        if (!enabledRef.current) return;
+        if (!enabledRef.current || state.phase === 'moving') return;
         dispatch(commit(state, -1, performance.now(), BEATS));
       }
     };
@@ -732,6 +741,7 @@ export default function FilmStage({
         void runMove(state.index, detail.index, dir);
       }
     };
+    window.addEventListener('rechitta:beat-sync', onStepSync);
     window.addEventListener('rechitta:jump-to-beat', onJumpEvent);
 
     window.addEventListener('wheel', onWheel, { passive: false });

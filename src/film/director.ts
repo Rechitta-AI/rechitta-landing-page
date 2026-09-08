@@ -6,6 +6,10 @@
  * beat. Everything below the threshold is discarded, which is what stops a
  * trackpad's resting drift from nudging the film a frame at a time.
  *
+ * The threshold is direction-agnostic: scrolling back commits exactly the
+ * same way as scrolling on, and only the forward direction is ever gated (see
+ * `gate` and `isBlocked` below).
+ *
  * Three further rules keep a commit from being accidental:
  *   - Intent decays to nothing after IDLE_RESET_MS of quiet, so a slow scroll
  *     spread over seconds never adds up to a move.
@@ -19,20 +23,34 @@
 
 import type { Beat } from './score';
 
-/** Accumulated input needed to commit to a move. High responsiveness for Option C. */
-export const THRESHOLD = 80;
+/**
+ * Accumulated input needed to commit to a move.
+ *
+ * This has to sit *below* MAX_DELTA, not above it. When it sat above, a single
+ * wheel event could never reach it however hard it was thrown, so a mouse
+ * wheel - which fires one discrete event per detent, often more than
+ * IDLE_RESET_MS apart - could never move the film in either direction, and a
+ * short backward flick on a trackpad stalled at the cap.
+ */
+export const THRESHOLD = 60;
 
 /** Per-event cap, so one violent wheel spin is still one step. */
-export const MAX_DELTA = 70;
+export const MAX_DELTA = 90;
 
 /** Quiet for this long and the accumulator forgets what it was doing. */
-export const IDLE_RESET_MS = 200;
+export const IDLE_RESET_MS = 260;
 
-/** Dead time after a transition lands, so its tail-off is not read as input. */
-export const COOLDOWN_MS = 180;
+/**
+ * Dead time after a transition lands, so its tail-off is not read as input.
+ *
+ * A trackpad keeps sending momentum for the best part of a second after the
+ * fingers have left it, and with one decisive event now enough to commit, a
+ * short cooldown let that tail carry the film two beats on one gesture.
+ */
+export const COOLDOWN_MS = 320;
 
 /** Cooldown between sub-steps (e.g. boardroom slides) so one swipe only advances 1 step. */
-export const STEP_COOLDOWN_MS = 160;
+export const STEP_COOLDOWN_MS = 300;
 
 /** Grace period after transition starts before any mid-flight skip is permitted. */
 export const SKIP_GRACE_MS = 650;
@@ -58,6 +76,12 @@ export type Command =
   | { type: 'none' }
   /** A gated beat refused to advance. */
   | { type: 'nudge'; index: number }
+  /**
+   * A beat refused to let go because something on it is unfinished — the
+   * boardroom's last slide asks a question, and the film should not move on
+   * before it is answered. Unlike a nudge this never relents.
+   */
+  | { type: 'blocked'; index: number }
   /** Movement inside the current beat: the boardroom changed slide. */
   | { type: 'step'; index: number; step: number; dir: 1 | -1 }
   /** Commit to a transition. */
@@ -92,6 +116,7 @@ export function feedInput(
   delta: number,
   now: number,
   beats: Beat[],
+  isBlocked?: (index: number) => boolean,
 ): Command {
   if (delta === 0) return { type: 'none' };
 
@@ -132,7 +157,7 @@ export function feedInput(
   const dir = sign(state.intent);
   state.intent = 0;
 
-  return commit(state, dir, now, beats);
+  return commit(state, dir, now, beats, isBlocked);
 }
 
 /** Commits a move in `dir`, applying the beat's own step and gate rules. */
@@ -141,6 +166,8 @@ export function commit(
   dir: 1 | -1,
   now: number,
   beats: Beat[],
+  /** Asked before a forward move whether the beat is ready to be left. */
+  isBlocked?: (index: number) => boolean,
 ): Command {
   const beat = beats[state.index];
   const steps = beat?.steps ?? 1;
@@ -156,6 +183,13 @@ export function commit(
     state.step -= 1;
     state.lockedUntil = now + STEP_COOLDOWN_MS;
     return { type: 'step', index: state.index, step: state.step, dir };
+  }
+
+  // An overlay can refuse to let go. This is not the gate below: a gate is a
+  // preference the film relents on, this is a requirement it does not.
+  if (dir === 1 && isBlocked?.(state.index)) {
+    state.lockedUntil = now + COOLDOWN_MS;
+    return { type: 'blocked', index: state.index };
   }
 
   // A gated beat wants its call to action pressed. It relents after a few
@@ -202,7 +236,7 @@ export function arrive(
   state.step = dir === 1 ? 0 : steps - 1;
 }
 
-/** Clears a gate's refusal count — the viewer pressed the button after all. */
+/** Clears a gate's refusal count: the viewer pressed the button after all. */
 export function release(state: DirectorState, now: number, beats: Beat[]): Command {
   if (state.phase === 'moving') return { type: 'none' };
   const to = nextIndex(state.index, 1, beats.length);

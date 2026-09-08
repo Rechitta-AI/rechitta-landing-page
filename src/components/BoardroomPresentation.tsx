@@ -4,6 +4,9 @@ import React, { useEffect, useRef, useState } from 'react';
 import gsap from 'gsap';
 import { coverRect } from '@/screens/warp';
 import { isPortraitFor } from '@/hooks/useDeviceMode';
+import { setHold } from '@/film/holds';
+import ClickPrompt from './ClickPrompt';
+import BuilderCarousel from './BuilderCarousel';
 
 /** Interactive questions on Slide 3 showcasing Rechitta's instant intelligence */
 const SLIDE_3_QUESTIONS = [
@@ -20,7 +23,7 @@ const SLIDE_3_QUESTIONS = [
   {
     chip: 'Elevator & Burj Views',
     q: 'Which units have sunset Burj Khalifa views?',
-    a: 'Levels 42–58: West-facing 3-bed duplexes feature private high-speed elevators and 270° unobstructed Burj skyline vistas.',
+    a: 'Levels 42-58. West-facing 3-bed duplexes have private high-speed elevators and 270° unobstructed Burj skyline views.',
   },
 ];
 
@@ -30,25 +33,30 @@ const SLIDES = [
     id: 1,
     tag: '01 / THE STATUS QUO',
     headline: 'Every project starts with a pitch.',
-    body: 'A deck, a brochure, a sales team working the phones — repeated for every broker, every buyer, every question.',
+    body: 'A deck, a brochure, a sales team working the phones. Repeated for every broker, every buyer, every question.',
   },
   {
     id: 2,
     tag: '02 / THE SHIFT',
     headline: 'Rechitta turns that pitch into a briefing.',
-    body: 'Upload the project once — media, pricing, floor plans, the story. Every broker gets briefed exactly the same way, instantly.',
+    body: 'Upload the project once: media, pricing, floor plans, the story. Every broker gets briefed exactly the same way, instantly.',
   },
   {
     id: 3,
     tag: '03 / INSTANT KNOWLEDGE',
     headline: 'Ask it anything.',
-    body: "Payment plans, unit views, handover dates — answered in real time, the way a broker would if they'd built the project themselves.",
+    body: "Payment plans, unit views, handover dates, answered in real time. The way a broker would if they'd built the project themselves.",
   },
   {
     id: 4,
     tag: '04 / THE REALITY',
     headline: "Reaching 40,000 brokers with a 30-person sales team shouldn't take three months.",
-    body: 'There are 40,000+ registered brokers in Dubai. A typical sales team of 30 spends about three months trying to reach them all.',
+    /*
+     * No body on purpose. It restated the headline's own numbers back at the
+     * viewer, and on the one slide that asks for a click it was three lines of
+     * reading between the question and the buttons.
+     */
+    body: '',
     isInteractive: true,
   },
 ];
@@ -65,7 +73,15 @@ interface BoardroomPresentationProps {
 export default function BoardroomPresentation({ holdData }: BoardroomPresentationProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const slidesRef = useRef<HTMLDivElement>(null);
-  const dotsRef = useRef<(HTMLButtonElement | null)[]>([]);
+  /*
+   * The builders' reel lives outside the screen container.
+   *
+   * It cannot be a child of it: the entrance scales that container, which
+   * would make it a containing block for anything fixed inside, and the reel
+   * is placed against the footage rather than against the display. It fades
+   * on the same cues instead.
+   */
+  const reelRef = useRef<HTMLDivElement>(null);
 
   const isVisibleRef = useRef(false);
 
@@ -143,6 +159,11 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
   const BASE_W = flat ? PORTRAIT_BASE.w : LANDSCAPE_BASE.w;
   const BASE_H = flat ? PORTRAIT_BASE.h : LANDSCAPE_BASE.h;
 
+  // Where the 16:9 footage actually lands in the viewport. Everything placed
+  // against the room — the screen, the arrows on the wall, the builders' reel
+  // — is measured off this rather than off the viewport.
+  const rect = coverRect(viewport.width, viewport.height);
+
   let screenLeft: number;
   let screenTop: number;
   let screenWidth: number;
@@ -158,12 +179,55 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
     screenLeft = (viewport.width - screenWidth) / 2;
     screenTop = (viewport.height - screenHeight) / 2 - viewport.height * 0.03;
   } else {
-    const rect = coverRect(viewport.width, viewport.height);
     screenLeft = rect.x + (LEFT / 100) * rect.width;
     screenTop = rect.y + (TOP / 100) * rect.height;
     screenWidth = (WIDTH / 100) * rect.width;
     screenHeight = (HEIGHT / 100) * rect.height;
   }
+
+  /*
+   * Where the slide controls sit, measured from the top of the screen area.
+   *
+   * The display in the footage runs from 17% to 65.6% down the frame, its
+   * casing ends around 69%, and the credenza starts around 76%. Putting the
+   * controls a little over a tenth of the frame below the screen lands them in
+   * that gap — clear of the picture, clear of the furniture.
+   *
+   * On a wide screen only the dots live down there now: the arrows have moved
+   * onto the wall either side of the display, where they read as part of the
+   * room instead of as a toolbar under it.
+   */
+  const controlsTop = flat ? screenHeight + 18 : screenHeight + rect.height * 0.055;
+
+  /*
+   * The arrows on the wall.
+   *
+   * The beige panel the display is mounted on runs from about 15.5% to 29% of
+   * the frame on the left and mirrors that on the right. Half of that gap out
+   * from the screen's edge puts each arrow in the middle of its own panel,
+   * clear of both the bezel and the windows beyond it.
+   */
+  const armOffset = rect.width * 0.065;
+  const armSize = Math.min(80, Math.max(56, rect.width * 0.04));
+
+  /*
+   * The builders' reel, over the window on the far left.
+   *
+   * It cannot share the wall with the left arrow — that panel is only 13% of
+   * the frame wide — so it sits outboard of it, floating over the glass the
+   * way the film's other HUD panels do.
+   */
+  const reelWidth = Math.min(230, Math.max(150, rect.width * 0.125));
+  const reelLeft = Math.max(16, rect.x + rect.width * 0.022);
+  const reelCentreY = rect.y + rect.height * 0.42;
+  const reelHeight = Math.min(rect.height * 0.34, 280);
+
+  /*
+   * A viewport far taller than 16:9 crops the footage hard from the sides, and
+   * the outboard strip the reel wants stops existing. Rather than let it slide
+   * under the arrow — or off the edge — it steps out until there is room.
+   */
+  const reelFits = !flat && screenLeft - armOffset - armSize / 2 - (reelLeft + reelWidth) >= 16;
 
   const scaleRatio = screenWidth / BASE_W;
   // A deck lying flat should not carry the wall's perspective.
@@ -192,20 +256,6 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
       duration: 0.65,
       ease: 'power3.inOut',
       overwrite: 'auto',
-    });
-
-    // Update the fluid capsule dots
-    dotsRef.current.forEach((dot, i) => {
-      if (!dot) return;
-      if (i === activeSlide) {
-        dot.style.width = '2.2rem';
-        dot.style.opacity = '1';
-        dot.style.backgroundColor = '#111827';
-      } else {
-        dot.style.width = '0.5rem';
-        dot.style.opacity = '0.35';
-        dot.style.backgroundColor = '#4b5563';
-      }
     });
   }, [activeSlide]);
 
@@ -256,6 +306,36 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+  /**
+   * The deck's last slide asks a question, and the film waits for the answer.
+   *
+   * Scrolling past it used to carry on to the broker regardless, which made
+   * the question decorative. The film asks before every forward move whether
+   * a beat is ready to be left; while this one is not, it holds.
+   */
+  const [nudgeQuiz, setNudgeQuiz] = useState(false);
+  useEffect(() => {
+    setHold('boardroom', quizState === 'prompt');
+  }, [quizState]);
+
+  useEffect(() => {
+    // Never leave the film held by an overlay that has gone away.
+    return () => setHold('boardroom', false);
+  }, []);
+
+  /** The film refused to move on; draw the eye to the question. */
+  useEffect(() => {
+    const onBlocked = (e: Event) => {
+      const detail = (e as CustomEvent<{ beat?: string }>).detail;
+      if (detail?.beat !== 'boardroom') return;
+      setActiveSlide(SLIDES.length - 1);
+      setNudgeQuiz(true);
+      window.setTimeout(() => setNudgeQuiz(false), 1400);
+    };
+    window.addEventListener('rechitta:blocked', onBlocked);
+    return () => window.removeEventListener('rechitta:blocked', onBlocked);
+  }, []);
+
   /** Advance from Boardroom scene into the Broker phone scene */
   const handleUploadClick = () => {
     if (isUploading || isSynced) {
@@ -272,16 +352,17 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
       // 2. 350ms "sight pause" after notification appears, initiate native hardware video playback flight!
       setTimeout(() => {
         // Immediately dissolve the boardroom slides so the hallway flight is 100% unobstructed
-        if (containerRef.current) {
+        const leaving = [containerRef.current, reelRef.current].filter(Boolean);
+        if (leaving.length) {
           isVisibleRef.current = false;
-          gsap.killTweensOf(containerRef.current);
-          gsap.to(containerRef.current, {
+          gsap.killTweensOf(leaving);
+          gsap.to(leaving, {
             opacity: 0,
             scale: 0.95,
             duration: 0.45,
             ease: 'power2.inOut',
             onComplete: () => {
-              if (containerRef.current) gsap.set(containerRef.current, { autoAlpha: 0 });
+              gsap.set(leaving, { autoAlpha: 0 });
               setActiveSlide(0);
             },
           });
@@ -307,16 +388,18 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
 
       const { clipIndex } = holdData.current;
       const isNowVisible = clipIndex === 0;
+      // The deck and the reel arrive and leave together.
+      const panels = [containerRef.current, reelRef.current].filter(Boolean);
 
       // Detect Entrance
       if (isNowVisible && !isVisibleRef.current) {
         isVisibleRef.current = true;
-        gsap.killTweensOf(containerRef.current);
-        gsap.set(containerRef.current, { autoAlpha: 1 });
+        gsap.killTweensOf(panels);
+        gsap.set(panels, { autoAlpha: 1 });
 
         // Smooth Framer-level Fade & Scale In
         gsap.fromTo(
-          containerRef.current,
+          panels,
           { opacity: 0, scale: 0.96 },
           { opacity: 1, scale: 1, duration: 0.8, ease: 'power3.out' }
         );
@@ -324,16 +407,16 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
       // Detect Exit
       else if (!isNowVisible && isVisibleRef.current) {
         isVisibleRef.current = false;
-        gsap.killTweensOf(containerRef.current);
+        gsap.killTweensOf(panels);
 
         // Smooth Fade Out
-        gsap.to(containerRef.current, {
+        gsap.to(panels, {
           opacity: 0,
           scale: 0.96,
           duration: 0.5,
           ease: 'power2.inOut',
           onComplete: () => {
-            gsap.set(containerRef.current, { autoAlpha: 0 });
+            gsap.set(panels, { autoAlpha: 0 });
             setActiveSlide(0);
           },
         });
@@ -347,6 +430,25 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
   }, [holdData]);
 
   return (
+    <>
+      {/*
+        Who the deck is actually about. On a portrait screen the deck comes off
+        the wall and fills the viewport, so there is nowhere to put this.
+      */}
+      {reelFits && (
+        <div
+          ref={reelRef}
+          className="absolute pointer-events-none opacity-0 invisible select-none"
+          style={{ left: `${reelLeft}px`, top: `${reelCentreY}px`, zIndex: 49 }}
+        >
+          {/* The centring lives on its own element: the fade tweens the
+              wrapper's transform, and would eat a translate set alongside it. */}
+          <div style={{ transform: 'translateY(-50%)' }}>
+            <BuilderCarousel width={reelWidth} height={reelHeight} />
+          </div>
+        </div>
+      )}
+
     <div
       ref={containerRef}
       className="absolute pointer-events-none opacity-0 invisible select-none"
@@ -426,16 +528,19 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
                     slide.id === 4 && quizState !== 'prompt' ? 'translateY(-16px)' : 'translateY(0)',
                 }}
               >
-                {/* Section Eyebrow Badge */}
-                <span
-                  className="inline-block text-[11px] md:text-xs tracking-[0.28em] text-neutral-500 font-bold mb-2 uppercase"
-                  style={{ fontFamily: 'var(--font-inter)' }}
-                >
-                  {slide.tag}
-                </span>
+                {/* Section eyebrow, on the shared editorial tier. */}
+                <div className="mb-2 flex flex-col items-center gap-1.5">
+                  <span
+                    className="eyebrow text-neutral-500"
+                    style={{ fontFamily: 'var(--font-inter)' }}
+                  >
+                    {slide.tag}
+                  </span>
+                  <span className="eyebrow-rule" data-align="center" aria-hidden="true" />
+                </div>
 
                 {/* Headline in Clean Editorial Sans (Inter) */}
-                <div className="overflow-hidden mb-2.5">
+                <div className="overflow-hidden mb-2">
                   <h2
                     className="text-2xl sm:text-3xl md:text-[2.65rem] lg:text-[2.9rem] font-bold text-neutral-900 tracking-tight leading-[1.12]"
                     style={{ fontFamily: 'var(--font-inter)' }}
@@ -444,13 +549,15 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
                   </h2>
                 </div>
 
-                {/* Body in Clean Editorial Sans (Inter) */}
-                <p
-                  className="text-sm sm:text-[15px] md:text-base text-neutral-700 font-normal leading-relaxed max-w-lg mb-3"
-                  style={{ fontFamily: 'var(--font-inter)' }}
-                >
-                  {slide.body}
-                </p>
+                {/* Body in Clean Editorial Sans (Inter). Slide 4 has none. */}
+                {slide.body && (
+                  <p
+                    className="text-sm sm:text-[15px] md:text-base text-neutral-600 font-normal leading-relaxed max-w-[34ch] text-balance mb-3"
+                    style={{ fontFamily: 'var(--font-inter)' }}
+                  >
+                    {slide.body}
+                  </p>
+                )}
 
                 {/* SLIDE 1 VISUAL CENTERPIECE: The Unread Document Graveyard */}
                 {slide.id === 1 && (
@@ -598,129 +705,122 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
                   </div>
                 )}
 
-                {/* SLIDE 4: Concept 3 - Slide-Up OS Command Bar (Apple TV / Tesla Style) */}
+                {/*
+                  SLIDE 4: the question, then the one thing to press.
+
+                  This used to answer itself. Both branches paid out a full
+                  sentence of explanation inside a pill, above a status dock
+                  carrying a second headline, a status line, a footnote row and
+                  the button - so the control the film is actually waiting on
+                  was the smallest thing on the slide. Now the branch is four
+                  words and the call to action is the only object under it.
+                */}
                 {slide.isInteractive && (
-                  <div className="w-full flex flex-col items-center pointer-events-auto mt-2 min-h-[116px] justify-center transition-all duration-500 ease-out">
+                  <div className="w-full flex flex-col items-center pointer-events-auto mt-1 min-h-[128px] justify-center transition-all duration-500 ease-out">
                     {quizState === 'prompt' ? (
-                      <div className="flex flex-col items-center gap-2.5 animate-hud-expand">
+                      <div className="flex flex-col items-center gap-4 animate-hud-expand">
                         <span
-                          className="text-xs md:text-sm font-semibold text-neutral-800 tracking-wide"
+                          className="text-sm md:text-base font-semibold text-neutral-800 tracking-tight"
                           style={{ fontFamily: 'var(--font-inter)' }}
                         >
                           Think there&apos;s a solution?
                         </span>
-                        <div className="flex items-center gap-3">
-                          <button
-                            onClick={() => setQuizState('yes')}
-                            className="px-6 py-2 rounded-full bg-neutral-900 hover:bg-neutral-800 text-white text-xs md:text-sm font-semibold hover:scale-105 active:scale-95 transition-all shadow-sm shadow-neutral-900/20 cursor-pointer flex items-center gap-1.5"
-                            style={{ fontFamily: 'var(--font-inter)' }}
-                          >
-                            <span>Yes</span>
-                            <span className="text-[#568DFF]">✓</span>
-                          </button>
-                          <button
-                            onClick={() => setQuizState('no')}
-                            className="px-6 py-2 rounded-full border border-neutral-300 text-neutral-800 bg-white hover:bg-neutral-50 text-xs md:text-sm font-semibold hover:scale-105 active:scale-95 transition-all shadow-xs cursor-pointer"
-                            style={{ fontFamily: 'var(--font-inter)' }}
-                          >
-                            No
-                          </button>
-                        </div>
-                        <span className="text-[10px] text-neutral-400 font-medium">
-                          Select an option to activate deployment OS
-                        </span>
-                      </div>
-                    ) : (
-                      /* CONCEPT 3: SLIDE-UP OS COMMAND BAR (APPLE TV / TESLA STYLE) */
-                      <div className="w-full max-w-lg flex flex-col items-center animate-slide-up-dock">
-                        {/* Architectural Verdict Pill */}
-                        <div className="mb-2 px-3.5 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-950 text-[11px] md:text-xs font-medium flex items-center gap-1.5 animate-fade-in text-center shadow-xs">
-                          <span className="text-blue-600 font-bold">
-                            {quizState === 'yes' ? '✓ Instinct Confirmed:' : '⚡ Bottleneck Solved:'}
-                          </span>
-                          <span className="text-neutral-700">
-                            {quizState === 'yes'
-                              ? '12-second instant AI briefing replaces 3 months of manual WhatsApp outreach.'
-                              : 'Rechitta replaces 3 months of sales lag with 40,000 live conversational agents.'}
-                          </span>
-                        </div>
 
-                        {/* Floating Low-Profile OS Command Bar Dock */}
-                        <div
-                          className="w-full h-14 px-3 sm:px-4 rounded-2xl bg-neutral-950 text-white shadow-2xl flex items-center justify-between border border-neutral-800/80 relative overflow-hidden"
-                          style={{
-                            boxShadow:
-                              '0 20px 40px -10px rgba(0, 0, 0, 0.4), inset 0 1px 1px 0 rgba(255, 255, 255, 0.15)',
-                          }}
-                        >
-                          {/* Left: System Status & Intelligence */}
-                          <div className="flex items-center gap-2.5 min-w-0 pr-2">
-                            <span className="relative flex h-2.5 w-2.5 shrink-0">
-                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#568DFF] opacity-75" />
-                              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#568DFF] shadow-sm shadow-[#568DFF]/80" />
-                            </span>
-                            <div className="flex flex-col text-left overflow-hidden">
-                              <span className="text-[9px] tracking-widest font-bold uppercase text-[#568DFF] leading-none">
-                                {quizState === 'yes' ? 'SYSTEM READY' : 'AGENTS ARMED'}
-                              </span>
-                              <span className="text-[11px] font-medium text-neutral-300 truncate mt-0.5 leading-none">
-                                {quizState === 'yes' ? '40,000 Brokers Live' : 'Instant 0s Response'}
-                              </span>
-                            </div>
-                          </div>
-
-                          {/* Subtle Divider */}
-                          <div className="h-6 w-px bg-neutral-800 shrink-0 mx-1 sm:mx-2 hidden xs:block" />
-
-                          {/* Right: Master Action CTA & Reset */}
-                          <div className="flex items-center gap-2 shrink-0">
+                        {/*
+                          Matched styling on purpose. The filled-dark "Yes"
+                          against an outlined "No" read as an answer already
+                          given, which is exactly what this slide must not do.
+                        */}
+                        <div className="relative flex items-center gap-3.5">
+                          <ClickPrompt
+                            label={nudgeQuiz ? 'Pick one to continue' : 'Choose one to continue'}
+                            visible
+                            placement="bottom"
+                            urgent={nudgeQuiz}
+                          />
+                          {(['yes', 'no'] as const).map((choice) => (
                             <button
-                              onClick={handleUploadClick}
-                              disabled={isUploading || isSynced}
-                              className="py-2 px-3.5 sm:px-4 rounded-xl bg-white hover:bg-neutral-100 text-neutral-950 text-xs sm:text-[13px] font-semibold tracking-tight hover:shadow-md active:scale-98 transition-all flex items-center gap-1.5 sm:gap-2 cursor-pointer relative overflow-hidden group shadow-sm disabled:opacity-80"
+                              key={choice}
+                              onClick={() => setQuizState(choice)}
+                              className={`min-w-[6.5rem] px-9 py-3 rounded-full border-2 text-base md:text-lg font-bold capitalize transition-all duration-200 cursor-pointer bg-white hover:scale-[1.05] active:scale-95 ${
+                                nudgeQuiz
+                                  ? 'border-[#568DFF] text-neutral-900 shadow-[0_0_0_4px_rgba(86,141,255,0.2)]'
+                                  : 'border-neutral-300 text-neutral-800 hover:border-neutral-900 hover:text-neutral-900 shadow-sm hover:shadow-md'
+                              }`}
                               style={{ fontFamily: 'var(--font-inter)' }}
                             >
-                              {/* Shimmer on hover */}
-                              <span className="absolute inset-0 bg-gradient-to-r from-transparent via-black/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
-
-                              {isSynced ? (
-                                <>
-                                  <span className="w-2 h-2 rounded-full bg-[#568DFF]" />
-                                  <span>Synced Worldwide ✓</span>
-                                </>
-                              ) : isUploading ? (
-                                <>
-                                  <span className="w-3.5 h-3.5 border-2 border-neutral-400 border-t-neutral-950 rounded-full animate-spin" />
-                                  <span>Broadcasting to 40k Brokers...</span>
-                                </>
-                              ) : (
-                                <>
-                                  <span className="hidden sm:inline">Upload Project Data & Deploy Agents</span>
-                                  <span className="sm:hidden">Deploy Agents</span>
-                                  <span className="text-[#568DFF] font-bold text-sm">→</span>
-                                </>
-                              )}
+                              {choice}
                             </button>
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                      /* gap-12 rather than a tighter one: the click prompt
+                         needs a lane of its own between the line and the
+                         button, or it sits on the line's descenders. */
+                      <div className="w-full max-w-lg flex flex-col items-center gap-12 animate-slide-up-dock">
+                        {/* The whole branch, in one line. */}
+                        <p
+                          className="text-lg md:text-xl font-bold text-neutral-900 tracking-tight text-center"
+                          style={{ fontFamily: 'var(--font-inter)' }}
+                        >
+                          {quizState === 'yes' ? 'Exactly. ' : 'There is. '}
+                          <span className="text-[#3f74e0]">It&apos;s Rechitta.</span>
+                        </p>
 
-                            {/* Reset Control Button */}
-                            <button
-                              onClick={() => setQuizState('prompt')}
-                              title="Reset"
-                              className="w-7 h-7 rounded-xl flex items-center justify-center text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors cursor-pointer text-xs shrink-0"
-                            >
-                              ✕
-                            </button>
-                          </div>
+                        <div className="relative">
+                          <ClickPrompt
+                            label="Click to deploy"
+                            visible={!isUploading && !isSynced}
+                            placement="top"
+                            urgent
+                          />
+                          <button
+                            onClick={handleUploadClick}
+                            disabled={isUploading || isSynced}
+                            className="px-7 sm:px-9 py-3.5 rounded-full bg-neutral-950 hover:bg-neutral-800 text-white text-sm sm:text-base font-bold tracking-tight active:scale-[0.97] transition-all flex items-center gap-2.5 cursor-pointer relative overflow-hidden group disabled:cursor-default disabled:opacity-90"
+                            style={{
+                              fontFamily: 'var(--font-inter)',
+                              boxShadow:
+                                '0 18px 34px -12px rgba(0,0,0,0.55), inset 0 1px 1px 0 rgba(255,255,255,0.14)',
+                            }}
+                          >
+                            {/* Shimmer on hover */}
+                            <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/18 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+
+                            {isSynced ? (
+                              <>
+                                <span className="w-2 h-2 rounded-full bg-[#568DFF]" />
+                                <span>Synced worldwide</span>
+                              </>
+                            ) : isUploading ? (
+                              <>
+                                <span className="w-4 h-4 border-2 border-neutral-600 border-t-white rounded-full animate-spin" />
+                                <span>Broadcasting...</span>
+                              </>
+                            ) : (
+                              <>
+                                <span className="relative flex h-2 w-2 shrink-0">
+                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#568DFF] opacity-75" />
+                                  <span className="relative inline-flex h-2 w-2 rounded-full bg-[#568DFF]" />
+                                </span>
+                                <span>Brief 40,000 brokers</span>
+                                <span className="text-[#8FB4FF] font-bold transition-transform group-hover:translate-x-0.5">
+                                  &rarr;
+                                </span>
+                              </>
+                            )}
+                          </button>
                         </div>
 
-                        {/* Trust Footnote */}
-                        <div className="mt-1.5 flex items-center justify-center gap-3 text-[9px] md:text-[10px] text-neutral-400 font-medium animate-fade-in">
-                          <span>✓ DLD Verified</span>
-                          <span>•</span>
-                          <span>✓ Instant Briefing</span>
-                          <span>•</span>
-                          <span>✓ 0s Latency</span>
-                        </div>
+                        {!isUploading && !isSynced && (
+                          <button
+                            onClick={() => setQuizState('prompt')}
+                            className="-mt-8 text-[10px] font-medium text-neutral-500 underline underline-offset-2 decoration-neutral-300 hover:text-neutral-800 transition-colors cursor-pointer"
+                          >
+                            Ask me again
+                          </button>
+                        )}
                       </div>
                     )}
                   </div>
@@ -731,63 +831,124 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
         </div>
       </div>
 
-      {/* Fluid Capsule Pagination & Arrow Controls (Pure Button-driven) */}
       {/*
+        The slide controls, in the gap between the display and the credenza.
+
         The canvas overflows this container by design — it is a fixed reference
-        size scaled down — so the controls cannot simply follow it in flow.
-        They are placed against the canvas's painted height instead.
+        size scaled down — so they cannot simply follow it in flow, and are
+        placed against the screen's painted height instead.
       */}
       <div
-        className="absolute left-0 right-0 flex items-center justify-center gap-4 pointer-events-auto"
-        style={{ top: `${flat ? screenHeight + 18 : BASE_H}px`, zIndex: 100 }}
+        className="absolute left-0 right-0 flex justify-center pointer-events-auto"
+        style={{ top: `${controlsTop}px`, zIndex: 100 }}
       >
-        {/* Left Arrow */}
-        <button
-          onClick={() => slideBy(-1)}
-          disabled={activeSlide === 0}
-          className={`p-1.5 rounded-full transition-all w-8 h-8 flex items-center justify-center text-xs font-semibold cursor-pointer border ${activeSlide === 0
-            ? 'opacity-25 pointer-events-none border-neutral-300 text-neutral-400 bg-white/40'
-            : 'opacity-90 hover:opacity-100 bg-neutral-900 text-white border-neutral-900 hover:scale-105 active:scale-95'
-            }`}
-          aria-label="Previous slide"
+        <div
+          className="flex items-center gap-1 rounded-full px-1.5 py-1.5 shadow-[0_12px_36px_-12px_rgba(0,0,0,0.7)]"
+          style={{
+            background: 'rgba(12, 16, 24, 0.55)',
+            backdropFilter: 'blur(18px) saturate(160%)',
+            WebkitBackdropFilter: 'blur(18px) saturate(160%)',
+            border: '1px solid rgba(255, 255, 255, 0.14)',
+          }}
         >
-          ←
-        </button>
-
-        {/* Dynamic Fluid Capsule Dots */}
-        <div className="flex items-center gap-2">
-          {SLIDES.map((slide, i) => (
+          {/* Portrait keeps its arrows here: there is no wall to put them on. */}
+          {flat && (
             <button
-              key={slide.id}
-              ref={(el) => {
-                dotsRef.current[i] = el;
-              }}
-              onClick={() => setActiveSlide(i)}
-              className="h-2 rounded-full transition-all duration-400 ease-out cursor-pointer"
-              style={{
-                width: i === 0 ? '2.2rem' : '0.5rem',
-                backgroundColor: i === 0 ? '#111827' : '#4b5563',
-                opacity: i === 0 ? 1 : 0.35,
-              }}
-              aria-label={`Go to slide ${i + 1}`}
-            />
-          ))}
-        </div>
+              onClick={() => slideBy(-1)}
+              disabled={activeSlide === 0}
+              className={`flex h-7 w-7 items-center justify-center rounded-full text-[13px] leading-none transition-all duration-200 ${
+                activeSlide === 0
+                  ? 'text-white/25'
+                  : 'text-white/80 hover:bg-white/12 hover:text-white active:scale-90 cursor-pointer'
+              }`}
+              aria-label="Previous slide"
+            >
+              ←
+            </button>
+          )}
 
-        {/* Right Arrow */}
-        <button
-          onClick={() => slideBy(1)}
-          disabled={activeSlide === 3}
-          className={`p-1.5 rounded-full transition-all w-8 h-8 flex items-center justify-center text-xs font-semibold cursor-pointer border ${activeSlide === 3
-            ? 'opacity-25 pointer-events-none border-neutral-300 text-neutral-400 bg-white/40'
-            : 'opacity-90 hover:opacity-100 bg-neutral-900 text-white border-neutral-900 hover:scale-105 active:scale-95'
-            }`}
-          aria-label="Next slide"
-        >
-          →
-        </button>
+          <div className="flex items-center gap-1.5 px-2">
+            {SLIDES.map((slide, i) => (
+              <button
+                key={slide.id}
+                onClick={() => setActiveSlide(i)}
+                className="h-1.5 rounded-full transition-all duration-[400ms] ease-out cursor-pointer"
+                style={{
+                  width: i === activeSlide ? '1.5rem' : '0.375rem',
+                  backgroundColor: i === activeSlide ? '#8FB4FF' : '#ffffff',
+                  opacity: i === activeSlide ? 1 : 0.3,
+                }}
+                aria-label={`Go to slide ${i + 1}`}
+                aria-current={i === activeSlide}
+              />
+            ))}
+          </div>
+
+          {flat && (
+            <button
+              onClick={() => slideBy(1)}
+              disabled={activeSlide === SLIDES.length - 1}
+              className={`flex h-7 w-7 items-center justify-center rounded-full text-[13px] leading-none transition-all duration-200 ${
+                activeSlide === SLIDES.length - 1
+                  ? 'text-white/25'
+                  : 'text-white/80 hover:bg-white/12 hover:text-white active:scale-90 cursor-pointer'
+              }`}
+              aria-label="Next slide"
+            >
+              →
+            </button>
+          )}
+        </div>
       </div>
 
+      {/*
+        The arrows, on the wall either side of the display.
+
+        They are placed against the screen's own painted box rather than laid
+        out in flow, for the same reason the dots are: the deck inside is a
+        fixed reference canvas scaled to fit, so it overflows this container
+        and nothing can simply follow it.
+      */}
+      {!flat &&
+        ([
+          { dir: -1 as const, glyph: '←', label: 'Previous slide', at: -armOffset, off: activeSlide === 0 },
+          {
+            dir: 1 as const,
+            glyph: '→',
+            label: 'Next slide',
+            at: screenWidth + armOffset,
+            off: activeSlide === SLIDES.length - 1,
+          },
+        ]).map((arm) => (
+          <button
+            key={arm.dir}
+            onClick={() => slideBy(arm.dir)}
+            disabled={arm.off}
+            className={`absolute flex items-center justify-center rounded-full transition-all duration-200 pointer-events-auto ${
+              arm.off ? 'text-white/20' : 'text-white/85 hover:text-white active:scale-90 cursor-pointer'
+            }`}
+            style={{
+              left: `${arm.at}px`,
+              top: '50%',
+              width: `${armSize}px`,
+              height: `${armSize}px`,
+              transform: 'translate(-50%, -50%)',
+              fontSize: `${Math.round(armSize * 0.42)}px`,
+              lineHeight: 1,
+              zIndex: 100,
+              background: arm.off ? 'rgba(12, 16, 24, 0.32)' : 'rgba(12, 16, 24, 0.55)',
+              border: '1px solid rgba(255, 255, 255, 0.16)',
+              backdropFilter: 'blur(18px) saturate(160%)',
+              WebkitBackdropFilter: 'blur(18px) saturate(160%)',
+              boxShadow: arm.off ? 'none' : '0 16px 40px -14px rgba(0,0,0,0.8)',
+            }}
+            aria-label={arm.label}
+          >
+            {arm.glyph}
+          </button>
+        ))}
+
     </div>
+    </>
   );
 }
