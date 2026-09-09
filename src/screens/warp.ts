@@ -115,6 +115,24 @@ export function matrix3dFor(width: number, height: number, dst: Quad): string {
   return `matrix3d(${h11}, ${h21}, 0, ${h31}, ${h12}, ${h22}, 0, ${h32}, 0, 0, 1, 0, ${h13}, ${h23}, 0, 1)`;
 }
 
+/**
+ * Solves an affine 2D homography (no perspective division, h31 = 0, h32 = 0)
+ * taking the rectangle (0,0)-(width,height) onto `dst`, and formats it as a CSS `matrix3d`.
+ * Because h31 and h32 are zero, cross-origin OOPIF iframes preserve 100% click/touch hit-testing.
+ */
+export function affineMatrix3dFor(width: number, height: number, dst: Quad): string {
+  const [p0, p1, p2, p3] = dst;
+  const a = ((p1[0] - p0[0]) + (p2[0] - p3[0])) / (2 * width);
+  const b = ((p3[0] - p0[0]) + (p2[0] - p1[0])) / (2 * height);
+  const e = (p0[0] + p1[0] + p2[0] + p3[0]) / 4 - (a * width + b * height) / 2;
+
+  const c = ((p1[1] - p0[1]) + (p2[1] - p3[1])) / (2 * width);
+  const d = ((p3[1] - p0[1]) + (p2[1] - p1[1])) / (2 * height);
+  const f = (p0[1] + p1[1] + p2[1] + p3[1]) / 4 - (c * width + d * height) / 2;
+
+  return `matrix3d(${a.toFixed(7)}, ${c.toFixed(7)}, 0, 0, ${b.toFixed(7)}, ${d.toFixed(7)}, 0, 0, 0, 0, 1, 0, ${e.toFixed(3)}, ${f.toFixed(3)}, 0, 1)`;
+}
+
 /** Gaussian elimination with partial pivoting. Returns null if degenerate. */
 function solve(a: number[][], b: number[]): number[] | null {
   const n = b.length;

@@ -8,10 +8,13 @@ export default function InteractiveDemoModal() {
   const { isOpen, closeModal } = useDemoModal();
   const [isLoaded, setIsLoaded] = useState(false);
 
-  // Reset loading state when modal closes
+  // Reset loading state when modal closes, and provide fallback timer for slow networks/cached iframes
   useEffect(() => {
     if (!isOpen) {
       setIsLoaded(false);
+    } else {
+      const timer = setTimeout(() => setIsLoaded(true), 2000);
+      return () => clearTimeout(timer);
     }
   }, [isOpen]);
 
@@ -65,7 +68,13 @@ export default function InteractiveDemoModal() {
               <div className="absolute top-[4px] md:top-[6px] lg:top-[8px] left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-[#111] shadow-[inset_0_0_2px_rgba(255,255,255,0.3)]"></div>
 
               {/* Iframe Container */}
-              <div className="w-full h-full rounded-[16px] md:rounded-[24px] overflow-hidden bg-[#0a0a0a] relative flex items-center justify-center">
+              <div
+                onTouchStart={(e) => e.stopPropagation()}
+                onTouchMove={(e) => e.stopPropagation()}
+                onTouchEnd={(e) => e.stopPropagation()}
+                className="w-full h-full rounded-[16px] md:rounded-[24px] overflow-hidden bg-[#0a0a0a] relative flex items-center justify-center pointer-events-auto"
+                style={{ touchAction: 'manipulation' }}
+              >
                 
                 {/* Boot Sequence Loader */}
                 <AnimatePresence>
@@ -73,8 +82,8 @@ export default function InteractiveDemoModal() {
                     <motion.div
                       initial={{ opacity: 1 }}
                       exit={{ opacity: 0 }}
-                      transition={{ duration: 0.8, ease: 'easeInOut' }}
-                      className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-[#0a0a0a]"
+                      transition={{ duration: 0.6, ease: 'easeInOut' }}
+                      className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-[#0a0a0a] pointer-events-none"
                     >
                       <motion.div 
                         initial={{ opacity: 0, y: 10 }}
@@ -109,9 +118,15 @@ export default function InteractiveDemoModal() {
                 {/* The Demo App */}
                 <iframe
                   src="https://icy-sand-0d102fd00.7.azurestaticapps.net/?sessionId=0b555e4f-a0cf-4459-be58-a6d45a69ac68"
-                  className="absolute inset-0 w-full h-full border-none z-0"
+                  className="absolute inset-0 w-full h-full border-none z-0 pointer-events-auto cursor-pointer"
+                  style={{
+                    pointerEvents: 'auto',
+                    touchAction: 'manipulation',
+                    width: '100%',
+                    height: '100%',
+                  }}
                   title="Interactive Demo"
-                  allow="autoplay; fullscreen"
+                  allow="autoplay; fullscreen; microphone"
                   onLoad={() => setIsLoaded(true)}
                 />
               </div>

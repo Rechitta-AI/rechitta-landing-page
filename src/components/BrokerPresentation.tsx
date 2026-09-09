@@ -7,6 +7,7 @@ import { isPortraitFor, modeFor } from '@/hooks/useDeviceMode';
 import type { Quad } from '@/screens/types';
 import ClickPrompt from './ClickPrompt';
 
+
 interface BrokerPresentationProps {
   holdData: React.RefObject<{
     clipIndex: number;
@@ -16,12 +17,12 @@ interface BrokerPresentationProps {
   }>;
 }
 
-/** 4-CORNER FINAL CALIBRATED PHONE QUAD (transit-b @ 16.90s) */
+/** Calibrated Broker Phone Corners (@ 60% stage) */
 export const BROKER_PHONE_CORNERS: Quad = [
-  [0.4318, 0.12124], // 0: Top-Left
-  [0.61894, 0.14064], // 1: Top-Right
-  [0.59057, 0.89816], // 2: Bottom-Right
-  [0.37124, 0.85839], // 3: Bottom-Left
+  [0.43230, 0.12300], // 0: Top-Left
+  [0.61751, 0.13814], // 1: Top-Right
+  [0.58984, 0.89882], // 2: Bottom-Right
+  [0.36724, 0.85839], // 3: Bottom-Left
 ];
 
 export const BROKER_PHONE_RADIUS = 48;
@@ -29,27 +30,43 @@ export const BROKER_PHONE_RADIUS = 48;
 const PHONE_WIDTH = 390;
 const PHONE_HEIGHT = 844;
 
-/** Interactive Prompt Pills for instant AI testing */
-const PROMPT_PILLS = [
+export interface BrokerProblem {
+  id: number;
+  tabLabel: string;
+  category: string;
+  problem: string;
+  query: string;
+  solution: string;
+}
+
+export const BROKER_PROBLEMS: BrokerProblem[] = [
   {
     id: 1,
-    category: 'AVAILABILITY',
-    query: 'Show available 2-beds under AED 2M',
-    answer: '4 units found in Marina Vista from AED 1.85M. 60/40 payment terms with 0% interest.',
+    tabLabel: '40k at Launch',
+    category: 'NETWORK SCALE',
+    problem: '40,000 brokers simultaneously demanding inventory specs at launch',
+    query: 'Show available 2-beds under AED 2M in Marina Vista',
+    solution: 'Autonomous multi-agent briefing across 12 languages with zero queue time and instant live inventory.',
   },
   {
     id: 2,
-    category: 'PAYMENT TERMS',
-    query: "What's the payment plan for Tower 2?",
-    answer: '10% on booking, 50% during construction, 40% on Q4 2026 handover. DLD waiver included.',
+    tabLabel: 'Live DLD Sync',
+    category: 'LIVE INVENTORY',
+    problem: 'Brokers pitching sold-out units with obsolete static PDF brochures',
+    query: "What's the real-time payment plan and availability for Tower 2?",
+    solution: 'Direct DLD & ERP sync: real-time unit availability, dynamic pricing, and escrow-verified payment schedules.',
   },
   {
     id: 3,
-    category: 'LEGAL & SPV',
-    query: 'Can offshore SPVs purchase Penthouse 4B?',
-    answer: 'Yes. 100% foreign freehold ownership compliant via standard DLD offshore registration.',
+    tabLabel: 'Cross-Border SPVs',
+    category: 'LEGAL & COMPLIANCE',
+    problem: 'Offshore buyers delayed weeks waiting for legal and AML clearance',
+    query: 'Can foreign offshore SPVs purchase Penthouse 4B directly?',
+    solution: 'Instant DLD compliance check, automated KYC/AML verification, and digital contract generation in 60 seconds.',
   },
 ];
+
+export const PROMPT_PILLS = BROKER_PROBLEMS;
 
 export default function BrokerPresentation({ holdData }: BrokerPresentationProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -57,9 +74,9 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
   const hudContentRef = useRef<HTMLDivElement>(null);
   const isVisibleRef = useRef(false);
 
-  // Active prompt pill interaction state
-  const [activePillId, setActivePillId] = useState<number | null>(null);
-  const [copiedPillId, setCopiedPillId] = useState<number | null>(null);
+  // Active problem statement and copied query state
+  const [activeProblemId, setActiveProblemId] = useState<number>(1);
+  const [copiedId, setCopiedId] = useState<number | null>(null);
 
   // Perspective Switcher Dock & Scroll Lock State
   const isLockedRef = useRef(true);
@@ -80,43 +97,46 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
   // Responsive viewport tracking for homography mapping & leader line positioning
   const [viewport, setViewport] = useState({ width: 1920, height: 1080 });
 
+  const deviceMode = modeFor(viewport.width);
+  const stacked = isPortraitFor(viewport.width, viewport.height);
+  const composited = deviceMode === 'desktop' && !stacked;
+
+  // Responsive phone calibration state (applies ONLY to responsive portrait mode)
+  // 1. Desktop Homography
+  const desktopRect = coverRect(viewport.width, viewport.height);
+  const desktopViewportCorners: Quad = toViewport(BROKER_PHONE_CORNERS, desktopRect);
+  const desktopMatrix = matrix3dFor(PHONE_WIDTH, PHONE_HEIGHT, desktopViewportCorners);
+
+  // 2. Responsive Stage & Viewport Projection (Top 60% Stage)
+  const responsiveStageHeight = viewport.height * 0.6;
+  const responsiveRect = coverRect(viewport.width, responsiveStageHeight);
+  const responsiveViewportCorners: Quad = toViewport(BROKER_PHONE_CORNERS, responsiveRect);
+  const responsiveMatrix = matrix3dFor(PHONE_WIDTH, PHONE_HEIGHT, responsiveViewportCorners);
+
   useEffect(() => {
     const handleResize = () => {
-      setViewport({ width: window.innerWidth, height: window.innerHeight });
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      setViewport({ width: w, height: h });
+      if (isVisibleRef.current) {
+        const filmHost = document.getElementById('film-stage-host');
+        if (filmHost) {
+          filmHost.style.transition = 'none';
+          if (isPortraitFor(w, h)) {
+            filmHost.style.bottom = 'auto';
+            filmHost.style.height = '60%';
+          } else {
+            filmHost.style.bottom = '0px';
+            filmHost.style.height = '100%';
+          }
+        }
+      }
     };
 
     handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
-
-  // Compute coverRect & viewport corners for homography
-  const rect = coverRect(viewport.width, viewport.height);
-  const viewportCorners: Quad = toViewport(BROKER_PHONE_CORNERS, rect);
-  const matrix = matrix3dFor(PHONE_WIDTH, PHONE_HEIGHT, viewportCorners);
-
-  /*
-   * Below desktop the phone stops being composited into the shot.
-   *
-   * The homography puts the mockup exactly where the phone is in the footage,
-   * which is the whole trick — but the footage is 16:9 and `object-fit: cover`
-   * crops it hard on a narrower window. By tablet width the phone has drifted
-   * under the copy panel, and on a portrait screen it is barely in frame at
-   * all. So below 1200px the scene lays itself out instead: the live app on
-   * one side, the copy on the other, or stacked when there is no room for two
-   * columns. The film keeps playing behind it either way.
-   */
-  const deviceMode = modeFor(viewport.width);
-  const stacked = isPortraitFor(viewport.width, viewport.height);
-  const composited = deviceMode === 'desktop' && !stacked;
-
-  /** The flat phone's painted height, and the width that follows from it. */
-  const flatPhoneHeight = stacked
-    ? Math.min(viewport.height * 0.50, viewport.width * 0.62 * (PHONE_HEIGHT / PHONE_WIDTH))
-    : Math.min(viewport.height * 0.80, 660);
-  const flatPhoneWidth = flatPhoneHeight * (PHONE_WIDTH / PHONE_HEIGHT);
-  /** Clears the fixed site header when the scene is stacked. */
-  const STACK_TOP = 88;
 
   // Proportional scale-to-fit on compact, short, or zoomed viewports
   // Prevents HUD panel from overflowing vertically or colliding with bottom dock and phone
@@ -125,10 +145,13 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
     Math.max(0.72, Math.min((viewport.height - 120) / 570, (viewport.width - 520) / 470))
   );
 
+  const flatPhoneHeight = Math.min(viewport.height * 0.80, 660);
+  const flatPhoneWidth = flatPhoneHeight * (PHONE_WIDTH / PHONE_HEIGHT);
+
   /*
    * The copy panel goes wherever the phone is not: opposite it in the shot on
-   * desktop, in the other column when the scene is laid out flat, and below it
-   * once the screen is too narrow for two columns.
+   * desktop, docked in the bottom 40% on mobile portrait, and side-by-side on tablet landscape.
+   * On mobile portrait, bottom clearance ensures all content floats safely above the ScrollRail progress bar.
    */
   const hudStyle: React.CSSProperties = composited
     ? {
@@ -141,10 +164,19 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
     : stacked
       ? {
           left: '50%',
-          top: `${STACK_TOP + flatPhoneHeight + 18}px`,
-          width: 'min(92vw, 460px)',
+          top: '60%',
+          bottom: 0,
+          width: 'min(94vw, 420px)',
           transform: 'translateX(-50%)',
           transformOrigin: 'top center',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'flex-start',
+          gap: '0.2rem',
+          paddingTop: '0px',
+          paddingBottom: 'calc(max(0.75rem, env(safe-area-inset-bottom)) + 3.75rem)',
+          overflowY: 'auto',
+          WebkitOverflowScrolling: 'touch',
         }
       : {
           left: `calc(6% + ${flatPhoneWidth}px + 5%)`,
@@ -154,12 +186,22 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
           transformOrigin: 'left center',
         };
 
-  // Handle prompt pill click: copies to clipboard & displays live simulated AI answer preview
-  const handlePillClick = (pill: (typeof PROMPT_PILLS)[0]) => {
-    setActivePillId(pill.id);
-    setCopiedPillId(pill.id);
-    navigator.clipboard?.writeText(pill.query);
-    setTimeout(() => setCopiedPillId(null), 2500);
+  const activeProblem =
+    BROKER_PROBLEMS.find((p) => p.id === activeProblemId) || BROKER_PROBLEMS[0];
+
+  const handleProblemSelect = (prob: BrokerProblem) => {
+    setActiveProblemId(prob.id);
+  };
+
+  const handleProblemCopy = (prob: BrokerProblem) => {
+    setActiveProblemId(prob.id);
+    setCopiedId(prob.id);
+    try {
+      navigator.clipboard?.writeText(prob.query).catch(() => {});
+    } catch {
+      // ignore
+    }
+    setTimeout(() => setCopiedId(null), 2500);
   };
 
   // Trigger brief highlight on the CTA dock when user attempts to scroll past
@@ -200,8 +242,18 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
   const handleFlyOn = () => {
     isLockedRef.current = false;
 
+    // Reset film stage host height and transform back to 100%
+    const filmHost = document.getElementById('film-stage-host');
+    if (filmHost) {
+      filmHost.style.transition = 'height 0.6s cubic-bezier(0.16, 1, 0.3, 1)';
+      filmHost.style.height = '100%';
+      filmHost.style.bottom = '0px';
+      filmHost.style.transform = 'none';
+    }
+
     // 1. Smoothly dissolve the Broker Scene UI
     if (containerRef.current) {
+      containerRef.current.style.pointerEvents = 'none';
       gsap.to(containerRef.current, {
         opacity: 0,
         scale: 0.96,
@@ -216,6 +268,17 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
     // 2. Hand control back to the film, which flies to the buyer.
     window.dispatchEvent(new CustomEvent('rechitta:fly-to-buyer'));
   };
+
+  useEffect(() => {
+    return () => {
+      const filmHost = document.getElementById('film-stage-host');
+      if (filmHost) {
+        filmHost.style.height = '100%';
+        filmHost.style.bottom = '0px';
+        filmHost.style.transform = 'none';
+      }
+    };
+  }, []);
 
   // Entrance and Exit watcher synced to the broker's phone hold (clipIndex === 1)
   useEffect(() => {
@@ -235,6 +298,17 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
         isVisibleRef.current = true;
         isLockedRef.current = true;
 
+        // Smoothly adjust sequence's video stage into top 60% on mobile portrait
+        if (stacked) {
+          const filmHost = document.getElementById('film-stage-host');
+          if (filmHost) {
+            filmHost.style.transition = 'height 0.6s cubic-bezier(0.16, 1, 0.3, 1)';
+            filmHost.style.bottom = 'auto';
+            filmHost.style.height = '60%';
+            filmHost.style.transform = 'none';
+          }
+        }
+
         // After the HUD has finished cascading in, not on top of it.
         if (ctaHintTimerRef.current) clearTimeout(ctaHintTimerRef.current);
         ctaHintTimerRef.current = setTimeout(() => setCtaHint(true), 2200);
@@ -245,17 +319,20 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
 
         // Make container visible
         gsap.set(containerRef.current, { autoAlpha: 1 });
+        if (containerRef.current) {
+          containerRef.current.style.pointerEvents = 'auto';
+        }
 
         // Master entrance choreography timeline
         const tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
 
-        // Step 1: Phone screen smooth fade-in and scale settle
+        // Step 1: Phone screen smooth fade-in and resolve (NO scale, to avoid clobbering matrix/bounds)
         if (phoneRef.current) {
           tl.fromTo(
             phoneRef.current,
-            { opacity: 0, scale: 0.97, filter: 'blur(8px)' },
-            { opacity: 1, scale: 1, filter: 'blur(0px)', duration: 0.65 },
-            0
+            { opacity: 0, filter: 'blur(8px)' },
+            { opacity: 1, filter: 'blur(0px)', duration: 0.65 },
+            0.1
           );
         }
 
@@ -326,6 +403,14 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
         isVisibleRef.current = false;
         isLockedRef.current = false;
 
+        const filmHost = document.getElementById('film-stage-host');
+        if (filmHost) {
+          filmHost.style.transition = 'height 0.6s cubic-bezier(0.16, 1, 0.3, 1)';
+          filmHost.style.height = '100%';
+          filmHost.style.bottom = '0px';
+          filmHost.style.transform = 'none';
+        }
+
         if (ctaHintTimerRef.current) clearTimeout(ctaHintTimerRef.current);
         setCtaHint(false);
 
@@ -339,7 +424,10 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
           duration: 0.35,
           ease: 'power2.inOut',
           onComplete: () => {
-            if (containerRef.current) gsap.set(containerRef.current, { autoAlpha: 0 });
+            if (containerRef.current) {
+              gsap.set(containerRef.current, { autoAlpha: 0 });
+              containerRef.current.style.pointerEvents = 'none';
+            }
           },
         });
       }
@@ -349,7 +437,7 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
 
     frame = requestAnimationFrame(render);
     return () => cancelAnimationFrame(frame);
-  }, [holdData]);
+  }, [holdData, stacked]);
 
   // Words for the Optical Mask Split-Reveal headline
   const headlineLine1 = [
@@ -371,10 +459,11 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
     >
       {/*
         Off the footage, the phone in the shot is still there behind the
-        layout — two phones on screen at once, with the copy sitting across
-        the wrong one. Dropping the film back to a backdrop resolves it.
+        layout — only for tablet landscape two-column layout do we blur behind it.
+        On desktop AND mobile portrait, the footage is active and the live assistant
+        is composited directly onto the physical phone in the sequence!
       */}
-      {!composited && (
+      {!composited && !stacked && (
         <div
           className="absolute inset-0 -z-10 pointer-events-none bg-[#070A10]/78 backdrop-blur-[14px]"
           aria-hidden="true"
@@ -382,19 +471,32 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
       )}
 
       {/* ===================================================================
-          1. THE CALIBRATED 4-CORNER WARPED PHONE SCREEN
-          Precision homography transform mapping 390x844 onto the user's
-          exact calibrated corners.
+          1. THE CALIBRATED PHONE SCREEN
+          Desktop: precision 3D homography matrix3d.
+          Mobile Portrait: affine 2D transform (center, scale, rotation)
+          guaranteeing 100% click/touch interactivity into the cross-origin assistant.
          =================================================================== */}
       <div
         ref={phoneRef}
-        className={
-          composited
-            ? 'absolute inset-0 pointer-events-none overflow-visible'
-            : 'absolute inset-0 flex items-center justify-center pointer-events-none'
-        }
+        onTouchStart={(e) => e.stopPropagation()}
+        onTouchMove={(e) => e.stopPropagation()}
+        onTouchEnd={(e) => e.stopPropagation()}
+        className="absolute pointer-events-auto overflow-visible"
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: stacked ? '60%' : '100%',
+          zIndex: 50,
+          pointerEvents: 'auto',
+          touchAction: 'manipulation',
+        }}
       >
         <div
+          onTouchStart={(e) => e.stopPropagation()}
+          onTouchMove={(e) => e.stopPropagation()}
+          onTouchEnd={(e) => e.stopPropagation()}
           style={
             composited
               ? {
@@ -404,37 +506,92 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
                   width: PHONE_WIDTH,
                   height: PHONE_HEIGHT,
                   transformOrigin: '0 0',
-                  transform: matrix,
+                  transform: desktopMatrix,
                   borderRadius: `${BROKER_PHONE_RADIUS}px`,
                   overflow: 'hidden',
-                  boxShadow: '0 30px 70px -10px rgba(0, 0, 0, 0.95), 0 0 35px rgba(6, 182, 212, 0.12), inset 0 0 0 1.5px rgba(255, 255, 255, 0.18)',
+                  boxShadow:
+                    '0 30px 70px -10px rgba(0, 0, 0, 0.95), 0 0 35px rgba(6, 182, 212, 0.12), inset 0 0 0 1.5px rgba(255, 255, 255, 0.18)',
                   pointerEvents: 'auto',
+                  touchAction: 'auto',
+                  cursor: 'pointer',
+                  WebkitOverflowScrolling: 'touch',
                 }
-              : {
-                  position: 'absolute',
-                  width: `${flatPhoneWidth}px`,
-                  height: `${flatPhoneHeight}px`,
-                  // Left column on a wide-enough screen, top of the stack on
-                  // a portrait one.
-                  left: stacked ? '50%' : '6%',
-                  // Below the site header, which is fixed over everything.
-                  top: stacked ? `${STACK_TOP}px` : '50%',
-                  transform: stacked ? 'translateX(-50%)' : 'translateY(-50%)',
-                  borderRadius: `${Math.round(flatPhoneHeight * 0.055)}px`,
-                  overflow: 'hidden',
-                  boxShadow: '0 30px 70px -10px rgba(0, 0, 0, 0.95), 0 0 35px rgba(6, 182, 212, 0.12), inset 0 0 0 1.5px rgba(255, 255, 255, 0.18)',
-                  pointerEvents: 'auto',
-                }
+              : stacked
+                ? {
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: PHONE_WIDTH,
+                    height: PHONE_HEIGHT,
+                    transformOrigin: '0 0',
+                    transform: responsiveMatrix,
+                    borderRadius: `${BROKER_PHONE_RADIUS}px`,
+                    overflow: 'hidden',
+                    boxShadow:
+                      '0 30px 70px -10px rgba(0, 0, 0, 0.95), 0 0 35px rgba(6, 182, 212, 0.12), inset 0 0 0 1.5px rgba(255, 255, 255, 0.18)',
+                    pointerEvents: 'auto',
+                    touchAction: 'manipulation',
+                    cursor: 'pointer',
+                    WebkitOverflowScrolling: 'touch',
+                  }
+                : {
+                    position: 'absolute',
+                    width: `${flatPhoneWidth}px`,
+                    height: `${flatPhoneHeight}px`,
+                    left: '6%',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    borderRadius: `${Math.round(flatPhoneHeight * 0.055)}px`,
+                    overflow: 'hidden',
+                    boxShadow:
+                      '0 30px 70px -10px rgba(0, 0, 0, 0.95), 0 0 35px rgba(6, 182, 212, 0.12), inset 0 0 0 1.5px rgba(255, 255, 255, 0.18)',
+                    pointerEvents: 'auto',
+                    touchAction: 'manipulation',
+                    cursor: 'pointer',
+                    WebkitOverflowScrolling: 'touch',
+                  }
           }
         >
           <iframe
             src="https://icy-sand-0d102fd00.7.azurestaticapps.net/?sessionId=0b555e4f-a0cf-4459-be58-a6d45a69ac68"
-            className="w-full h-full border-none relative z-10"
+            className="w-full h-full border-none relative z-10 pointer-events-auto cursor-pointer"
+            style={{
+              pointerEvents: 'auto',
+              touchAction: 'manipulation',
+              width: '100%',
+              height: '100%',
+            }}
             title="Rechitta Live Broker Assistant"
             allow="autoplay; fullscreen; microphone"
           />
         </div>
+
+        {/* Subtle mobile interaction helper */}
+        {stacked && (
+          <div
+            className="pointer-events-none absolute left-1/2 -translate-x-1/2 bottom-2 z-30 flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#070A10]/85 border border-white/20 backdrop-blur-md text-[8.5px] font-mono text-[#8FB4FF] tracking-wider uppercase shadow-lg shadow-black/50"
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-[#568DFF] animate-pulse" />
+            <span>Interactive Broker AI · Tap &quot;Let’s start&quot;</span>
+          </div>
+        )}
       </div>
+
+      {/*
+        Mobile Portrait: Seamless dark dissolve from the bottom edge of the top 60% video
+        stage into the obsidian #070A10 bottom half.
+      */}
+      {stacked && (
+        <div
+          className="absolute left-0 right-0 pointer-events-none z-20"
+          style={{
+            top: 'calc(60% - 24px)',
+            height: '24px',
+            background: 'linear-gradient(to bottom, transparent, rgba(7, 10, 16, 0.85) 70%, #070A10 100%)',
+          }}
+          aria-hidden="true"
+        />
+      )}
 
       {/*
         The sync announcement, in the empty half of the frame beside the phone.
@@ -476,7 +633,10 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
          =================================================================== */}
       <div
         ref={hudContentRef}
-        className="absolute z-50 pointer-events-auto select-none"
+        onTouchStart={(e) => e.stopPropagation()}
+        onTouchMove={(e) => e.stopPropagation()}
+        onTouchEnd={(e) => e.stopPropagation()}
+        className="absolute z-40 pointer-events-auto select-none"
         style={hudStyle}
       >
         {/* Soft Organic Atmospheric Wash (Executive Obsidian + Subtle Cyan Accent) */}
@@ -497,13 +657,13 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
         />
 
         {/* --- SPATIAL HUD HEADER / TELEMETRY --- */}
-        <div className="hud-header-reveal flex items-center justify-between mb-3 border-b border-white/10 pb-2 text-[10px] font-mono tracking-widest text-neutral-400">
-          <div className="flex items-center gap-2">
+        <div className={`hud-header-reveal flex items-center justify-between border-b border-white/10 ${stacked ? 'mb-0.5 pb-0.5 text-[8.5px]' : 'mb-1 sm:mb-2 pb-1 text-[9px] sm:text-[10px]'} font-mono tracking-widest text-neutral-400`}>
+          <div className="flex items-center gap-1.5 sm:gap-2">
             <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#568DFF] opacity-75" />
               <span className="relative inline-flex rounded-full h-2 w-2 bg-[#568DFF] shadow-sm shadow-[#568DFF]" />
             </span>
-            <span className="font-semibold text-neutral-200 uppercase tracking-wider">
+            <span className="font-semibold text-neutral-200 uppercase tracking-wider text-[9px]">
               02 // THE BROKER BRIEFING
             </span>
           </div>
@@ -512,20 +672,20 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
             is one; on a stacked screen it stays here, where it fits.
           */}
           {stacked && (
-            <span className="text-[9px] px-2.5 py-0.5 rounded-full bg-white/5 border border-white/10 text-neutral-300 font-mono">
+            <span className="text-[8.5px] px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-neutral-300 font-mono">
               40,000 SYNCED
             </span>
           )}
         </div>
 
         {/* --- OPTICAL MASK SPLIT-REVEAL HERO HEADLINE (PUNCHY 5 WORDS) --- */}
-        <div className="mb-2">
+        <div className={stacked ? 'mb-0.5' : 'mb-1'}>
           {/* Line 1 */}
           <div className="flex flex-wrap items-baseline gap-x-[0.25em]">
             {headlineLine1.map((token, i) => (
-              <span key={i} className="inline-flex overflow-hidden pb-1 pt-0.5">
+              <span key={i} className="inline-flex overflow-hidden pb-0.5 pt-0.5">
                 <span
-                  className="split-word inline-block translate-y-[115%] opacity-0 filter blur-[8px] transform-gpu text-xl sm:text-2xl md:text-[clamp(1.4rem,2.1vw,2.05rem)] font-bold text-white tracking-tight leading-[1.08]"
+                  className="split-word inline-block translate-y-[115%] opacity-0 filter blur-[8px] transform-gpu text-sm sm:text-xl md:text-[clamp(1.4rem,2.1vw,2.05rem)] font-bold text-white tracking-tight leading-[1.1]"
                   style={{ fontFamily: 'var(--font-inter)' }}
                 >
                   {token.text}
@@ -537,9 +697,9 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
           {/* Line 2 */}
           <div className="flex flex-wrap items-baseline gap-x-[0.25em]">
             {headlineLine2.map((token, i) => (
-              <span key={i} className="inline-flex overflow-hidden pb-1 pt-0.5">
+              <span key={i} className="inline-flex overflow-hidden pb-0.5 pt-0.5">
                 <span
-                  className="split-word inline-block translate-y-[115%] opacity-0 filter blur-[8px] transform-gpu text-xl sm:text-2xl md:text-[clamp(1.4rem,2.1vw,2.05rem)] font-bold tracking-tight leading-[1.08] text-transparent bg-clip-text bg-gradient-to-r from-white via-neutral-100 to-neutral-400"
+                  className="split-word inline-block translate-y-[115%] opacity-0 filter blur-[8px] transform-gpu text-sm sm:text-xl md:text-[clamp(1.4rem,2.1vw,2.05rem)] font-bold tracking-tight leading-[1.1] text-transparent bg-clip-text bg-gradient-to-r from-white via-neutral-100 to-neutral-400"
                   style={{ fontFamily: 'var(--font-inter)' }}
                 >
                   {token.text}
@@ -550,102 +710,180 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
         </div>
 
         {/* --- 1 CLEAN SUB-HEADLINE SENTENCE --- */}
-        <div className={`overflow-hidden mb-5 ${stacked ? 'hidden' : ''}`}>
-          <p className="split-sub text-[11px] sm:text-xs md:text-[13px] text-neutral-400 font-normal leading-relaxed translate-y-[110%] opacity-0 filter blur-[4px]">
-            Every unit, price, and payment plan across Dubai. Queried live, by voice or text.
+        <div className={`overflow-hidden ${stacked ? 'mb-1' : 'mb-1.5 sm:mb-3'}`}>
+          <p className="split-sub text-[9px] sm:text-xs text-neutral-400 font-normal leading-relaxed translate-y-[110%] opacity-0 filter blur-[4px]">
+            {stacked
+              ? 'Every unit, price, and payment plan. Queried live by voice or text.'
+              : 'Every unit, price, and payment plan across Dubai. Queried live, by voice or text.'}
           </p>
         </div>
 
-        {/*
-          Stacked, there is only room under the phone for the headline and the
-          buttons — and the live app the pills demonstrate is already on screen
-          right above them.
-        */}
-        <div className={`mb-5 flex-col gap-2.5 ${stacked ? 'hidden' : 'flex'}`}>
-          <div className="hud-header-reveal flex items-center justify-between text-[10px] font-mono text-neutral-400 px-1">
-            <span className="uppercase tracking-wider flex items-center gap-1.5 text-neutral-300 font-semibold">
-              <span className="text-[#568DFF]">⚡</span>
-              <span>TEST A LIVE BROKER QUERY</span>
-            </span>
-            <span className="text-[9px] text-neutral-500">CLICK TO TEST</span>
-          </div>
-
-          {/* The 3 Interactive Question Pills */}
-          {PROMPT_PILLS.map((pill) => {
-            const isSelected = activePillId === pill.id;
-            const isCopied = copiedPillId === pill.id;
-
-            return (
-              <div
-                key={pill.id}
-                onClick={() => handlePillClick(pill)}
-                className={`prompt-pill-reveal group p-3.5 rounded-2xl border transition-all duration-300 cursor-pointer text-left relative overflow-hidden backdrop-blur-xl ${
-                  isSelected
-                    ? 'bg-white text-neutral-950 border-white shadow-[0_10px_30px_rgba(0,0,0,0.5),0_0_20px_rgba(255,255,255,0.15)] scale-[1.01]'
-                    : 'bg-neutral-900/60 hover:bg-neutral-900/90 text-white border-white/10 hover:border-white/25'
-                }`}
-              >
-                <div className="flex items-center justify-between gap-2 mb-1.5">
-                  <span
-                    className={`text-[8px] font-mono tracking-wider uppercase px-2 py-0.5 rounded-full border ${
+        {/* --- INTERACTIVE PROBLEM STATEMENTS & VERIFIED SOLUTIONS --- */}
+        {stacked ? (
+          /* Mobile Portrait: 3-Tab Segmented Selector + Instant Solution Reveal */
+          <div className="prompt-pill-reveal mb-1 flex flex-col gap-1">
+            <div className="flex items-center gap-1 p-0.5 rounded-lg bg-white/[0.06] border border-white/10 backdrop-blur-md">
+              {BROKER_PROBLEMS.map((prob) => {
+                const isSelected = activeProblemId === prob.id;
+                return (
+                  <button
+                    key={prob.id}
+                    onClick={() => handleProblemSelect(prob)}
+                    className={`flex-1 py-1 px-1 rounded-md text-[9px] font-semibold tracking-tight transition-all duration-200 cursor-pointer text-center truncate ${
                       isSelected
-                        ? 'bg-neutral-100 text-neutral-700 border-neutral-200'
-                        : 'bg-white/5 text-neutral-400 border-white/10'
+                        ? 'bg-white text-neutral-950 font-bold shadow-sm'
+                        : 'text-neutral-400 hover:text-white hover:bg-white/5'
                     }`}
+                    title={prob.tabLabel}
                   >
-                    {pill.category}
-                  </span>
+                    {prob.tabLabel}
+                  </button>
+                );
+              })}
+            </div>
 
-                  <span
-                    className={`text-[9px] font-mono flex items-center gap-1 ${
-                      isSelected ? 'text-neutral-600' : 'text-neutral-400 group-hover:text-white'
-                    }`}
-                  >
-                    {isCopied ? (
-                      <span className="text-sky-600 font-bold flex items-center gap-1">
-                        <span>✓</span> Copied & Injected
-                      </span>
-                    ) : (
-                      <span className="flex items-center gap-1">
-                        <span>Test Query</span>
-                        <span>→</span>
-                      </span>
-                    )}
-                  </span>
-                </div>
+            {/* Active Problem's Verified Solution Card */}
+            <div
+              onClick={() => handleProblemCopy(activeProblem)}
+              className="p-2 rounded-xl border border-white/15 bg-neutral-900/80 backdrop-blur-xl shadow-lg cursor-pointer group transition-all duration-300 hover:border-white/30"
+            >
+              <div className="flex items-center justify-between gap-2 mb-0.5">
+                <span className="text-[7.5px] font-mono tracking-wider uppercase px-1.5 py-0.5 rounded bg-[#568DFF]/15 text-[#8FB4FF] border border-[#568DFF]/30">
+                  {activeProblem.category}
+                </span>
+                <span className="text-[8px] font-mono flex items-center gap-1 text-neutral-400 group-hover:text-white">
+                  {copiedId === activeProblem.id ? (
+                    <span className="text-emerald-400 font-bold flex items-center gap-1">
+                      <span>✓</span> Copied Query
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-1 text-[#8FB4FF]">
+                      <span>✦ Instant Solution</span>
+                    </span>
+                  )}
+                </span>
+              </div>
 
-                {/* The Query Text */}
+              <p className="text-[10px] text-neutral-200 font-medium leading-snug">
+                {activeProblem.solution}
+              </p>
+
+              <div className="mt-0.5 pt-0.5 border-t border-white/10 flex items-center justify-between text-[8px] text-neutral-400 font-mono">
+                <span className="truncate max-w-[78%] text-neutral-400">&ldquo;{activeProblem.query}&rdquo;</span>
+                <span className="text-[#568DFF] group-hover:underline">Test ↗</span>
+              </div>
+            </div>
+          </div>
+        ) : (
+          /* Desktop & Tablet Landscape: 3 Interactive Problem Cards */
+          <div className="mb-5 flex flex-col gap-2.5">
+            <div className="hud-header-reveal flex items-center justify-between text-[10px] font-mono text-neutral-400 px-1">
+              <span className="uppercase tracking-wider flex items-center gap-1.5 text-neutral-300 font-semibold">
+                <span className="text-[#568DFF]">⚡</span>
+                <span>SOLVING CORE BROKER BOTTLENECKS</span>
+              </span>
+              <span className="text-[9px] text-neutral-500">CLICK TO REVEAL SOLUTION</span>
+            </div>
+
+            {BROKER_PROBLEMS.map((prob) => {
+              const isSelected = activeProblemId === prob.id;
+              const isCopied = copiedId === prob.id;
+
+              return (
                 <div
-                  className={`text-xs sm:text-[13px] font-semibold leading-snug ${
-                    isSelected ? 'text-neutral-950' : 'text-white'
+                  key={prob.id}
+                  onClick={() => handleProblemSelect(prob)}
+                  className={`prompt-pill-reveal group p-3.5 rounded-2xl border transition-all duration-300 cursor-pointer text-left relative overflow-hidden backdrop-blur-xl ${
+                    isSelected
+                      ? 'bg-white text-neutral-950 border-white shadow-[0_10px_30px_rgba(0,0,0,0.5),0_0_20px_rgba(255,255,255,0.15)] scale-[1.01]'
+                      : 'bg-neutral-900/60 hover:bg-neutral-900/90 text-white border-white/10 hover:border-white/25'
                   }`}
                 >
-                  &ldquo;{pill.query}&rdquo;
-                </div>
+                  <div className="flex items-center justify-between gap-2 mb-1.5">
+                    <span
+                      className={`text-[8px] font-mono tracking-wider uppercase px-2 py-0.5 rounded-full border ${
+                        isSelected
+                          ? 'bg-neutral-100 text-neutral-700 border-neutral-200'
+                          : 'bg-white/5 text-neutral-400 border-white/10'
+                      }`}
+                    >
+                      {prob.category}
+                    </span>
 
-                {/* Instant Answer Preview on Click */}
-                {isSelected && (
-                  <div className="mt-2.5 pt-2.5 border-t border-neutral-200 text-[11px] text-neutral-700 leading-relaxed animate-fade-in flex items-start gap-1.5">
-                    <span className="text-sky-600 text-xs shrink-0 mt-0.5">✦</span>
-                    <span>
-                      <strong className="text-neutral-950 font-semibold">Verified Response:</strong>{' '}
-                      {pill.answer}
+                    <span
+                      className={`text-[9px] font-mono flex items-center gap-1 ${
+                        isSelected ? 'text-neutral-600' : 'text-neutral-400 group-hover:text-white'
+                      }`}
+                    >
+                      {isCopied ? (
+                        <span className="text-emerald-600 font-bold flex items-center gap-1">
+                          <span>✓</span> Copied & Injected
+                        </span>
+                      ) : isSelected ? (
+                        <span className="text-[#2563EB] font-semibold flex items-center gap-1">
+                          <span>✦ Verified Solution</span>
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-1">
+                          <span>Reveal Solution</span>
+                          <span>→</span>
+                        </span>
+                      )}
                     </span>
                   </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
+
+                  <div
+                    className={`text-xs sm:text-[13px] font-semibold leading-snug ${
+                      isSelected ? 'text-neutral-950' : 'text-white'
+                    }`}
+                  >
+                    {prob.tabLabel}
+                  </div>
+                  <div
+                    className={`text-[11px] leading-tight mt-0.5 ${
+                      isSelected ? 'text-neutral-600' : 'text-neutral-400'
+                    }`}
+                  >
+                    &ldquo;{prob.problem}&rdquo;
+                  </div>
+
+                  {isSelected && (
+                    <div className="mt-2.5 pt-2.5 border-t border-neutral-200 text-[11px] text-neutral-700 leading-relaxed animate-fade-in flex flex-col gap-1.5">
+                      <div className="flex items-start gap-1.5">
+                        <span className="text-sky-600 text-xs shrink-0 mt-0.5">✦</span>
+                        <span>
+                          <strong className="text-neutral-950 font-semibold">AI Solution:</strong>{' '}
+                          {prob.solution}
+                        </span>
+                      </div>
+                      <div className="text-[10px] font-mono text-neutral-500 flex items-center justify-between pt-1">
+                        <span className="truncate">Sample Query: &ldquo;{prob.query}&rdquo;</span>
+                        <span
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleProblemCopy(prob);
+                          }}
+                          className="text-sky-600 font-semibold hover:underline shrink-0 ml-2"
+                        >
+                          Copy query ↗
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
 
         {/* --- BOTTOM ACTION CONTROLS --- */}
-        <div className="hud-action-reveal flex flex-row flex-wrap sm:flex-row items-center gap-2.5 sm:gap-3 pt-2">
+        <div className="hud-action-reveal flex flex-row items-center gap-2 sm:gap-3 pt-0.5">
           {/* External Platform Link */}
           <a
             href="https://rechitta.com/brokers"
             target="_blank"
             rel="noreferrer"
-            className="flex-1 min-w-0 py-3 sm:py-3.5 px-4 sm:px-5 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] text-neutral-200 hover:text-white text-xs sm:text-[13px] font-semibold tracking-tight transition-all duration-300 flex items-center justify-center gap-2 group border border-white/15 hover:border-white/30 backdrop-blur-md cursor-pointer text-center"
+            className="flex-1 min-w-0 py-2 sm:py-3.5 px-2 sm:px-5 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] text-neutral-200 hover:text-white text-[11px] sm:text-[13px] font-semibold tracking-tight transition-all duration-300 flex items-center justify-center gap-1.5 group border border-white/15 hover:border-white/30 backdrop-blur-md cursor-pointer text-center"
             style={{ fontFamily: 'var(--font-inter)' }}
           >
             <span className="whitespace-nowrap">{stacked ? 'Broker Platform' : 'Explore Broker Platform'}</span>
@@ -664,7 +902,7 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
             />
             <button
               onClick={handleFlyOn}
-              className={`w-full min-w-0 py-3.5 sm:py-4 px-4 sm:px-5 rounded-xl text-white text-[13px] sm:text-sm font-bold tracking-tight transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer group border ${
+              className={`w-full min-w-0 py-2 sm:py-3.5 px-2 sm:px-5 rounded-xl text-white text-[11px] sm:text-sm font-bold tracking-tight transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer group border ${
                 showScrollPrompt
                   ? 'bg-[#568DFF] border-[#8FB4FF] shadow-[0_0_32px_rgba(86,141,255,0.7)] scale-[1.02]'
                   : 'bg-[#568DFF]/90 hover:bg-[#568DFF] border-[#568DFF]/60 hover:border-[#8FB4FF] shadow-[0_0_20px_rgba(86,141,255,0.4)] hover:shadow-[0_0_28px_rgba(86,141,255,0.6)]'
@@ -672,7 +910,7 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
               style={{ fontFamily: 'var(--font-inter)' }}
               aria-label="Take the briefing global"
             >
-              <span className="h-2 w-2 rounded-full bg-white shadow-[0_0_8px_#ffffff] animate-pulse" />
+              <span className="h-1.5 w-1.5 rounded-full bg-white shadow-[0_0_8px_#ffffff] animate-pulse" />
               <span className="whitespace-nowrap">Take it global</span>
               <span className="text-white/90 font-bold transition-transform group-hover:translate-x-1">
                 &rarr;

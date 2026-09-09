@@ -19,6 +19,7 @@ const FinaleWorldMapPresentation = dynamic(
   () => import('@/components/FinaleWorldMapPresentation'),
   { ssr: false }
 );
+
 import type { FilmTiming } from '@/orb/types';
 import type { Playhead } from '@/screens/types';
 import { CITIES, type Beat, type Chapter } from '@/film/score';
