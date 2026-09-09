@@ -6,7 +6,7 @@ import { coverRect } from '@/screens/warp';
 import { isPortraitFor } from '@/hooks/useDeviceMode';
 import { setHold } from '@/film/holds';
 import ClickPrompt from './ClickPrompt';
-import BuilderCarousel from './BuilderCarousel';
+import BuilderCarousel, { BuilderMarquee } from './BuilderCarousel';
 
 /** Interactive questions on Slide 3 showcasing Rechitta's instant intelligence */
 const SLIDE_3_QUESTIONS = [
@@ -144,46 +144,24 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
   // The deck is laid out on a fixed reference canvas and scaled to fit, so it
   // stays one piece however large the screen it is painted onto is.
   const LANDSCAPE_BASE = { w: 826, h: 462 };
-  /** Portrait needs its own canvas: 826px of reference width scaled down to
-   *  fit a phone puts the body copy at about seven pixels. */
-  const PORTRAIT_BASE = { w: 430, h: 620 };
-
   /*
-   * On a wide screen the deck is pinned to the display in the footage, which
-   * is what sells it as a real briefing. That cannot work on a portrait phone:
-   * the shot is 16:9, `object-fit: cover` crops it hard, and the display it
-   * is pinned to is mostly off the side of the screen. There the deck comes
-   * off the wall and sits flat in the middle instead.
+   * On both wide and portrait screens, the presentation is pinned directly
+   * to the 4K OLED display mounted on the boardroom wall in the footage.
+   * There is NO separate pop-out modal or floating card.
    */
-  const flat = isPortraitFor(viewport.width, viewport.height);
-  const BASE_W = flat ? PORTRAIT_BASE.w : LANDSCAPE_BASE.w;
-  const BASE_H = flat ? PORTRAIT_BASE.h : LANDSCAPE_BASE.h;
+  const isPortrait = isPortraitFor(viewport.width, viewport.height);
+  const BASE_W = LANDSCAPE_BASE.w;
+  const BASE_H = LANDSCAPE_BASE.h;
 
   // Where the 16:9 footage actually lands in the viewport. Everything placed
   // against the room — the screen, the arrows on the wall, the builders' reel
   // — is measured off this rather than off the viewport.
   const rect = coverRect(viewport.width, viewport.height);
 
-  let screenLeft: number;
-  let screenTop: number;
-  let screenWidth: number;
-  let screenHeight: number;
-
-  if (flat) {
-    // Room for the header above and the slide controls below.
-    const availableW = viewport.width * 0.94;
-    const availableH = viewport.height * 0.70;
-    const scale = Math.min(availableW / BASE_W, availableH / BASE_H);
-    screenWidth = BASE_W * scale;
-    screenHeight = BASE_H * scale;
-    screenLeft = (viewport.width - screenWidth) / 2;
-    screenTop = (viewport.height - screenHeight) / 2 - viewport.height * 0.03;
-  } else {
-    screenLeft = rect.x + (LEFT / 100) * rect.width;
-    screenTop = rect.y + (TOP / 100) * rect.height;
-    screenWidth = (WIDTH / 100) * rect.width;
-    screenHeight = (HEIGHT / 100) * rect.height;
-  }
+  const screenLeft = rect.x + (LEFT / 100) * rect.width;
+  const screenTop = rect.y + (TOP / 100) * rect.height;
+  const screenWidth = (WIDTH / 100) * rect.width;
+  const screenHeight = (HEIGHT / 100) * rect.height;
 
   /*
    * Where the slide controls sit, measured from the top of the screen area.
@@ -192,12 +170,8 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
    * casing ends around 69%, and the credenza starts around 76%. Putting the
    * controls a little over a tenth of the frame below the screen lands them in
    * that gap — clear of the picture, clear of the furniture.
-   *
-   * On a wide screen only the dots live down there now: the arrows have moved
-   * onto the wall either side of the display, where they read as part of the
-   * room instead of as a toolbar under it.
    */
-  const controlsTop = flat ? screenHeight + 18 : screenHeight + rect.height * 0.055;
+  const controlsTop = isPortrait ? screenHeight + 14 : screenHeight + rect.height * 0.055;
 
   /*
    * The arrows on the wall.
@@ -212,10 +186,6 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
 
   /*
    * The builders' reel, over the window on the far left.
-   *
-   * It cannot share the wall with the left arrow — that panel is only 13% of
-   * the frame wide — so it sits outboard of it, floating over the glass the
-   * way the film's other HUD panels do.
    */
   const reelWidth = Math.min(230, Math.max(150, rect.width * 0.125));
   const reelLeft = Math.max(16, rect.x + rect.width * 0.022);
@@ -227,17 +197,93 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
    * the outboard strip the reel wants stops existing. Rather than let it slide
    * under the arrow — or off the edge — it steps out until there is room.
    */
-  const reelFits = !flat && screenLeft - armOffset - armSize / 2 - (reelLeft + reelWidth) >= 16;
+  const reelFits = !isPortrait && screenLeft - armOffset - armSize / 2 - (reelLeft + reelWidth) >= 16;
 
   const scaleRatio = screenWidth / BASE_W;
-  // A deck lying flat should not carry the wall's perspective.
-  const tilt = flat
-    ? ''
-    : `rotateY(${ROTATE_Y}deg) rotateX(${ROTATE_X}deg) rotateZ(${ROTATE_Z}deg) scale(${SCALE})`;
+  const tilt = `rotateY(${ROTATE_Y}deg) rotateX(${ROTATE_X}deg) rotateZ(${ROTATE_Z}deg) scale(${SCALE})`;
   // ==========================================
 
+  /** Advance from Boardroom scene into the Broker phone scene */
+  const handleUploadClick = () => {
+    if (isUploading || isSynced) {
+      // Already handed off. Let the film move rather than wait on us.
+      window.dispatchEvent(new CustomEvent('rechitta:release'));
+      return;
+    }
+    setIsUploading(true);
+
+    // 1. Simulate data indexing & packaging (micro-spinner)
+    setTimeout(() => {
+      setIsSynced(true);
+
+      // 2. 350ms "sight pause" after notification appears, initiate native hardware video playback flight!
+      setTimeout(() => {
+        // Immediately dissolve the boardroom slides so the hallway flight is 100% unobstructed
+        const leaving = [containerRef.current, reelRef.current].filter(Boolean);
+        if (leaving.length) {
+          isVisibleRef.current = false;
+          gsap.killTweensOf(leaving);
+          gsap.to(leaving, {
+            opacity: 0,
+            scale: 0.95,
+            duration: 0.45,
+            ease: 'power2.inOut',
+            onComplete: () => {
+              gsap.set(leaving, { autoAlpha: 0 });
+              setActiveSlide(0);
+            },
+          });
+        }
+
+        window.dispatchEvent(new CustomEvent('rechitta:start-flight'));
+      }, 350);
+    }, 900);
+  };
+
+  const handleUploadClickRef = useRef(handleUploadClick);
+  handleUploadClickRef.current = handleUploadClick;
+
   const slideBy = (direction: -1 | 1) => {
+    if (direction === -1 && activeSlide === 0) {
+      // Navigate back to Scene 1 (Dawn / Hero)
+      window.dispatchEvent(new CustomEvent('rechitta:jump-to-beat', { detail: { index: 0 } }));
+      return;
+    }
+    if (direction === 1 && activeSlide === SLIDES.length - 1) {
+      // Navigate forward to Broker scene
+      handleUploadClick();
+      return;
+    }
     setActiveSlide((prev) => Math.min(3, Math.max(0, prev + direction)));
+  };
+
+  const slideByRef = useRef(slideBy);
+  slideByRef.current = slideBy;
+
+  // Touch swipe support for changing slides on mobile & tablet
+  const touchStartX = useRef<number | null>(null);
+  const touchStartY = useRef<number | null>(null);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (!isPortrait) return;
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (!isPortrait || touchStartX.current === null || touchStartY.current === null) return;
+    const dx = e.changedTouches[0].clientX - touchStartX.current;
+    const dy = e.changedTouches[0].clientY - touchStartY.current;
+    touchStartX.current = null;
+    touchStartY.current = null;
+
+    if (Math.abs(dx) > 35 && Math.abs(dx) > Math.abs(dy) * 1.2) {
+      if (dx < 0) {
+        slideBy(1);
+      } else {
+        slideBy(-1);
+      }
+    }
   };
 
   /** Smooth animated slide transition whenever activeSlide updates */
@@ -296,9 +342,9 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
     const handleKeyDown = (e: KeyboardEvent) => {
       if (!isVisibleRef.current) return;
       if (e.key === 'ArrowRight') {
-        setActiveSlide((prev) => Math.min(3, prev + 1));
+        slideByRef.current(1);
       } else if (e.key === 'ArrowLeft') {
-        setActiveSlide((prev) => Math.max(0, prev - 1));
+        slideByRef.current(-1);
       }
     };
 
@@ -336,45 +382,6 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
     return () => window.removeEventListener('rechitta:blocked', onBlocked);
   }, []);
 
-  /** Advance from Boardroom scene into the Broker phone scene */
-  const handleUploadClick = () => {
-    if (isUploading || isSynced) {
-      // Already handed off. Let the film move rather than wait on us.
-      window.dispatchEvent(new CustomEvent('rechitta:release'));
-      return;
-    }
-    setIsUploading(true);
-
-    // 1. Simulate data indexing & packaging (micro-spinner)
-    setTimeout(() => {
-      setIsSynced(true);
-
-      // 2. 350ms "sight pause" after notification appears, initiate native hardware video playback flight!
-      setTimeout(() => {
-        // Immediately dissolve the boardroom slides so the hallway flight is 100% unobstructed
-        const leaving = [containerRef.current, reelRef.current].filter(Boolean);
-        if (leaving.length) {
-          isVisibleRef.current = false;
-          gsap.killTweensOf(leaving);
-          gsap.to(leaving, {
-            opacity: 0,
-            scale: 0.95,
-            duration: 0.45,
-            ease: 'power2.inOut',
-            onComplete: () => {
-              gsap.set(leaving, { autoAlpha: 0 });
-              setActiveSlide(0);
-            },
-          });
-        }
-
-        window.dispatchEvent(new CustomEvent('rechitta:start-flight'));
-      }, 350);
-    }, 900);
-  };
-
-  const handleUploadClickRef = useRef(handleUploadClick);
-  handleUploadClickRef.current = handleUploadClick;
 
   /** Entrance and Exit visibility watcher */
   useEffect(() => {
@@ -463,46 +470,49 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
     >
       {/* The 3D Skewed Presentation Canvas (Proportionally Scaled Reference Canvas) */}
       <div
-        className={`overflow-hidden relative pointer-events-auto ${
-          flat ? 'rounded-[18px]' : 'rounded-sm'
-        }`}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+        className="overflow-hidden relative pointer-events-auto rounded-sm"
         style={{
           width: `${BASE_W}px`,
           height: `${BASE_H}px`,
           transformOrigin: 'top left',
           transform: `scale(${scaleRatio}) ${tilt}`.trim(),
           transformStyle: 'preserve-3d',
-          // Pinned to the wall the deck borrows the lit display underneath it.
-          // Lying flat there is nothing under it, so it brings its own.
-          ...(flat
-            ? {
-                background: 'linear-gradient(180deg, #f6f7f9 0%, #e9ecf1 100%)',
-                boxShadow: '0 30px 70px -20px rgba(0,0,0,0.75), inset 0 0 0 1px rgba(255,255,255,0.6)',
-              }
-            : null),
         }}
       >
         {/* Ambient Display Backlight */}
         <div className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-neutral-200/50 via-transparent to-transparent opacity-60" />
 
         {/* Top Header Chrome */}
-        <div className="absolute top-3 left-6 right-6 sm:left-8 sm:right-8 z-20 flex items-center justify-between gap-3 border-b border-neutral-900/10 pb-2 pointer-events-none text-[10px] md:text-[11px] font-mono tracking-widest text-neutral-400 uppercase">
+        <div
+          className={`absolute top-3.5 z-20 flex items-center justify-between gap-3 border-b border-neutral-900/10 pb-1.5 pointer-events-none text-[10px] md:text-[11px] font-mono tracking-widest text-neutral-400 uppercase ${
+            isPortrait
+              ? 'left-1/2 -translate-x-1/2 w-[82%] max-w-[400px]'
+              : 'left-6 right-6 sm:left-8 sm:right-8'
+          }`}
+        >
           <div className="flex items-center gap-2 min-w-0">
             <span className="w-1.5 h-1.5 shrink-0 rounded-full bg-neutral-900" />
             <span className="font-semibold text-neutral-800 tracking-wider truncate">
-              {/* The narrow canvas has no room for the full slug. */}
-              {flat ? 'RECHITTA' : 'RECHITTA // DEVELOPER PRESENTATION'}
+              {isPortrait ? 'RECHITTA // BOARDROOM' : 'RECHITTA // DEVELOPER PRESENTATION'}
             </span>
           </div>
           <div className="flex items-center gap-1.5 shrink-0 text-neutral-500 font-medium">
-            <span className="w-1.5 h-1.5 rounded-full bg-sky-500 animate-pulse" />
-            <span>{flat ? 'SYNC READY' : 'DLD INTEGRATED // SYNC READY'}</span>
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            <span>{isPortrait ? 'SYNC READY' : 'DLD INTEGRATED // SYNC READY'}</span>
           </div>
         </div>
 
         {/* Bottom Footer Chrome */}
-        <div className="absolute bottom-2.5 left-6 right-6 sm:left-8 sm:right-8 z-20 flex items-center justify-between gap-3 border-t border-neutral-900/10 pt-1.5 pointer-events-none text-[9px] md:text-[10px] font-mono tracking-widest text-neutral-400 uppercase">
-          <span className="truncate">{flat ? 'CONFIDENTIAL' : 'CONFIDENTIAL DEVELOPER DOSSIER'}</span>
+        <div
+          className={`absolute bottom-3 z-20 flex items-center justify-between gap-3 border-t border-neutral-900/10 pt-1.5 pointer-events-none text-[9px] md:text-[10px] font-mono tracking-widest text-neutral-400 uppercase ${
+            isPortrait
+              ? 'left-1/2 -translate-x-1/2 w-[82%] max-w-[400px]'
+              : 'left-6 right-6 sm:left-8 sm:right-8'
+          }`}
+        >
+          <span className="truncate">{isPortrait ? 'CONFIDENTIAL' : 'CONFIDENTIAL DEVELOPER DOSSIER'}</span>
           <span className="shrink-0 font-bold text-neutral-800">0{activeSlide + 1} / 04</span>
         </div>
 
@@ -511,18 +521,20 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
           {SLIDES.map((slide) => (
             <div
               key={slide.id}
-              className="w-1/4 h-full flex flex-col items-center justify-center px-8 md:px-12 py-3 text-center relative overflow-hidden"
+              className="w-1/4 h-full flex flex-col items-center justify-center px-4 md:px-12 py-3 text-center relative overflow-hidden"
             >
               {/* Giant Architectural Watermark Numeral */}
               <div
-                className="absolute right-4 sm:right-8 -bottom-6 text-[130px] sm:text-[160px] md:text-[190px] font-bold text-neutral-900/[0.035] leading-none select-none pointer-events-none font-mono"
+                className={`absolute -bottom-6 text-[120px] sm:text-[160px] md:text-[190px] font-bold text-neutral-900/[0.035] leading-none select-none pointer-events-none font-mono ${
+                  isPortrait ? 'right-1/2 translate-x-1/2' : 'right-4 sm:right-8'
+                }`}
                 style={{ fontFamily: 'var(--font-inter)' }}
               >
                 0{slide.id}
               </div>
 
               <div
-                className="max-w-xl flex flex-col items-center justify-center relative z-10 transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]"
+                className="w-full max-w-[410px] md:max-w-xl flex flex-col items-center justify-center relative z-10 transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]"
                 style={{
                   transform:
                     slide.id === 4 && quizState !== 'prompt' ? 'translateY(-16px)' : 'translateY(0)',
@@ -666,7 +678,7 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
                     </div>
 
                     {/* Live AI Response Card */}
-                    <div className="mt-2.5 max-w-md w-full p-3 rounded-xl bg-neutral-50/95 border border-neutral-200/80 shadow-xs text-left pointer-events-auto min-h-[76px] flex flex-col justify-start">
+                    <div className="mt-2 max-w-md w-full p-2.5 sm:p-3 rounded-xl bg-neutral-50/95 border border-neutral-200/80 shadow-xs text-left pointer-events-auto min-h-[64px] sm:min-h-[76px] flex flex-col justify-start">
                       <div className="flex items-center justify-between mb-1">
                         <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider">
                           <span className="relative flex h-2 w-2">
@@ -758,7 +770,7 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
                       /* gap-12 rather than a tighter one: the click prompt
                          needs a lane of its own between the line and the
                          button, or it sits on the line's descenders. */
-                      <div className="w-full max-w-lg flex flex-col items-center gap-12 animate-slide-up-dock">
+                      <div className="w-full max-w-lg flex flex-col items-center gap-6 sm:gap-12 animate-slide-up-dock">
                         {/* The whole branch, in one line. */}
                         <p
                           className="text-lg md:text-xl font-bold text-neutral-900 tracking-tight text-center"
@@ -839,7 +851,7 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
         placed against the screen's painted height instead.
       */}
       <div
-        className="absolute left-0 right-0 flex justify-center pointer-events-auto"
+        className="absolute left-0 right-0 flex flex-col items-center gap-3.5 pointer-events-auto"
         style={{ top: `${controlsTop}px`, zIndex: 100 }}
       >
         <div
@@ -852,16 +864,12 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
           }}
         >
           {/* Portrait keeps its arrows here: there is no wall to put them on. */}
-          {flat && (
+          {isPortrait && (
             <button
               onClick={() => slideBy(-1)}
-              disabled={activeSlide === 0}
-              className={`flex h-7 w-7 items-center justify-center rounded-full text-[13px] leading-none transition-all duration-200 ${
-                activeSlide === 0
-                  ? 'text-white/25'
-                  : 'text-white/80 hover:bg-white/12 hover:text-white active:scale-90 cursor-pointer'
-              }`}
-              aria-label="Previous slide"
+              className="flex h-7 w-7 items-center justify-center rounded-full text-[13px] leading-none transition-all duration-200 text-white/80 hover:bg-white/12 hover:text-white active:scale-90 cursor-pointer"
+              aria-label={activeSlide === 0 ? 'Return to Dawn' : 'Previous slide'}
+              title={activeSlide === 0 ? 'Return to Dawn' : 'Previous slide'}
             >
               ←
             </button>
@@ -884,21 +892,23 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
             ))}
           </div>
 
-          {flat && (
+          {isPortrait && (
             <button
               onClick={() => slideBy(1)}
-              disabled={activeSlide === SLIDES.length - 1}
-              className={`flex h-7 w-7 items-center justify-center rounded-full text-[13px] leading-none transition-all duration-200 ${
-                activeSlide === SLIDES.length - 1
-                  ? 'text-white/25'
-                  : 'text-white/80 hover:bg-white/12 hover:text-white active:scale-90 cursor-pointer'
-              }`}
-              aria-label="Next slide"
+              className="flex h-7 w-7 items-center justify-center rounded-full text-[13px] leading-none transition-all duration-200 text-white/80 hover:bg-white/12 hover:text-white active:scale-90 cursor-pointer"
+              aria-label={activeSlide === SLIDES.length - 1 ? 'Enter Hallway' : 'Next slide'}
+              title={activeSlide === SLIDES.length - 1 ? 'Enter Hallway' : 'Next slide'}
             >
               →
             </button>
           )}
         </div>
+
+        {isPortrait && (
+          <div className="w-full max-w-sm px-4">
+            <BuilderMarquee />
+          </div>
+        )}
       </div>
 
       {/*
@@ -909,24 +919,25 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
         fixed reference canvas scaled to fit, so it overflows this container
         and nothing can simply follow it.
       */}
-      {!flat &&
+      {!isPortrait &&
         ([
-          { dir: -1 as const, glyph: '←', label: 'Previous slide', at: -armOffset, off: activeSlide === 0 },
+          {
+            dir: -1 as const,
+            glyph: '←',
+            label: activeSlide === 0 ? 'Return to Dawn' : 'Previous slide',
+            at: -armOffset,
+          },
           {
             dir: 1 as const,
             glyph: '→',
-            label: 'Next slide',
+            label: activeSlide === SLIDES.length - 1 ? 'Enter Hallway' : 'Next slide',
             at: screenWidth + armOffset,
-            off: activeSlide === SLIDES.length - 1,
           },
         ]).map((arm) => (
           <button
             key={arm.dir}
             onClick={() => slideBy(arm.dir)}
-            disabled={arm.off}
-            className={`absolute flex items-center justify-center rounded-full transition-all duration-200 pointer-events-auto ${
-              arm.off ? 'text-white/20' : 'text-white/85 hover:text-white active:scale-90 cursor-pointer'
-            }`}
+            className="absolute flex items-center justify-center rounded-full transition-all duration-200 pointer-events-auto text-white/85 hover:text-white active:scale-90 cursor-pointer"
             style={{
               left: `${arm.at}px`,
               top: '50%',
@@ -936,13 +947,14 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
               fontSize: `${Math.round(armSize * 0.42)}px`,
               lineHeight: 1,
               zIndex: 100,
-              background: arm.off ? 'rgba(12, 16, 24, 0.32)' : 'rgba(12, 16, 24, 0.55)',
+              background: 'rgba(12, 16, 24, 0.55)',
               border: '1px solid rgba(255, 255, 255, 0.16)',
               backdropFilter: 'blur(18px) saturate(160%)',
               WebkitBackdropFilter: 'blur(18px) saturate(160%)',
-              boxShadow: arm.off ? 'none' : '0 16px 40px -14px rgba(0,0,0,0.8)',
+              boxShadow: '0 16px 40px -14px rgba(0,0,0,0.8)',
             }}
             aria-label={arm.label}
+            title={arm.label}
           >
             {arm.glyph}
           </button>

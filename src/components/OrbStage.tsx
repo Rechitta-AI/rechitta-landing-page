@@ -80,10 +80,11 @@ export default function OrbStage({
     if (!target) return null;
     const rect = target.getBoundingClientRect();
     if (rect.width === 0 && rect.height === 0) return null;
+    const portrait = isPortraitFor(window.innerWidth, window.innerHeight);
     return {
       x: ((rect.left + rect.width / 2) / window.innerWidth) * 100,
       y: ((rect.top + rect.height / 2) / window.innerHeight) * 100,
-      scale: 1.2,
+      scale: portrait ? 0.75 : 1.2,
     };
   };
 
@@ -142,10 +143,12 @@ export default function OrbStage({
     heroPoseRef.current = measureHeroPose();
     rebuildPath();
 
+    const landingScale = heroPoseRef.current?.scale ?? (isPortraitFor(window.innerWidth, window.innerHeight) ? 0.75 : 1.2);
+
     gsap.to(holderRef.current, {
       x: deltaX,
       y: deltaY,
-      scale: 1.2,
+      scale: landingScale,
       duration: 1.5,
       ease: 'power3.inOut',
       onComplete: () => onOrbLanded?.(),

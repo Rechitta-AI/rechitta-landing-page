@@ -144,3 +144,40 @@ export default function BuilderCarousel({ width, height, duration = 26 }: Builde
     </div>
   );
 }
+
+/**
+ * A horizontal continuous marquee of Dubai developer partners for mobile and tablet views.
+ */
+export function BuilderMarquee({ className = '' }: { className?: string }) {
+  const items = [...BUILDERS, ...BUILDERS];
+  return (
+    <div className={`overflow-hidden select-none ${className}`} aria-hidden="true">
+      <div className="flex items-center justify-center gap-2 mb-1 px-2">
+        <span className="h-px w-6 bg-gradient-to-r from-transparent to-white/20" />
+        <span className="text-[9px] font-mono tracking-[0.24em] text-white/50 uppercase font-semibold">
+          Trusted by Dubai Developers
+        </span>
+        <span className="h-px w-6 bg-gradient-to-l from-transparent to-white/20" />
+      </div>
+      <div
+        className="relative overflow-hidden flex items-center py-1 rounded-xl bg-black/30 backdrop-blur-md border border-white/10 shadow-inner"
+        style={{
+          maskImage: 'linear-gradient(to right, transparent, black 8%, black 92%, transparent)',
+          WebkitMaskImage: 'linear-gradient(to right, transparent, black 8%, black 92%, transparent)',
+        }}
+      >
+        <div className="flex shrink-0 items-center gap-4 animate-marquee whitespace-nowrap px-4">
+          {items.map((b, idx) => (
+            <span key={idx} className="flex items-center gap-1.5 text-[11px] font-medium tracking-wide text-white/80 font-mono">
+              <span className="w-4 h-4 rounded-[4px] bg-white/12 text-[8px] flex items-center justify-center text-white/90 border border-white/15 font-bold">
+                {b.mark}
+              </span>
+              <span>{b.name}</span>
+              <span className="text-white/25 ml-2">•</span>
+            </span>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}

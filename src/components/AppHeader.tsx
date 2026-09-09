@@ -46,17 +46,17 @@ export default function AppHeader() {
   }, [open]);
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-[100] flex items-center justify-between px-6 md:px-12 py-6 pointer-events-auto">
+    <header className="fixed top-0 left-0 right-0 z-[100] flex items-center justify-between px-4 sm:px-6 md:px-12 py-3 sm:py-4 md:py-6 pt-[max(0.85rem,env(safe-area-inset-top))] pointer-events-auto transition-all duration-300">
       {/* Subtle backdrop blur only behind the header to keep it readable */}
       <div className="absolute inset-0 bg-black/10 backdrop-blur-md border-b border-white/5 pointer-events-none -z-10 [mask-image:linear-gradient(to_bottom,black,transparent)]" />
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2.5 sm:gap-3">
         <Image
           src="/brand/rechitta-wordmark.svg"
           alt="Rechitta"
           width={146}
           height={22}
-          className="w-auto h-5 md:h-6 drop-shadow-md"
+          className="w-auto h-4.5 sm:h-5 md:h-6 drop-shadow-md"
           priority
         />
       </div>
@@ -64,11 +64,11 @@ export default function AppHeader() {
       <div className="flex items-center gap-2 md:gap-3" ref={menuRef}>
         <button
           onClick={openModal}
-          className="group relative px-4 md:px-6 py-2.5 bg-white/10 hover:bg-white/15 backdrop-blur-lg border border-white/20 rounded-full text-white text-xs md:text-sm tracking-wide font-medium transition-all duration-300 shadow-[0_0_20px_rgba(255,255,255,0.05)] hover:shadow-[0_0_30px_rgba(255,255,255,0.1)] overflow-hidden cursor-pointer"
+          className="group relative px-3 sm:px-4 md:px-6 py-1.5 sm:py-2 md:py-2.5 bg-white/10 hover:bg-white/15 backdrop-blur-lg border border-white/20 rounded-full text-white text-[11px] sm:text-xs md:text-sm tracking-wide font-medium transition-all duration-300 shadow-[0_0_20px_rgba(255,255,255,0.05)] hover:shadow-[0_0_30px_rgba(255,255,255,0.1)] overflow-hidden cursor-pointer"
           style={{ fontFamily: 'var(--font-inter)' }}
         >
           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-[150%] group-hover:animate-[shimmer_1.5s_infinite] pointer-events-none" />
-          <span className="relative z-10">Try the Platform</span>
+          <span className="relative z-10 whitespace-nowrap">Try the Platform</span>
         </button>
 
         <div className="relative">
@@ -77,7 +77,7 @@ export default function AppHeader() {
             aria-expanded={open}
             aria-haspopup="menu"
             aria-label={open ? 'Close menu' : 'Open menu'}
-            className="flex h-10 w-10 flex-col items-center justify-center gap-[5px] rounded-full border border-white/20 bg-white/10 backdrop-blur-lg transition-all duration-300 hover:bg-white/15 cursor-pointer"
+            className="flex h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 flex-col items-center justify-center gap-[4px] sm:gap-[5px] rounded-full border border-white/20 bg-white/10 backdrop-blur-lg transition-all duration-300 hover:bg-white/15 cursor-pointer shrink-0"
           >
             {[0, 1, 2].map((i) => (
               <span

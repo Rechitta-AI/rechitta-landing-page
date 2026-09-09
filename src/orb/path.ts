@@ -30,6 +30,7 @@ export const ORB_PATH: Keyframe[] = [
   {
     anchor: { clip: 'scene1-3', t: 2.0 },
     hero: true,
+    portrait: { scale: 0.75 },
     x: 50, y: 36, scale: HERO_SCALE, opacity: 0.9, blur: 0,
     ease: 'inOut',
     note: 'K0 — centred above the headline. Text staggers away, the orb stays.',
@@ -191,6 +192,7 @@ export const ORB_PATH: Keyframe[] = [
   {
     anchor: { progress: 1.0 },
     hero: true,
+    portrait: { scale: 0.75 },
     x: 50, y: 36, scale: HERO_SCALE, opacity: 0.9, blur: 0,
     ease: 'out',
     note: 'K16 — comes to rest mid-screen above headline, on the exact coordinates of K0. The orb is the stitch that hides the loop.',
