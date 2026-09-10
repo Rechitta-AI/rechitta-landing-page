@@ -121,7 +121,7 @@ function create(key: string): HTMLVideoElement {
   v.setAttribute('aria-hidden', 'true');
   v.dataset.clip = key;
   if (key === 'scene1-3') {
-    v.poster = '/film/frames/scene1-3/f_048.webp';
+    v.poster = '/film/frames/scene1-3/f_120.webp';
   }
   Object.assign(v.style, {
     position: 'absolute',

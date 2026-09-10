@@ -292,11 +292,11 @@ export default function ExperiencePage() {
 
           {/* The film itself, plus the overlays that ride specific frames. */}
           <div className="absolute inset-0 z-10 w-full h-full pointer-events-none">
-            {/* Instant 0ms visual underlay for Dawn scene (exact frame 48 at t=2.0s) for iOS/mobile resilience */}
+            {/* Instant 0ms visual underlay for Dawn scene (exact frame 120 at 60fps / t=2.0s) for iOS/mobile resilience */}
             <div
               className="absolute inset-0 -z-10 w-full h-full bg-cover bg-center pointer-events-none"
               style={{
-                backgroundImage: "url('/film/frames/scene1-3/f_048.webp')",
+                backgroundImage: "url('/film/frames/scene1-3/f_120.webp')",
               }}
               aria-hidden="true"
             />
