@@ -194,4 +194,13 @@ describe('the authored path', () => {
     expect(docks[1].portrait?.x).toBe(50);
     expect(docks[0].portrait?.y).toBe(docks[1].portrait?.y);
   });
+
+  it('authors finale dock centered horizontally below content', async () => {
+    const { ORB_PATH } = await import('./path');
+    const finaleDocks = ORB_PATH.filter((k) => k.finaleDock);
+    expect(finaleDocks).toHaveLength(1);
+    expect(finaleDocks[0].portrait?.x).toBe(50);
+    expect(finaleDocks[0].portrait?.y).toBeGreaterThan(75);
+    expect(finaleDocks[0].ease).toBe('out');
+  });
 });

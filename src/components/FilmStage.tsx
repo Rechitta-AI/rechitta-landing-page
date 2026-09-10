@@ -5,9 +5,12 @@ import {
   BEATS,
   EAGER_CLIPS,
   LAZY_CLIPS,
+  getBeatPark,
+  getBeatEnter,
   type Beat,
   type Chapter,
 } from '@/film/score';
+import { isPortraitFor } from '@/hooks/useDeviceMode';
 import {
   arrive,
   commit,
@@ -21,6 +24,7 @@ import {
   acquire,
   keepOnly,
   park,
+  preloadBlobUrl,
   preloadInBackground,
   poolReport,
   preloadSpan,
@@ -138,6 +142,8 @@ export default function FilmStage({
     // Anyone who asked for less motion gets the same film as a slideshow: the
     // beats still change, but nothing travels across the screen to get there.
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const isPortrait = () =>
+      typeof window !== 'undefined' ? isPortraitFor(window.innerWidth, window.innerHeight) : false;
 
     const state = createDirector(0);
     let timing = buildTiming();
@@ -234,18 +240,18 @@ export default function FilmStage({
 
       if (beat.clip) {
         const v = acquire(beat.clip);
-        await park(v, beat.park);
+        await park(v, getBeatPark(beat, isPortrait()));
         if (!disposed) {
           show(v, FADE_MS);
-          if (playheadRef) playheadRef.current = { clip: beat.clip, t: beat.park };
+          if (playheadRef) playheadRef.current = { clip: beat.clip, t: getBeatPark(beat, isPortrait()) };
         }
       } else if (beat.id === 'city-paris' || beat.id === 'city-riyadh') {
-        // Pre-park the finale presentation clip ('last') at 1.0s in the background
+        // Pre-park the finale presentation clip ('last') in the background
         // so the hardware decoder is already primed before the clouds appear.
         const nextBeat = BEATS.find((b) => b.id === 'finale-screen');
         if (nextBeat?.clip) {
           const v = acquire(nextBeat.clip);
-          park(v, nextBeat.park ?? 1.0);
+          park(v, getBeatPark(nextBeat, isPortrait()));
         }
       }
     };
@@ -260,8 +266,9 @@ export default function FilmStage({
      * against twenty-four frames of source.
      */
     const playForward = async (beat: Beat, moveFrom = 0, moveTo = 0) => {
-      if (!beat.clip || !beat.enter) return;
-      const { from, to, rate } = beat.enter;
+      const enterConf = getBeatEnter(beat, isPortraitFor(window.innerWidth, window.innerHeight));
+      if (!beat.clip || !enterConf) return;
+      const { from, to, rate } = enterConf;
 
       const v = acquire(beat.clip);
       // Enough of the clip to start without stalling. Short, because the
@@ -385,7 +392,7 @@ export default function FilmStage({
       if (reduceMotion) {
         if (beat.clip) {
           const v = acquire(beat.clip);
-          await park(v, beat.park);
+          await park(v, getBeatPark(beat, isPortrait()));
           if (disposed) return;
           show(v, 0);
         }
@@ -395,7 +402,7 @@ export default function FilmStage({
 
       if (beat.clip) {
         const v = acquire(beat.clip);
-        await park(v, beat.park);
+        await park(v, getBeatPark(beat, isPortrait()));
         if (disposed) return;
         show(v, FADE_MS);
       }
@@ -520,9 +527,10 @@ export default function FilmStage({
               setLayerVisible(true);
               if (target.clip) {
                 const v = acquire(target.clip);
+                const enterConf = getBeatEnter(target, isPortrait());
                 await park(
                   v,
-                  dir === 1 && target.enter && !playsOut ? target.enter.from : target.park,
+                  dir === 1 && enterConf && !playsOut ? enterConf.from : getBeatPark(target, isPortrait()),
                 );
                 show(v, 0);
               }
@@ -549,9 +557,10 @@ export default function FilmStage({
               setLayerVisible(true);
               if (target.clip) {
                 const v = acquire(target.clip);
+                const enterConf = getBeatEnter(target, isPortrait());
                 await park(
                   v,
-                  dir === 1 && target.enter && !playsOut ? target.enter.from : target.park,
+                  dir === 1 && enterConf && !playsOut ? enterConf.from : getBeatPark(target, isPortrait()),
                 );
                 show(v, 0);
               }
@@ -760,13 +769,14 @@ export default function FilmStage({
     let stopBackground = () => {};
 
     (async () => {
+      const isMobile = typeof window !== 'undefined' && window.innerWidth < 810;
       const spans = EAGER_CLIPS;
       const fractions = new Array(spans.length).fill(0);
       await Promise.all(
         spans.map((span, i) =>
           preloadSpan(span, {
             parkAt: BEATS[0].park,
-            timeoutMs: 12000,
+            timeoutMs: isMobile ? 1200 : 12000,
             readyIsEnough: true,
             onProgress: (f) => {
               fractions[i] = f;

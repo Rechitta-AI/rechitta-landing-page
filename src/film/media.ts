@@ -19,6 +19,76 @@ import { fullUrl } from '@/utils/videoTier';
 export type ClipSpan = { key: string; from: number; to: number };
 
 const pool = new Map<string, HTMLVideoElement>();
+const blobCache = new Map<string, string>();
+const activeFetches = new Map<string, Promise<string>>();
+
+/**
+ * Pre-fetches a clip's bytes via standard fetch() and creates an in-memory blob URL.
+ * Standard fetch() is never throttled or paused by mobile Safari / Chrome in the background.
+ */
+export async function preloadBlobUrl(
+  key: string,
+  onProgress?: (fraction: number) => void,
+): Promise<string> {
+  if (blobCache.has(key)) {
+    onProgress?.(1);
+    return blobCache.get(key)!;
+  }
+  if (activeFetches.has(key)) return activeFetches.get(key)!;
+
+  const url = fullUrl(key);
+  const promise = (async () => {
+    try {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+      const contentLength = response.headers.get('content-length');
+      const total = contentLength ? parseInt(contentLength, 10) : 0;
+
+      let blob: Blob;
+      if (total > 0 && response.body && 'getReader' in response.body) {
+        const reader = response.body.getReader();
+        const chunks: BlobPart[] = [];
+        let received = 0;
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          if (value) {
+            chunks.push(value as BlobPart);
+            received += value.length;
+            onProgress?.(Math.min(1, received / total));
+          }
+        }
+        blob = new Blob(chunks, { type: 'video/mp4' });
+      } else {
+        blob = await response.blob();
+      }
+      onProgress?.(1);
+
+      const blobUrl = URL.createObjectURL(blob);
+      blobCache.set(key, blobUrl);
+
+      // If an existing pooled video already exists for this key, update its src
+      const existing = pool.get(key);
+      if (existing && !existing.src.startsWith('blob:')) {
+        const currentTime = existing.currentTime;
+        const paused = existing.paused;
+        existing.src = blobUrl;
+        existing.currentTime = currentTime;
+        if (!paused) existing.play().catch(() => {});
+      }
+      return blobUrl;
+    } catch (err) {
+      console.warn(`[film] Failed to blob-preload ${key}, falling back to direct URL`, err);
+      return url;
+    } finally {
+      activeFetches.delete(key);
+    }
+  })();
+
+  activeFetches.set(key, promise);
+  return promise;
+}
 
 /** The stage all pooled elements are appended into. */
 let host: HTMLElement | null = null;
@@ -40,7 +110,8 @@ export function setMediaHost(el: HTMLElement | null) {
 
 function create(key: string): HTMLVideoElement {
   const v = document.createElement('video');
-  v.src = fullUrl(key);
+  const blob = blobCache.get(key);
+  v.src = blob ?? fullUrl(key);
   v.muted = true;
   v.defaultMuted = true;
   v.playsInline = true;
@@ -107,6 +178,13 @@ export function poolReport() {
 export function releaseAll() {
   pinned.clear();
   [...pool.keys()].forEach(releaseClip);
+  blobCache.forEach((url) => {
+    try {
+      URL.revokeObjectURL(url);
+    } catch {}
+  });
+  blobCache.clear();
+  activeFetches.clear();
 }
 
 /** How much of [from, to] has arrived, 0–1. */
@@ -213,19 +291,31 @@ export function preloadSpan(span: ClipSpan, options: PreloadOptions = {}): Promi
     };
 
     const check = () => {
+      if (v.src.startsWith('blob:') && v.readyState >= HTMLMediaElement.HAVE_METADATA) {
+        onProgress?.(1);
+        finish(1);
+        return;
+      }
       const fraction = bufferedSpan(v, span.from, span.to);
       onProgress?.(fraction);
-      const enough = v.readyState >= HTMLMediaElement.HAVE_ENOUGH_DATA;
+      const isMobile = typeof window !== 'undefined' && window.innerWidth < 810;
+      const enough =
+        v.readyState >= HTMLMediaElement.HAVE_ENOUGH_DATA ||
+        (isMobile && v.readyState >= HTMLMediaElement.HAVE_METADATA);
       if (fraction >= 0.995 || (enough && (readyIsEnough || fraction >= 0.9))) {
         onProgress?.(1);
         finish(1);
+        return;
       }
     };
 
     const events = ['progress', 'loadeddata', 'canplay', 'canplaythrough'] as const;
     events.forEach((e) => v.addEventListener(e, check));
     const poll = window.setInterval(check, 150);
-    const timer = window.setTimeout(() => finish(bufferedSpan(v, span.from, span.to)), timeoutMs);
+    const timer = window.setTimeout(() => {
+      onProgress?.(1);
+      finish(1);
+    }, timeoutMs);
     check();
   });
 }
@@ -240,10 +330,14 @@ export function preloadInBackground(spans: ClipSpan[]): () => void {
   let cancelled = false;
 
   (async () => {
+    const isMobile = typeof window !== 'undefined' && window.innerWidth < 810;
     for (const span of spans) {
       if (cancelled) return;
       pinned.add(span.key);
       try {
+        if (isMobile) {
+          await preloadBlobUrl(span.key);
+        }
         await preloadSpan(span, { timeoutMs: 30000, readyIsEnough: true });
       } finally {
         pinned.delete(span.key);

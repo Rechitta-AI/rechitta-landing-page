@@ -22,28 +22,39 @@ export default function AppHeader() {
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  // A menu left hanging over the film would sit there through the next shot,
-  // so any attempt to move on closes it.
+  // Close the menu when tapping outside, pressing Escape, or scrolling the outer page.
   useEffect(() => {
     if (!open) return;
 
     const onPointerDown = (e: PointerEvent) => {
-      if (!menuRef.current?.contains(e.target as Node)) setOpen(false);
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
     };
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') setOpen(false);
     };
-    const close = () => setOpen(false);
+    const onWheel = (e: WheelEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    const onTouchMove = (e: TouchEvent) => {
+      // Only close if scrolling outside the menu dropdown
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
 
     window.addEventListener('pointerdown', onPointerDown);
     window.addEventListener('keydown', onKey);
-    window.addEventListener('wheel', close, { passive: true });
-    window.addEventListener('touchmove', close, { passive: true });
+    window.addEventListener('wheel', onWheel, { passive: true });
+    window.addEventListener('touchmove', onTouchMove, { passive: true });
     return () => {
       window.removeEventListener('pointerdown', onPointerDown);
       window.removeEventListener('keydown', onKey);
-      window.removeEventListener('wheel', close);
-      window.removeEventListener('touchmove', close);
+      window.removeEventListener('wheel', onWheel);
+      window.removeEventListener('touchmove', onTouchMove);
     };
   }, [open]);
 
@@ -66,7 +77,8 @@ export default function AppHeader() {
       <div className="flex items-center gap-2 md:gap-3" ref={menuRef}>
         <button
           onClick={openModal}
-          className="group relative px-3 sm:px-4 md:px-6 py-1.5 sm:py-2 md:py-2.5 bg-white/10 hover:bg-white/15 backdrop-blur-lg border border-white/20 rounded-full text-white text-[11px] sm:text-xs md:text-sm tracking-wide font-medium transition-all duration-300 shadow-[0_0_20px_rgba(255,255,255,0.05)] hover:shadow-[0_0_30px_rgba(255,255,255,0.1)] overflow-hidden cursor-pointer"
+          type="button"
+          className="group relative px-3.5 sm:px-4 md:px-6 py-2 sm:py-2 md:py-2.5 bg-white/10 hover:bg-white/15 active:bg-white/20 backdrop-blur-lg border border-white/20 rounded-full text-white text-[11px] sm:text-xs md:text-sm tracking-wide font-medium transition-all duration-300 shadow-[0_0_20px_rgba(255,255,255,0.05)] hover:shadow-[0_0_30px_rgba(255,255,255,0.1)] overflow-hidden cursor-pointer touch-manipulation"
           style={{ fontFamily: 'var(--font-inter)' }}
         >
           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-[150%] group-hover:animate-[shimmer_1.5s_infinite] pointer-events-none" />
@@ -76,15 +88,16 @@ export default function AppHeader() {
         <div className="relative">
           <button
             onClick={() => setOpen((v) => !v)}
+            type="button"
             aria-expanded={open}
             aria-haspopup="menu"
             aria-label={open ? 'Close menu' : 'Open menu'}
-            className="flex h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 flex-col items-center justify-center gap-[4px] sm:gap-[5px] rounded-full border border-white/20 bg-white/10 backdrop-blur-lg transition-all duration-300 hover:bg-white/15 cursor-pointer shrink-0"
+            className="relative flex h-9 w-9 sm:h-9 sm:w-9 md:h-10 md:w-10 min-w-[36px] min-h-[36px] flex-col items-center justify-center gap-[4px] sm:gap-[5px] rounded-full border border-white/20 bg-white/10 backdrop-blur-lg transition-all duration-300 hover:bg-white/15 active:bg-white/20 cursor-pointer shrink-0 touch-manipulation before:absolute before:-inset-2 before:content-['']"
           >
             {[0, 1, 2].map((i) => (
               <span
                 key={i}
-                className="block h-[1.5px] w-4 rounded-full bg-white transition-all duration-300"
+                className="block h-[1.5px] w-4 rounded-full bg-white transition-all duration-300 pointer-events-none"
                 style={{
                   transform: open
                     ? i === 0
@@ -100,11 +113,12 @@ export default function AppHeader() {
           </button>
 
           <nav
-            className="absolute right-0 top-[calc(100%+0.75rem)] w-56 origin-top-right overflow-hidden rounded-2xl border border-white/12 bg-[#0b0f19]/85 backdrop-blur-2xl shadow-[0_24px_60px_rgba(0,0,0,0.6)] transition-all duration-300"
+            className="absolute right-0 top-[calc(100%+0.75rem)] w-56 origin-top-right overflow-hidden rounded-2xl border border-white/12 bg-[#0b0f19]/95 backdrop-blur-2xl shadow-[0_24px_60px_rgba(0,0,0,0.7)] transition-all duration-300 z-[310]"
             style={{
               opacity: open ? 1 : 0,
               transform: open ? 'translateY(0) scale(1)' : 'translateY(-8px) scale(0.97)',
               pointerEvents: open ? 'auto' : 'none',
+              visibility: open ? 'visible' : 'hidden',
             }}
             aria-hidden={!open}
           >
@@ -113,12 +127,14 @@ export default function AppHeader() {
                 key={link.label}
                 href={link.href}
                 {...(link.newTab ? { target: '_blank', rel: 'noreferrer' } : {})}
-                onClick={() => setOpen(false)}
-                className="group flex items-center justify-between gap-3 border-b border-white/6 px-5 py-3 sm:py-3.5 text-sm text-white/75 transition-colors last:border-b-0 hover:bg-white/6 hover:text-white cursor-pointer"
+                onClick={() => {
+                  setTimeout(() => setOpen(false), 200);
+                }}
+                className="group flex items-center justify-between gap-3 border-b border-white/6 px-5 py-3.5 text-sm text-white/80 transition-colors last:border-b-0 hover:bg-white/10 active:bg-white/15 hover:text-white cursor-pointer touch-manipulation"
                 style={{ fontFamily: 'var(--font-inter)' }}
               >
                 <span>{link.label}</span>
-                <span className="text-[#568DFF] opacity-0 transition-all duration-200 group-hover:translate-x-0.5 group-hover:opacity-100">
+                <span className="text-[#568DFF] opacity-75 transition-all duration-200 group-hover:translate-x-0.5 group-hover:opacity-100">
                   {link.newTab ? '↗' : '→'}
                 </span>
               </a>

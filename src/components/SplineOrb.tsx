@@ -18,23 +18,15 @@ const SPLINE_URL = 'https://my.spline.design/meeet-K190VICHbClCgQyBKYguhj6F/';
 export default function SplineOrb({ onLoaded }: { onLoaded?: () => void }) {
   const [revealed, setRevealed] = useState(false);
 
-  useEffect(() => {
-    console.log('[DEBUG] SplineOrb mounted!');
-    return () => console.log('[DEBUG] SplineOrb UNMOUNTED!');
-  }, []);
-
-  useEffect(() => {
-    console.log('[DEBUG] SplineOrb revealed state changed to:', revealed);
-  }, [revealed]);
-
   // The iframe `load` event is unreliable — it can fire from cache before the
   // listener attaches — so reveal after a grace period regardless, and the orb
   // can never get stuck invisible.
   useEffect(() => {
+    const isMobile = typeof window !== 'undefined' && window.innerWidth < 810;
     const timer = window.setTimeout(() => {
       setRevealed(true);
       if (onLoaded) onLoaded();
-    }, 2500);
+    }, isMobile ? 800 : 2000);
     return () => window.clearTimeout(timer);
   }, []);
 

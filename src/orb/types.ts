@@ -75,6 +75,11 @@ export type Keyframe = Pose & {
    * at the bottom center of the phone mockup.
    */
   dock?: true;
+  /**
+   * Pose is taken from the measured `#finale-dock-anchor` below all content
+   * in the finale presentation scene.
+   */
+  finaleDock?: true;
   /** What this beat is, for the dev overlay and for anyone reading the path. */
   note: string;
 };

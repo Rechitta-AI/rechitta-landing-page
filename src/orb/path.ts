@@ -187,9 +187,12 @@ export const ORB_PATH: Keyframe[] = [
   // ── Act V — home ────────────────────────────────────────────────────
   {
     anchor: { progress: 0.96 },
-    x: 38, y: 62, scale: 0.5, opacity: 0.9, blur: 0,
-    ease: 'in',
-    note: 'K15 — rises from the tower over the dawn skyline.',
+    finaleDock: true,
+    portrait: { x: 50, y: 85, scale: 0.65 },
+    x: 50, y: 82, scale: 0.65, opacity: 0.95, blur: 0,
+    ease: 'out',
+    pulse: true,
+    note: 'K15 — docks smoothly at the bottom below all content in the presentation scene.',
   },
   {
     anchor: { progress: 1.0 },

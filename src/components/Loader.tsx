@@ -36,23 +36,44 @@ export default function Loader({ onDone, orbReady = true }: { onDone: () => void
 
   useEffect(() => {
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const isMobile = typeof window !== 'undefined' && window.innerWidth < 810;
+    const safetyTimeoutMs = isMobile ? 1800 : SAFETY_TIMEOUT_MS;
 
     let actual = 0;
     let eased = 0;
     let frame: number;
     let finishing = false;
+    let mobileTimer: number | null = null;
 
     const safetyTimer = window.setTimeout(() => {
       finish();
-    }, SAFETY_TIMEOUT_MS);
+    }, safetyTimeoutMs);
 
     const stopListening = onLoadProgress((value) => {
-      actual = value;
+      if (value > actual) actual = value;
     });
+
+    // On mobile devices, ensure a smooth, premium climb to 100% over 1.2s
+    if (isMobile) {
+      const start = performance.now();
+      const mobileDuration = 1200;
+      const updateMobileProgress = () => {
+        const elapsed = performance.now() - start;
+        const autoProgress = Math.min(1, elapsed / mobileDuration);
+        if (autoProgress > actual) {
+          actual = autoProgress;
+        }
+        if (autoProgress < 1 && !finishing) {
+          mobileTimer = window.requestAnimationFrame(updateMobileProgress);
+        }
+      };
+      mobileTimer = window.requestAnimationFrame(updateMobileProgress);
+    }
 
     const finish = () => {
       if (finishing) return;
       finishing = true;
+      if (mobileTimer) cancelAnimationFrame(mobileTimer);
 
       if (reduced) {
         setGone(true);
@@ -63,7 +84,7 @@ export default function Loader({ onDone, orbReady = true }: { onDone: () => void
       // Smoothly fade out the loader ring, then fire onDone so the cinematic hero reveal can begin
       gsap.to(shellRef.current, { 
         opacity: 0, 
-        duration: 0.8, 
+        duration: isMobile ? 0.45 : 0.8, 
         ease: 'power2.inOut',
         onComplete: () => {
           setGone(true);
@@ -74,7 +95,7 @@ export default function Loader({ onDone, orbReady = true }: { onDone: () => void
 
     const tick = () => {
       // Chase the real number rather than snapping to it
-      eased += (actual - eased) * (reduced ? 1 : 0.08);
+      eased += (actual - eased) * (reduced ? 1 : isMobile ? 0.12 : 0.08);
       if (actual - eased < 0.001) eased = actual;
 
       setShown(eased);
@@ -86,7 +107,7 @@ export default function Loader({ onDone, orbReady = true }: { onDone: () => void
       }
 
       // Once visually at 100% (eased >= 0.99) and the 3D scene is ready, enter the site
-      if (eased >= 0.99 && orbReadyRef.current) {
+      if ((eased >= 0.99 && orbReadyRef.current) || (isMobile && eased >= 0.99)) {
         finish();
         return;
       }
@@ -96,6 +117,7 @@ export default function Loader({ onDone, orbReady = true }: { onDone: () => void
 
     return () => {
       cancelAnimationFrame(frame);
+      if (mobileTimer) cancelAnimationFrame(mobileTimer);
       window.clearTimeout(safetyTimer);
       stopListening();
     };

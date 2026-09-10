@@ -57,6 +57,7 @@ export default function OrbStage({
    */
   const heroPoseRef = useRef<Sample | null>(null);
   const dockPoseRef = useRef<{ x: number; y: number } | null>(null);
+  const finaleDockPoseRef = useRef<{ x: number; y: number } | null>(null);
 
   const resolvedRef = useRef<ResolvedKeyframe[]>([]);
   const lastTimingRef = useRef<FilmTiming | null>(null);
@@ -106,6 +107,22 @@ export default function OrbStage({
   };
 
   /**
+   * Measures the finale dock anchor at the bottom of the boardroom table
+   * below all content in the presentation scene.
+   */
+  const measureFinaleDockPose = (): { x: number; y: number } | null => {
+    if (typeof window === 'undefined') return null;
+    const target = document.getElementById('finale-dock-anchor');
+    if (!target) return null;
+    const rect = target.getBoundingClientRect();
+    if (rect.width === 0 && rect.height === 0) return null;
+    return {
+      x: ((rect.left + rect.width / 2) / window.innerWidth) * 100,
+      y: ((rect.top + rect.height / 2) / window.innerHeight) * 100,
+    };
+  };
+
+  /**
    * Rebuilds the resolved path. Cheap, and only run when the film's measured
    * timing changes or the viewport resizes — not per frame.
    */
@@ -114,8 +131,9 @@ export default function OrbStage({
     const hero = heroPoseRef.current;
     const portrait = typeof window !== 'undefined' ? isPortraitFor(window.innerWidth, window.innerHeight) : false;
     const dock = portrait ? (dockPoseRef.current ?? measureDockPose()) : null;
+    const finaleDock = finaleDockPoseRef.current ?? measureFinaleDockPose();
 
-    const path: Keyframe[] = hero || dock
+    const path: Keyframe[] = hero || dock || finaleDock
       ? ORB_PATH.map((k) => {
           let next = k;
           if (hero && k.hero) {
@@ -128,6 +146,16 @@ export default function OrbStage({
                 ...next.portrait,
                 x: +dock.x.toFixed(2),
                 y: +dock.y.toFixed(2),
+              },
+            };
+          }
+          if (finaleDock && k.finaleDock) {
+            next = {
+              ...next,
+              portrait: {
+                ...next.portrait,
+                x: +finaleDock.x.toFixed(2),
+                y: +finaleDock.y.toFixed(2),
               },
             };
           }
@@ -200,6 +228,15 @@ export default function OrbStage({
       if (measured) heroPoseRef.current = measured;
       const dock = measureDockPose();
       if (dock) dockPoseRef.current = dock;
+      const fDock = measureFinaleDockPose();
+      if (fDock) finaleDockPoseRef.current = fDock;
+      rebuildPath();
+    };
+    const onRemeasure = () => {
+      const dock = measureDockPose();
+      if (dock) dockPoseRef.current = dock;
+      const fDock = measureFinaleDockPose();
+      if (fDock) finaleDockPoseRef.current = fDock;
       rebuildPath();
     };
     const dock = measureDockPose();
@@ -208,7 +245,11 @@ export default function OrbStage({
       rebuildPath();
     }
     window.addEventListener('resize', onResize);
-    return () => window.removeEventListener('resize', onResize);
+    window.addEventListener('rechitta:remeasure-dock', onRemeasure);
+    return () => {
+      window.removeEventListener('resize', onResize);
+      window.removeEventListener('rechitta:remeasure-dock', onRemeasure);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -237,6 +278,15 @@ export default function OrbStage({
 
       const target = scrollData.current?.progress ?? 0;
       const progress = advanceClock(clock, target, dt);
+
+      // Lazy-measure finale dock as the playhead approaches the finale scene
+      if (progress >= 0.92 && !finaleDockPoseRef.current) {
+        const fDock = measureFinaleDockPose();
+        if (fDock) {
+          finaleDockPoseRef.current = fDock;
+          rebuildPath();
+        }
+      }
 
       let pose = poseAt(resolvedRef.current, progress);
 

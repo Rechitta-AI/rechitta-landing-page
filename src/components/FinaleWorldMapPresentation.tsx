@@ -5,8 +5,20 @@ import gsap from 'gsap';
 import { coverRect, matrix3dFor } from '@/screens/warp';
 import { isPortraitFor } from '@/hooks/useDeviceMode';
 import { beatIndexById } from '@/film/score';
-import BuilderCarousel from './BuilderCarousel';
+import { useDemoModal } from '@/contexts/DemoModalContext';
+import BuilderCarousel, { BuilderMarquee } from './BuilderCarousel';
 import { MONITOR_CORNERS, DEFAULT_CALIBRATION, sanitizeCalibration, type CalibrationCoords } from './MonitorCalibrator';
+
+/**
+ * 4-Corner 3D Calibrated Coordinates on mobile portrait (% of video cover rect)
+ * measured at t = 4.6s where the boardroom monitor is 100% fully in view.
+ */
+export const MOBILE_MONITOR_CORNERS = {
+  tl: [37.89, 19.72] as [number, number],
+  tr: [61.09, 19.72] as [number, number],
+  br: [61.09, 43.61] as [number, number],
+  bl: [37.89, 43.61] as [number, number],
+};
 
 /**
  * Global Hub Data matching the 6 Multilingual Cities + Dubai Headquarters.
@@ -134,10 +146,12 @@ export default function FinaleWorldMapPresentation({
   beatIndex,
   isMoving = false,
 }: FinaleWorldMapPresentationProps) {
+  const { openModal } = useDemoModal();
   const containerRef = useRef<HTMLDivElement>(null);
   /* The builders' reel sits beside the monitor, not on it: the map container
      is warped onto the screen's quad and everything inside it warps with it. */
   const reelRef = useRef<HTMLDivElement>(null);
+  const marqueeRef = useRef<HTMLDivElement>(null);
   const [viewport, setViewport] = useState({ width: 1920, height: 1080 });
   const [calibration, setCalibration] = useState<CalibrationCoords>(() => {
     if (typeof window !== 'undefined') {
@@ -187,21 +201,23 @@ export default function FinaleWorldMapPresentation({
   const flat = isPortraitFor(viewport.width, viewport.height);
   const rect = coverRect(viewport.width, viewport.height);
 
+  const quadCoords = flat ? MOBILE_MONITOR_CORNERS : calibration;
+
   const tlPx: [number, number] = [
-    rect.x + (calibration.tl[0] / 100) * rect.width,
-    rect.y + (calibration.tl[1] / 100) * rect.height,
+    rect.x + (quadCoords.tl[0] / 100) * rect.width,
+    rect.y + (quadCoords.tl[1] / 100) * rect.height,
   ];
   const trPx: [number, number] = [
-    rect.x + (calibration.tr[0] / 100) * rect.width,
-    rect.y + (calibration.tr[1] / 100) * rect.height,
+    rect.x + (quadCoords.tr[0] / 100) * rect.width,
+    rect.y + (quadCoords.tr[1] / 100) * rect.height,
   ];
   const brPx: [number, number] = [
-    rect.x + (calibration.br[0] / 100) * rect.width,
-    rect.y + (calibration.br[1] / 100) * rect.height,
+    rect.x + (quadCoords.br[0] / 100) * rect.width,
+    rect.y + (quadCoords.br[1] / 100) * rect.height,
   ];
   const blPx: [number, number] = [
-    rect.x + (calibration.bl[0] / 100) * rect.width,
-    rect.y + (calibration.bl[1] / 100) * rect.height,
+    rect.x + (quadCoords.bl[0] / 100) * rect.width,
+    rect.y + (quadCoords.bl[1] / 100) * rect.height,
   ];
 
   // Map onto the pristine 2000 x 1156 (1.73:1) uncompressed reference canvas
@@ -282,8 +298,8 @@ export default function FinaleWorldMapPresentation({
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
-    // The map and the reel beside it are lit and dimmed as one.
-    const panels = [el, reelRef.current].filter(Boolean);
+    // The map, the reel beside it, and the mobile marquee are lit and dimmed as one.
+    const panels = [el, reelRef.current, marqueeRef.current].filter(Boolean);
 
     if (isVisible) {
       gsap.killTweensOf(panels);
@@ -294,6 +310,9 @@ export default function FinaleWorldMapPresentation({
         { opacity: 1, duration: 0.42, ease: 'power2.out' }
       );
       triggerIgnition();
+      requestAnimationFrame(() => {
+        window.dispatchEvent(new CustomEvent('rechitta:remeasure-dock'));
+      });
     } else {
       gsap.killTweensOf(panels);
       gsap.to(panels, {
@@ -334,33 +353,114 @@ export default function FinaleWorldMapPresentation({
         </div>
       )}
 
+      {/* Mobile Boardroom Table Experience: Directly on the table surface (No card, matching Hero aesthetic) */}
+      {flat && (
+        <div
+          ref={marqueeRef}
+          className="fixed left-0 right-0 pointer-events-auto select-none px-4 sm:px-6 flex flex-col"
+          style={{
+            display: 'none',
+            top: `${Math.round(blPx[1] + 64)}px`,
+            zIndex: 50,
+          }}
+        >
+          <div className="max-w-sm mx-auto w-full flex flex-col gap-3 sm:gap-3.5">
+            {/* 1. Developer Partner Marquee */}
+            <div className="w-full">
+              <BuilderMarquee />
+            </div>
+
+            {/* 2. Executive Typography & CTA directly on the boardroom table surface */}
+            <div className="flex flex-col items-center text-center gap-2 sm:gap-2.5">
+              {/* Eyebrow matching Hero Page */}
+              <p className="eyebrow text-white/50 text-[9.5px] sm:text-[10px] tracking-[0.26em] uppercase font-mono font-medium drop-shadow-sm">
+                Global Real Estate Distribution
+              </p>
+
+              {/* Headline matching Hero Page ("One source of truth." aesthetic) */}
+              <h2
+                className="text-[1.25rem] sm:text-[1.45rem] font-bold text-white tracking-tight leading-tight drop-shadow-md max-w-[320px] mx-auto"
+                style={{ fontFamily: 'var(--font-inter)' }}
+              >
+                Take your portfolio global.
+              </h2>
+
+              {/* Subtitle matching Hero Page ("Live developer inventory..." aesthetic) */}
+              <p
+                className="text-[11.5px] sm:text-[12.5px] text-white/60 leading-relaxed max-w-[280px] sm:max-w-xs mx-auto drop-shadow-sm"
+                style={{ fontFamily: 'var(--font-inter)' }}
+              >
+                Live developer inventory delivered in 6 languages across 140+ international markets.
+              </p>
+
+              {/* Action Button matching AppHeader / Hero */}
+              <div className="pt-1">
+                <button
+                  onClick={openModal}
+                  className="group relative px-6 py-2.5 bg-white/10 hover:bg-white/15 active:scale-95 backdrop-blur-md border border-white/20 rounded-full text-white text-xs tracking-wide font-semibold transition-all duration-300 shadow-[0_0_25px_rgba(255,255,255,0.08)] hover:shadow-[0_0_35px_rgba(255,255,255,0.15)] overflow-hidden cursor-pointer"
+                  style={{ fontFamily: 'var(--font-inter)' }}
+                >
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/15 to-transparent -translate-x-[150%] group-hover:animate-[shimmer_1.5s_infinite] pointer-events-none" />
+                  <span className="relative z-10 flex items-center justify-center gap-2">
+                    <span>Try the Platform</span>
+                    <span className="text-[11px] text-white/60 group-hover:translate-x-0.5 transition-transform duration-200">→</span>
+                  </span>
+                </button>
+              </div>
+
+              {/* Trust Pills floating directly over the table */}
+              <div className="flex items-center justify-center gap-1.5 sm:gap-2 flex-wrap pt-1">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.06] border border-white/10 text-[9px] sm:text-[9.5px] font-mono tracking-wider text-white/75 backdrop-blur-sm shadow-sm">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  Zero Translation Lag
+                </span>
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.06] border border-white/10 text-[9px] sm:text-[9.5px] font-mono tracking-wider text-white/75 backdrop-blur-sm shadow-sm">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                  140+ Markets
+                </span>
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.06] border border-white/10 text-[9px] sm:text-[9.5px] font-mono tracking-wider text-white/75 backdrop-blur-sm shadow-sm">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#568DFF]" />
+                  DLD Integrated
+                </span>
+              </div>
+
+              {/* Ambient Dock Station below all content */}
+              <div className="relative flex items-center justify-center pt-3 sm:pt-3.5 pb-1 w-full pointer-events-none">
+                {/* Voice-dock ambient cradle glow matching Scene 4 / Multilingual */}
+                <div className="absolute w-28 h-12 rounded-full bg-[#568DFF]/20 blur-xl pointer-events-none" />
+                <div className="absolute w-14 h-8 rounded-full bg-[#568DFF]/15 blur-md pointer-events-none" />
+
+                {/* Sleek dock cradle ring with live status glow */}
+                <div className="relative w-8 h-8 rounded-full border border-white/15 bg-white/[0.04] backdrop-blur-sm shadow-[0_0_20px_rgba(86,141,255,0.2)] flex items-center justify-center">
+                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-400/90 shadow-[0_0_8px_#34d399] animate-pulse" />
+                </div>
+
+                {/* Exact dock anchor for the orb at the bottom below all content */}
+                <div
+                  id="finale-dock-anchor"
+                  className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
     <div
       ref={containerRef}
       id="finale-world-map-screen"
       className="fixed pointer-events-none select-none"
-      style={
-        flat
-          ? {
-              display: 'none',
-              left: `${portraitLeft}px`,
-              top: `${portraitTop}px`,
-              width: `${portraitWidth}px`,
-              height: `${portraitHeight}px`,
-              zIndex: 48,
-              background: 'transparent',
-            }
-          : {
-              display: 'none',
-              left: 0,
-              top: 0,
-              width: '2000px',
-              height: '1156px',
-              transformOrigin: '0 0',
-              transform: quadTransform !== 'none' ? quadTransform : undefined,
-              zIndex: 48,
-              background: 'transparent',
-            }
-      }
+      style={{
+        display: 'none',
+        left: 0,
+        top: 0,
+        width: '2000px',
+        height: '1156px',
+        transformOrigin: '0 0',
+        transform: quadTransform !== 'none' ? quadTransform : undefined,
+        zIndex: 48,
+        background: 'transparent',
+      }}
     >
       {/* 2000 x 1156 SVG canvas: matches screen aspect ratio 1.73:1 exactly */}
       <svg
@@ -537,7 +637,7 @@ export default function FinaleWorldMapPresentation({
               />
 
               {/* Floating Anti-Collision City Badge */}
-              <g transform={`translate(${hub.labelOffset.x}, ${hub.labelOffset.y})`}>
+              <g transform={`translate(${hub.labelOffset.x}, ${hub.labelOffset.y}) scale(${flat ? 1.35 : 1})`}>
                 {isHQ ? (
                   /* Dubai HQ Luxury Obsidian Badge */
                   <g>

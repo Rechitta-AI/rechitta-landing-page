@@ -94,12 +94,16 @@ export type Beat = {
   clip?: string;
   /** The source second the film rests at. */
   park: number;
+  /** Responsive resting second on portrait/mobile screens. */
+  portraitPark?: number;
 
   /**
    * The footage played to arrive here, going forward. Absent on the first
    * beat, which is simply where the film opens.
    */
   enter?: { from: number; to: number; rate: number };
+  /** Responsive enter parameters on portrait/mobile screens. */
+  portraitEnter?: { from: number; to: number; rate: number };
 
   /**
    * Published to `holdData.clipIndex` while parked, so the presentation
@@ -142,6 +146,17 @@ export type Beat = {
   /** Disables mid-transition skipping so cinematic sequences play uninterrupted. */
   noSkip?: boolean;
 };
+
+export function getBeatPark(beat: Beat, isPortrait = false): number {
+  return isPortrait && beat.portraitPark !== undefined ? beat.portraitPark : beat.park;
+}
+
+export function getBeatEnter(
+  beat: Beat,
+  isPortrait = false,
+): { from: number; to: number; rate: number } | undefined {
+  return isPortrait && beat.portraitEnter !== undefined ? beat.portraitEnter : beat.enter;
+}
 
 /**
  * The cloud passage, in transit-e's source time.
@@ -240,6 +255,7 @@ export const BEATS: Beat[] = [
     label: 'VI · Presentation',
     clip: 'last',
     park: 1.0,
+    portraitPark: 4.6,
     progress: 0.96,
     progressFrom: CITIES_SPAN.end,
   },
@@ -249,7 +265,9 @@ export const BEATS: Beat[] = [
     label: 'VII · Horizon',
     clip: 'last',
     park: 11.0,
+    portraitPark: 11.0,
     enter: { from: 1.0, to: 11.0, rate: 1.2 },
+    portraitEnter: { from: 4.6, to: 11.0, rate: 1.2 },
     flash: false,
     progress: FINALE_SPAN.end,
     progressFrom: 0.96,

@@ -1,15 +1,14 @@
-export type Tier = 'av1' | 'hevc' | 'h264' | 'proxy';
+export type Tier = 'av1' | 'hevc' | 'h264' | '1080p' | 'proxy';
 
 let cachedTier: Tier | null = null;
 
 /**
- * `?filmTier=proxy` forces the 720p cut — for QA on a machine that cannot
- * decode 4K in real time, and for automated checks.
+ * `?filmTier=proxy` or `?filmTier=1080p` forces specific cuts for QA and testing.
  */
 function override(): Tier | null {
   if (typeof window === 'undefined') return null;
   const value = new URLSearchParams(window.location.search).get('filmTier');
-  return value === 'av1' || value === 'hevc' || value === 'h264' || value === 'proxy'
+  return value === 'av1' || value === 'hevc' || value === 'h264' || value === '1080p' || value === 'proxy'
     ? value
     : null;
 }
@@ -35,12 +34,12 @@ export function pickTier(): Tier {
     return forced;
   }
 
-  // On mobile phone screens (< 810px), 4K video consumes excess GPU RAM and gets
-  // throttled by mobile power-savers. The 720p proxy cut delivers instant playback
-  // with zero memory drops on mobile screens, while desktop (>= 810px) receives full 4K.
+  // On mobile phone screens (< 810px), 1080p delivers razor-sharp Full HD quality
+  // with zero pixelation on Retina screens, while consuming ~60% less decoder memory
+  // than 4K. Desktop and iPads (>= 810px) continue receiving pristine full 4K.
   if (typeof window !== 'undefined' && window.innerWidth < 810) {
-    cachedTier = 'proxy';
-    return 'proxy';
+    cachedTier = '1080p';
+    return '1080p';
   }
 
   const v = document.createElement('video');
