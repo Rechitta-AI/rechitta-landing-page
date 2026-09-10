@@ -792,7 +792,32 @@ export default function FilmStage({
       if (disposed) return;
 
       const first = BEATS[0];
-      if (first.clip) show(acquire(first.clip), 0);
+      if (first.clip) {
+        const v = acquire(first.clip);
+        const target = first.park;
+        const reveal = () => {
+          if (!disposed) show(v, 400);
+        };
+
+        if (
+          Math.abs(v.currentTime - target) < 0.25 &&
+          v.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA
+        ) {
+          reveal();
+        } else {
+          const onSeeked = () => {
+            if (Math.abs(v.currentTime - target) < 0.25) {
+              v.removeEventListener('seeked', onSeeked);
+              reveal();
+            }
+          };
+          v.addEventListener('seeked', onSeeked);
+          setTimeout(() => {
+            v.removeEventListener('seeked', onSeeked);
+            reveal();
+          }, 1500);
+        }
+      }
       publish(beatProgress(first));
       if (beatPositionRef) beatPositionRef.current = 0;
 

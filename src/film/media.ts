@@ -229,24 +229,25 @@ export function park(v: HTMLVideoElement, time: number): Promise<void> {
       settled = true;
       v.removeEventListener('seeked', done);
       window.clearTimeout(timer);
+
+      // On iOS WebKit, kickstarting playback AFTER seek lands ensures the decoder
+      // primes the target frame, never frame 0.
+      if (v.paused && Math.abs(v.currentTime - target) < 0.25) {
+        const p = v.play();
+        if (p && typeof p.then === 'function') {
+          p.then(() => {
+            v.pause();
+            v.currentTime = target;
+          }).catch(() => {});
+        }
+      }
+
       resolve();
     };
     // A seek that never lands must not deadlock the film.
     const timer = window.setTimeout(done, 1200);
     v.addEventListener('seeked', done);
     v.currentTime = target;
-
-    // On iOS WebKit, an unplayed video keeps its hardware decoder dormant.
-    // Kickstarting playback on a muted video forces WebKit to allocate textures and paint the frame.
-    if (v.paused) {
-      const p = v.play();
-      if (p && typeof p.then === 'function') {
-        p.then(() => {
-          v.pause();
-          v.currentTime = target;
-        }).catch(() => {});
-      }
-    }
   });
 }
 
