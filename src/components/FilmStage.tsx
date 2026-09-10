@@ -767,6 +767,7 @@ export default function FilmStage({
           preloadSpan(span, {
             parkAt: BEATS[0].park,
             timeoutMs: 12000,
+            readyIsEnough: true,
             onProgress: (f) => {
               fractions[i] = f;
               setLoadProgress(

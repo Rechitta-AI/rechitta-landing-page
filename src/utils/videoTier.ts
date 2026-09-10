@@ -35,6 +35,14 @@ export function pickTier(): Tier {
     return forced;
   }
 
+  // On mobile phone screens (< 810px), 4K video consumes excess GPU RAM and gets
+  // throttled by mobile power-savers. The 720p proxy cut delivers instant playback
+  // with zero memory drops on mobile screens, while desktop (>= 810px) receives full 4K.
+  if (typeof window !== 'undefined' && window.innerWidth < 810) {
+    cachedTier = 'proxy';
+    return 'proxy';
+  }
+
   const v = document.createElement('video');
   const can = (type: string) => v.canPlayType(type) === 'probably';
 

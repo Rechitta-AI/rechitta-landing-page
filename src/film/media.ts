@@ -44,9 +44,14 @@ function create(key: string): HTMLVideoElement {
   v.muted = true;
   v.defaultMuted = true;
   v.playsInline = true;
+  v.setAttribute('playsinline', '');
+  v.setAttribute('webkit-playsinline', '');
   v.preload = 'auto';
   v.setAttribute('aria-hidden', 'true');
   v.dataset.clip = key;
+  if (key === 'scene1-3') {
+    v.poster = '/film/frames/scene1-3/f_048.webp';
+  }
   Object.assign(v.style, {
     position: 'absolute',
     inset: '0',
@@ -152,6 +157,18 @@ export function park(v: HTMLVideoElement, time: number): Promise<void> {
     const timer = window.setTimeout(done, 1200);
     v.addEventListener('seeked', done);
     v.currentTime = target;
+
+    // On iOS WebKit, an unplayed video keeps its hardware decoder dormant.
+    // Kickstarting playback on a muted video forces WebKit to allocate textures and paint the frame.
+    if (v.paused) {
+      const p = v.play();
+      if (p && typeof p.then === 'function') {
+        p.then(() => {
+          v.pause();
+          v.currentTime = target;
+        }).catch(() => {});
+      }
+    }
   });
 }
 

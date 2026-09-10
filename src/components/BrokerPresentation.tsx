@@ -175,6 +175,7 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
           gap: '0.2rem',
           paddingTop: '0px',
           paddingBottom: 'calc(max(0.75rem, env(safe-area-inset-bottom)) + 3.75rem)',
+          overflowX: 'hidden',
           overflowY: 'auto',
           WebkitOverflowScrolling: 'touch',
         }
@@ -481,7 +482,7 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
         onTouchStart={(e) => e.stopPropagation()}
         onTouchMove={(e) => e.stopPropagation()}
         onTouchEnd={(e) => e.stopPropagation()}
-        className="absolute pointer-events-auto overflow-visible"
+        className="absolute pointer-events-none overflow-visible"
         style={{
           position: 'absolute',
           top: 0,
@@ -489,7 +490,7 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
           width: '100%',
           height: stacked ? '60%' : '100%',
           zIndex: 50,
-          pointerEvents: 'auto',
+          pointerEvents: 'none',
           touchAction: 'manipulation',
         }}
       >
@@ -636,7 +637,7 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
         onTouchStart={(e) => e.stopPropagation()}
         onTouchMove={(e) => e.stopPropagation()}
         onTouchEnd={(e) => e.stopPropagation()}
-        className="absolute z-40 pointer-events-auto select-none"
+        className="absolute z-[55] pointer-events-auto select-none"
         style={hudStyle}
       >
         {/* Soft Organic Atmospheric Wash (Executive Obsidian + Subtle Cyan Accent) */}

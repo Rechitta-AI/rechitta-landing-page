@@ -13,6 +13,8 @@ const LINKS = [
     href: 'https://icy-sand-0d102fd00.7.azurestaticapps.net/?sessionId=0b555e4f-a0cf-4459-be58-a6d45a69ac68',
     newTab: true,
   },
+  { label: 'Privacy', href: 'https://www.rechitta.com/privacy', newTab: true },
+  { label: 'Terms', href: 'https://www.rechitta.com/terms', newTab: true },
 ];
 
 export default function AppHeader() {
@@ -46,7 +48,7 @@ export default function AppHeader() {
   }, [open]);
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-[100] flex items-center justify-between px-4 sm:px-6 md:px-12 py-3 sm:py-4 md:py-6 pt-[max(0.85rem,env(safe-area-inset-top))] pointer-events-auto transition-all duration-300">
+    <header className={`fixed top-0 left-0 right-0 ${open ? 'z-[300]' : 'z-[150]'} flex items-center justify-between px-4 sm:px-6 md:px-12 py-3 sm:py-4 md:py-6 pt-[max(0.85rem,env(safe-area-inset-top))] pointer-events-auto transition-all duration-300`}>
       {/* Subtle backdrop blur only behind the header to keep it readable */}
       <div className="absolute inset-0 bg-black/10 backdrop-blur-md border-b border-white/5 pointer-events-none -z-10 [mask-image:linear-gradient(to_bottom,black,transparent)]" />
 
@@ -112,7 +114,7 @@ export default function AppHeader() {
                 href={link.href}
                 {...(link.newTab ? { target: '_blank', rel: 'noreferrer' } : {})}
                 onClick={() => setOpen(false)}
-                className="group flex items-center justify-between gap-3 border-b border-white/6 px-5 py-3.5 text-sm text-white/75 transition-colors last:border-b-0 hover:bg-white/6 hover:text-white cursor-pointer"
+                className="group flex items-center justify-between gap-3 border-b border-white/6 px-5 py-3 sm:py-3.5 text-sm text-white/75 transition-colors last:border-b-0 hover:bg-white/6 hover:text-white cursor-pointer"
                 style={{ fontFamily: 'var(--font-inter)' }}
               >
                 <span>{link.label}</span>

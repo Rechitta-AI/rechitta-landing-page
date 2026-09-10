@@ -81,10 +81,7 @@ export default function CityNav({
   const box = size === 'sm' ? 'h-9 w-9' : 'h-10 w-10 md:h-12 md:w-12';
 
   return (
-    <div
-      className={`flex items-center gap-2.5 transition-opacity duration-300 ${className}`}
-      style={{ opacity: isMoving ? 0 : 1 }}
-    >
+    <div className={`flex items-center gap-2.5 ${className}`}>
       {(only ? [only] : ([-1, 1] as const)).map((dir) => {
         const target = destination(cityIndex, dir);
         if (!target) return null;
