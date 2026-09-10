@@ -116,9 +116,12 @@ export default function OrbStage({
     if (!target) return null;
     const rect = target.getBoundingClientRect();
     if (rect.width === 0 && rect.height === 0) return null;
+    const x = ((rect.left + rect.width / 2) / window.innerWidth) * 100;
+    const y = ((rect.top + rect.height / 2) / window.innerHeight) * 100;
+    // Safety guard: ensure the docked orb never encroaches into the text/button space across any responsive screen
     return {
-      x: ((rect.left + rect.width / 2) / window.innerWidth) * 100,
-      y: ((rect.top + rect.height / 2) / window.innerHeight) * 100,
+      x: Math.max(20, Math.min(80, x)),
+      y: Math.max(88, Math.min(95, y)),
     };
   };
 

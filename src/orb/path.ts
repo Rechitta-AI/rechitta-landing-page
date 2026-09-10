@@ -188,8 +188,8 @@ export const ORB_PATH: Keyframe[] = [
   {
     anchor: { progress: 0.96 },
     finaleDock: true,
-    portrait: { x: 50, y: 85, scale: 0.65 },
-    x: 50, y: 82, scale: 0.65, opacity: 0.95, blur: 0,
+    portrait: { x: 50, y: 90, scale: 0.52 },
+    x: 50, y: 86, scale: 0.60, opacity: 0.95, blur: 0,
     ease: 'out',
     pulse: true,
     note: 'K15 — docks smoothly at the bottom below all content in the presentation scene.',

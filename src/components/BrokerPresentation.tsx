@@ -90,8 +90,11 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
    */
   const [ctaHint, setCtaHint] = useState(false);
   const ctaHintTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const iframeSettleTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const isExitingRef = useRef(false);
   useEffect(() => () => {
     if (ctaHintTimerRef.current) clearTimeout(ctaHintTimerRef.current);
+    if (iframeSettleTimerRef.current) clearTimeout(iframeSettleTimerRef.current);
   }, []);
 
   // Responsive viewport tracking for homography mapping & leader line positioning
@@ -100,6 +103,8 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
   const deviceMode = modeFor(viewport.width);
   const stacked = isPortraitFor(viewport.width, viewport.height);
   const composited = deviceMode === 'desktop' && !stacked;
+  // On responsive stacked viewports, defer mounting the iframe until the phone has fully settled
+  const [iframeActive, setIframeActive] = useState(!stacked);
 
   // Responsive phone calibration state (applies ONLY to responsive portrait mode)
   // 1. Desktop Homography
@@ -232,27 +237,15 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
     return () => window.removeEventListener('rechitta:nudge', onNudge);
   }, []);
 
-  /*
-   * Hands the film on out of the broker's hands.
-   *
-   * The next stop used to be the buyer's phone, which is where the event name
-   * comes from — it is one of the film's release events, so it is left alone
-   * while the beat behind it is retired. What actually plays now is the flight
-   * into the clouds and the multilingual chapter.
-   */
-  const handleFlyOn = () => {
-    isLockedRef.current = false;
-
+  const proceedDesktopFlight = () => {
     // Reset film stage host height and transform back to 100%
     const filmHost = document.getElementById('film-stage-host');
     if (filmHost) {
-      filmHost.style.transition = 'height 0.6s cubic-bezier(0.16, 1, 0.3, 1)';
       filmHost.style.height = '100%';
       filmHost.style.bottom = '0px';
       filmHost.style.transform = 'none';
     }
 
-    // 1. Smoothly dissolve the Broker Scene UI
     if (containerRef.current) {
       containerRef.current.style.pointerEvents = 'none';
       gsap.to(containerRef.current, {
@@ -262,12 +255,72 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
         ease: 'power2.inOut',
         onComplete: () => {
           if (containerRef.current) gsap.set(containerRef.current, { autoAlpha: 0 });
+          isExitingRef.current = false;
         },
       });
     }
 
-    // 2. Hand control back to the film, which flies to the buyer.
     window.dispatchEvent(new CustomEvent('rechitta:fly-to-buyer'));
+  };
+
+  /*
+   * Hands the film on out of the broker's hands.
+   *
+   * On responsive screens: First immediately fades out the phone/iframe (200ms),
+   * and only after it has completely faded out, continues with the camera flight and movement!
+   */
+  const handleFlyOn = () => {
+    if (isExitingRef.current) return;
+    isExitingRef.current = true;
+    isLockedRef.current = false;
+
+    if (iframeSettleTimerRef.current) clearTimeout(iframeSettleTimerRef.current);
+
+    if (stacked) {
+      // Step 1: Immediately fade out the iframe & phone screen
+      if (phoneRef.current) {
+        gsap.to(phoneRef.current, {
+          opacity: 0,
+          scale: 0.96,
+          duration: 0.2,
+          ease: 'power2.out',
+          onComplete: () => {
+            // Step 2: Only after the iframe has completely faded out, continue with movement!
+            setIframeActive(false);
+
+            // Reset film stage host height back to 100%
+            const filmHost = document.getElementById('film-stage-host');
+            if (filmHost) {
+              filmHost.style.transition = 'height 0.6s cubic-bezier(0.16, 1, 0.3, 1)';
+              filmHost.style.height = '100%';
+              filmHost.style.bottom = '0px';
+              filmHost.style.transform = 'none';
+            }
+
+            // Dissolve the rest of the Broker HUD UI
+            if (containerRef.current) {
+              containerRef.current.style.pointerEvents = 'none';
+              gsap.to(containerRef.current, {
+                opacity: 0,
+                duration: 0.35,
+                ease: 'power2.inOut',
+                onComplete: () => {
+                  if (containerRef.current) gsap.set(containerRef.current, { autoAlpha: 0 });
+                  isExitingRef.current = false;
+                },
+              });
+            }
+
+            // Hand control back to the film, which begins the camera flight to the buyer
+            window.dispatchEvent(new CustomEvent('rechitta:fly-to-buyer'));
+          },
+        });
+      } else {
+        proceedDesktopFlight();
+      }
+    } else {
+      proceedDesktopFlight();
+    }
   };
 
   useEffect(() => {
@@ -298,9 +351,14 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
       if (isNowVisible && !isVisibleRef.current) {
         isVisibleRef.current = true;
         isLockedRef.current = true;
+        isExitingRef.current = false;
 
         // Smoothly adjust sequence's video stage into top 60% on mobile portrait
         if (stacked) {
+          // Defer mounting the iframe until the phone in the footage has fully settled
+          setIframeActive(false);
+          if (phoneRef.current) gsap.set(phoneRef.current, { opacity: 0 });
+
           const filmHost = document.getElementById('film-stage-host');
           if (filmHost) {
             filmHost.style.transition = 'height 0.6s cubic-bezier(0.16, 1, 0.3, 1)';
@@ -308,6 +366,21 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
             filmHost.style.height = '60%';
             filmHost.style.transform = 'none';
           }
+
+          // Once the phone in the footage has completely settled at its final position (~650ms):
+          if (iframeSettleTimerRef.current) clearTimeout(iframeSettleTimerRef.current);
+          iframeSettleTimerRef.current = setTimeout(() => {
+            setIframeActive(true);
+            if (phoneRef.current) {
+              gsap.fromTo(
+                phoneRef.current,
+                { opacity: 0, scale: 0.98 },
+                { opacity: 1, scale: 1, duration: 0.3, ease: 'power2.out' }
+              );
+            }
+          }, 650);
+        } else {
+          setIframeActive(true);
         }
 
         // After the HUD has finished cascading in, not on top of it.
@@ -315,7 +388,7 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
         ctaHintTimerRef.current = setTimeout(() => setCtaHint(true), 2200);
 
         gsap.killTweensOf(containerRef.current);
-        if (phoneRef.current) gsap.killTweensOf(phoneRef.current);
+        if (phoneRef.current && !stacked) gsap.killTweensOf(phoneRef.current);
         if (hudContentRef.current) gsap.killTweensOf(hudContentRef.current);
 
         // Make container visible
@@ -327,8 +400,8 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
         // Master entrance choreography timeline
         const tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
 
-        // Step 1: Phone screen smooth fade-in and resolve (NO scale, to avoid clobbering matrix/bounds)
-        if (phoneRef.current) {
+        // Step 1: On desktop, phone screen smooth fade-in and resolve
+        if (phoneRef.current && !stacked) {
           tl.fromTo(
             phoneRef.current,
             { opacity: 0, filter: 'blur(8px)' },
@@ -403,6 +476,9 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
       else if (!isNowVisible && isVisibleRef.current) {
         isVisibleRef.current = false;
         isLockedRef.current = false;
+        isExitingRef.current = false;
+        if (iframeSettleTimerRef.current) clearTimeout(iframeSettleTimerRef.current);
+        if (stacked) setIframeActive(false);
 
         const filmHost = document.getElementById('film-stage-host');
         if (filmHost) {
@@ -553,18 +629,20 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
                   }
           }
         >
-          <iframe
-            src="https://icy-sand-0d102fd00.7.azurestaticapps.net/?sessionId=0b555e4f-a0cf-4459-be58-a6d45a69ac68"
-            className="w-full h-full border-none relative z-10 pointer-events-auto cursor-pointer"
-            style={{
-              pointerEvents: 'auto',
-              touchAction: 'manipulation',
-              width: '100%',
-              height: '100%',
-            }}
-            title="Rechitta Live Broker Assistant"
-            allow="autoplay; fullscreen; microphone"
-          />
+          {iframeActive && (
+            <iframe
+              src="https://icy-sand-0d102fd00.7.azurestaticapps.net/?sessionId=0b555e4f-a0cf-4459-be58-a6d45a69ac68"
+              className="w-full h-full border-none relative z-10 pointer-events-auto cursor-pointer"
+              style={{
+                pointerEvents: 'auto',
+                touchAction: 'manipulation',
+                width: '100%',
+                height: '100%',
+              }}
+              title="Rechitta Live Broker Assistant"
+              allow="autoplay; fullscreen; microphone"
+            />
+          )}
         </div>
 
         {/* Subtle mobile interaction helper */}

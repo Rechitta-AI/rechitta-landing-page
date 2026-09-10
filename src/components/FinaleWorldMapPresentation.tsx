@@ -46,7 +46,7 @@ const GLOBAL_HUBS: GlobalHub[] = [
     time: '05:11',
     lang: 'EN',
     status: 'DELIVERED',
-    labelOffset: { x: -50, y: -26 },
+    labelOffset: { x: -68, y: -34 },
   },
   {
     key: 'paris',
@@ -56,7 +56,7 @@ const GLOBAL_HUBS: GlobalHub[] = [
     time: '05:11',
     lang: 'FR',
     status: 'DELIVERED',
-    labelOffset: { x: 50, y: 26 },
+    labelOffset: { x: 68, y: 34 },
   },
   {
     key: 'moscow',
@@ -66,7 +66,7 @@ const GLOBAL_HUBS: GlobalHub[] = [
     time: '07:11',
     lang: 'RU',
     status: 'DELIVERED',
-    labelOffset: { x: 0, y: -26 },
+    labelOffset: { x: 0, y: -34 },
   },
   {
     key: 'riyadh',
@@ -76,7 +76,7 @@ const GLOBAL_HUBS: GlobalHub[] = [
     time: '07:11',
     lang: 'AR',
     status: 'DELIVERED',
-    labelOffset: { x: -55, y: -24 },
+    labelOffset: { x: -85, y: -28 },
   },
   {
     key: 'dubai',
@@ -87,7 +87,7 @@ const GLOBAL_HUBS: GlobalHub[] = [
     lang: 'HQ',
     status: 'GLOBAL ENGINE',
     isHQ: true,
-    labelOffset: { x: 0, y: 34 },
+    labelOffset: { x: 0, y: 40 },
   },
   {
     key: 'mumbai',
@@ -98,15 +98,11 @@ const GLOBAL_HUBS: GlobalHub[] = [
     lang: 'HI',
     status: 'DELIVERED',
     /*
-     * Out to the right and a little lower than the rest.
-     *
-     * Mumbai's node sits 93px from Dubai's, and the two badges are 176 and
-     * 210 wide, so at a modest offset they overlapped by 70x17px. Dubai is
-     * painted last so it always won, and Mumbai read as a clipped "...MBAI".
-     * This clears the HQ badge in both axes rather than relying on paint
-     * order to hide the problem.
+     * Positioned southeast to guarantee zero overlap with Dubai HQ.
+     * With Dubai HQ badge at width 250 (x: -125..+125), Dubai's right edge reaches x = 1417.
+     * Mumbai at offset x: +152 places its left edge at x = 1421, ensuring complete clearance.
      */
-    labelOffset: { x: 118, y: 46 },
+    labelOffset: { x: 152, y: 56 },
   },
   {
     key: 'shanghai',
@@ -116,7 +112,7 @@ const GLOBAL_HUBS: GlobalHub[] = [
     time: '12:11',
     lang: 'ZH',
     status: 'DELIVERED',
-    labelOffset: { x: 0, y: -26 },
+    labelOffset: { x: 0, y: -34 },
   },
 ];
 
@@ -305,10 +301,85 @@ export default function FinaleWorldMapPresentation({
       gsap.killTweensOf(panels);
       gsap.set(panels, { display: 'block' });
       gsap.fromTo(
-        panels,
+        el,
         { opacity: 0 },
         { opacity: 1, duration: 0.42, ease: 'power2.out' }
       );
+      if (reelRef.current) {
+        gsap.fromTo(
+          reelRef.current,
+          { opacity: 0, x: -16, filter: 'blur(6px)' },
+          { opacity: 1, x: 0, filter: 'blur(0px)', duration: 0.48, ease: 'power3.out' }
+        );
+      }
+
+      // Option 1: The Cinematic Match-Cut & Staggered Reveal for texts, buttons & pills
+      const marqueeEl = marqueeRef.current;
+      if (marqueeEl) {
+        gsap.killTweensOf(marqueeEl.querySelectorAll('.finale-stagger-item'));
+        // Clean out any lingering filter blur or opacity styles to guarantee 100% sharp rendering
+        gsap.set(marqueeEl.querySelectorAll('.finale-stagger-item'), {
+          clearProps: 'filter',
+        });
+        gsap.set(marqueeEl, { opacity: 1 });
+
+        const tl = gsap.timeline({ delay: 0.06 });
+
+        // 1. Developer partner marquee softly rises into place
+        tl.fromTo(
+          marqueeEl.querySelectorAll('.finale-marquee-wrap'),
+          { opacity: 0, y: 12 },
+          { opacity: 1, y: 0, duration: 0.42, ease: 'power3.out' },
+          0
+        );
+
+        // 2. Eyebrow & Headline rise with spatial momentum
+        tl.fromTo(
+          marqueeEl.querySelectorAll('.finale-eyebrow'),
+          { opacity: 0, y: 10, letterSpacing: '0.32em' },
+          { opacity: 1, y: 0, letterSpacing: '0.24em', duration: 0.40, ease: 'power3.out' },
+          0.04
+        );
+        tl.fromTo(
+          marqueeEl.querySelectorAll('.finale-headline'),
+          { opacity: 0, y: 14 },
+          { opacity: 1, y: 0, duration: 0.48, ease: 'power3.out' },
+          0.08
+        );
+
+        // 3. Subtitle slides in 60ms later
+        tl.fromTo(
+          marqueeEl.querySelectorAll('.finale-subtitle'),
+          { opacity: 0, y: 10 },
+          { opacity: 1, y: 0, duration: 0.44, ease: 'power3.out' },
+          0.14
+        );
+
+        // 4. CTA button pops in with crisp scale
+        tl.fromTo(
+          marqueeEl.querySelectorAll('.finale-cta-wrap'),
+          { opacity: 0, scale: 0.94, y: 8 },
+          { opacity: 1, scale: 1, y: 0, duration: 0.42, ease: 'back.out(1.3)' },
+          0.20
+        );
+
+        // 5. Trust micro-pills cascade in from left to right like telemetry modules coming online
+        tl.fromTo(
+          marqueeEl.querySelectorAll('.finale-trust-pill'),
+          { opacity: 0, scale: 0.90, y: 6 },
+          { opacity: 1, scale: 1, y: 0, duration: 0.35, stagger: 0.05, ease: 'power2.out' },
+          0.26
+        );
+
+        // 6. Dock cradle expands below all content
+        tl.fromTo(
+          marqueeEl.querySelectorAll('.finale-dock-cradle'),
+          { opacity: 0, scale: 0.88 },
+          { opacity: 1, scale: 1, duration: 0.45, ease: 'power2.out' },
+          0.32
+        );
+      }
+
       triggerIgnition();
       requestAnimationFrame(() => {
         window.dispatchEvent(new CustomEvent('rechitta:remeasure-dock'));
@@ -316,6 +387,19 @@ export default function FinaleWorldMapPresentation({
     } else {
       gsap.killTweensOf(panels);
       if (el) gsap.killTweensOf(el.querySelectorAll('*'));
+      const marqueeEl = marqueeRef.current;
+      if (marqueeEl) {
+        gsap.killTweensOf(marqueeEl.querySelectorAll('.finale-stagger-item'));
+        // Swift lift-off for text, buttons and pills without any CSS filter blur to prevent smudging
+        gsap.to(marqueeEl.querySelectorAll('.finale-stagger-item'), {
+          opacity: 0,
+          y: -8,
+          duration: 0.20,
+          stagger: 0.015,
+          ease: 'power2.in',
+          clearProps: 'filter',
+        });
+      }
       gsap.to(panels, {
         opacity: 0,
         // Fade out immediately as soon as the sequence starts playing
@@ -360,26 +444,26 @@ export default function FinaleWorldMapPresentation({
           className="fixed left-0 right-0 pointer-events-auto select-none px-4 sm:px-6 flex flex-col"
           style={{
             display: 'none',
-            top: `${Math.round(blPx[1] + 64)}px`,
+            top: `${Math.round(blPx[1] + 62)}px`,
             zIndex: 50,
           }}
         >
-          <div className="max-w-sm mx-auto w-full flex flex-col gap-3 sm:gap-3.5">
+          <div className="max-w-sm mx-auto w-full flex flex-col gap-2 sm:gap-2.5">
             {/* 1. Developer Partner Marquee */}
-            <div className="w-full">
+            <div className="w-full finale-stagger-item finale-marquee-wrap">
               <BuilderMarquee />
             </div>
 
             {/* 2. Executive Typography & CTA directly on the boardroom table surface */}
-            <div className="flex flex-col items-center text-center gap-2 sm:gap-2.5">
+            <div className="flex flex-col items-center text-center gap-1.5 sm:gap-2">
               {/* Eyebrow matching Hero Page */}
-              <p className="eyebrow text-white/50 text-[9.5px] sm:text-[10px] tracking-[0.26em] uppercase font-mono font-medium drop-shadow-sm">
+              <p className="eyebrow finale-stagger-item finale-eyebrow text-white/50 text-[8.5px] sm:text-[9.5px] tracking-[0.24em] uppercase font-mono font-medium drop-shadow-sm">
                 Global Real Estate Distribution
               </p>
 
               {/* Headline matching Hero Page ("One source of truth." aesthetic) */}
               <h2
-                className="text-[1.25rem] sm:text-[1.45rem] font-bold text-white tracking-tight leading-tight drop-shadow-md max-w-[320px] mx-auto"
+                className="finale-stagger-item finale-headline text-[1.125rem] sm:text-[1.325rem] font-bold text-white tracking-tight leading-snug drop-shadow-md max-w-[320px] mx-auto"
                 style={{ fontFamily: 'var(--font-inter)' }}
               >
                 Take your portfolio global.
@@ -387,51 +471,52 @@ export default function FinaleWorldMapPresentation({
 
               {/* Subtitle matching Hero Page ("Live developer inventory..." aesthetic) */}
               <p
-                className="text-[11.5px] sm:text-[12.5px] text-white/60 leading-relaxed max-w-[280px] sm:max-w-xs mx-auto drop-shadow-sm"
+                className="finale-stagger-item finale-subtitle text-[10.5px] sm:text-[11.5px] text-white/65 leading-relaxed max-w-[280px] sm:max-w-xs mx-auto drop-shadow-sm"
                 style={{ fontFamily: 'var(--font-inter)' }}
               >
                 Live developer inventory delivered in 6 languages across 140+ international markets.
               </p>
 
-              {/* Action Button matching AppHeader / Hero */}
-              <div className="pt-1">
+              {/* Action Button: Crisp obsidian glass styling with high contrast and zero blur smudging */}
+              <div className="pt-0.5 finale-stagger-item finale-cta-wrap">
                 <button
                   onClick={openModal}
-                  className="group relative px-6 py-2.5 bg-white/10 hover:bg-white/15 active:scale-95 backdrop-blur-md border border-white/20 rounded-full text-white text-xs tracking-wide font-semibold transition-all duration-300 shadow-[0_0_25px_rgba(255,255,255,0.08)] hover:shadow-[0_0_35px_rgba(255,255,255,0.15)] overflow-hidden cursor-pointer"
+                  type="button"
+                  className="group relative px-5 py-2 sm:px-6 sm:py-2.5 bg-[#0b0f19]/90 hover:bg-[#121927] active:scale-95 border border-white/20 rounded-full text-white text-xs tracking-wide font-semibold transition-all duration-300 shadow-[0_0_20px_rgba(86,141,255,0.22)] hover:shadow-[0_0_30px_rgba(86,141,255,0.38)] overflow-hidden cursor-pointer touch-manipulation"
                   style={{ fontFamily: 'var(--font-inter)' }}
                 >
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/15 to-transparent -translate-x-[150%] group-hover:animate-[shimmer_1.5s_infinite] pointer-events-none" />
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-[150%] group-hover:animate-[shimmer_1.5s_infinite] pointer-events-none" />
                   <span className="relative z-10 flex items-center justify-center gap-2">
                     <span>Try the Platform</span>
-                    <span className="text-[11px] text-white/60 group-hover:translate-x-0.5 transition-transform duration-200">→</span>
+                    <span className="text-[11px] text-[#568DFF] group-hover:translate-x-1 transition-transform duration-200">→</span>
                   </span>
                 </button>
               </div>
 
-              {/* Trust Pills floating directly over the table */}
-              <div className="flex items-center justify-center gap-1.5 sm:gap-2 flex-wrap pt-1">
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.06] border border-white/10 text-[9px] sm:text-[9.5px] font-mono tracking-wider text-white/75 backdrop-blur-sm shadow-sm">
+              {/* Trust Pills: Solid obsidian backing to ensure dots and typography are crystal sharp */}
+              <div className="flex items-center justify-center gap-1.5 sm:gap-2 flex-wrap pt-0.5">
+                <span className="finale-stagger-item finale-trust-pill inline-flex items-center gap-1.5 px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full bg-[#0a0e18]/85 border border-white/15 text-[8.5px] sm:text-[9.5px] font-mono tracking-wider text-white/85 shadow-sm">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                   Zero Translation Lag
                 </span>
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.06] border border-white/10 text-[9px] sm:text-[9.5px] font-mono tracking-wider text-white/75 backdrop-blur-sm shadow-sm">
+                <span className="finale-stagger-item finale-trust-pill inline-flex items-center gap-1.5 px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full bg-[#0a0e18]/85 border border-white/15 text-[8.5px] sm:text-[9.5px] font-mono tracking-wider text-white/85 shadow-sm">
                   <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
                   140+ Markets
                 </span>
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.06] border border-white/10 text-[9px] sm:text-[9.5px] font-mono tracking-wider text-white/75 backdrop-blur-sm shadow-sm">
+                <span className="finale-stagger-item finale-trust-pill inline-flex items-center gap-1.5 px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full bg-[#0a0e18]/85 border border-white/15 text-[8.5px] sm:text-[9.5px] font-mono tracking-wider text-white/85 shadow-sm">
                   <span className="w-1.5 h-1.5 rounded-full bg-[#568DFF]" />
                   DLD Integrated
                 </span>
               </div>
 
-              {/* Ambient Dock Station below all content */}
-              <div className="relative flex items-center justify-center pt-3 sm:pt-3.5 pb-1 w-full pointer-events-none">
+              {/* Ambient Dock Station below all content with generous clearance */}
+              <div className="finale-stagger-item finale-dock-cradle relative flex items-center justify-center pt-5 sm:pt-6 pb-2 w-full pointer-events-none">
                 {/* Voice-dock ambient cradle glow matching Scene 4 / Multilingual */}
-                <div className="absolute w-28 h-12 rounded-full bg-[#568DFF]/20 blur-xl pointer-events-none" />
-                <div className="absolute w-14 h-8 rounded-full bg-[#568DFF]/15 blur-md pointer-events-none" />
+                <div className="absolute w-24 h-10 rounded-full bg-[#568DFF]/25 blur-lg pointer-events-none" />
+                <div className="absolute w-12 h-6 rounded-full bg-[#568DFF]/20 blur-sm pointer-events-none" />
 
                 {/* Sleek dock cradle ring with live status glow */}
-                <div className="relative w-8 h-8 rounded-full border border-white/15 bg-white/[0.04] backdrop-blur-sm shadow-[0_0_20px_rgba(86,141,255,0.2)] flex items-center justify-center">
+                <div className="relative w-7 h-7 rounded-full border border-white/20 bg-black/40 shadow-[0_0_15px_rgba(86,141,255,0.25)] flex items-center justify-center">
                   <div className="w-1.5 h-1.5 rounded-full bg-emerald-400/90 shadow-[0_0_8px_#34d399] animate-pulse" />
                 </div>
 
@@ -637,50 +722,50 @@ export default function FinaleWorldMapPresentation({
               />
 
               {/* Floating Anti-Collision City Badge */}
-              <g transform={`translate(${hub.labelOffset.x}, ${hub.labelOffset.y}) scale(${flat ? 1.35 : 1})`}>
+              <g transform={`translate(${hub.labelOffset.x}, ${hub.labelOffset.y}) scale(${flat ? 1.12 : 1})`}>
                 {isHQ ? (
                   /* Dubai HQ Luxury Obsidian Badge */
                   <g>
                     <rect
-                      x="-105"
-                      y="-16"
-                      width="210"
-                      height="32"
-                      rx="16"
+                      x="-125"
+                      y="-20"
+                      width="250"
+                      height="40"
+                      rx="20"
                       fill="rgba(7, 10, 16, 0.94)"
                       stroke="#D97706"
                       strokeWidth="1.5"
                       filter="url(#pillShadow2k)"
                     />
                     <rect
-                      x="-95"
-                      y="-9"
-                      width="32"
-                      height="18"
-                      rx="4"
+                      x="-115"
+                      y="-11"
+                      width="38"
+                      height="22"
+                      rx="5"
                       fill="rgba(217, 119, 6, 0.25)"
                       stroke="#D97706"
                       strokeWidth="1"
                     />
                     <text
-                      x="-79"
+                      x="-96"
                       y="1"
                       textAnchor="middle"
                       dominantBaseline="central"
                       fill="#FBBF24"
-                      fontSize="10"
+                      fontSize="13.5"
                       fontFamily="var(--font-inter), monospace"
                       fontWeight="800"
                     >
                       HQ
                     </text>
                     <text
-                      x="-52"
+                      x="-66"
                       y="1"
                       textAnchor="start"
                       dominantBaseline="central"
                       fill="#FFFFFF"
-                      fontSize="12.5"
+                      fontSize="17.5"
                       fontFamily="var(--font-inter), monospace"
                       fontWeight="700"
                       letterSpacing="0.08em"
@@ -692,48 +777,48 @@ export default function FinaleWorldMapPresentation({
                   /* Multilingual Partner City Obsidian Badge */
                   <g>
                     <rect
-                      x="-88"
-                      y="-15"
-                      width="176"
-                      height="30"
-                      rx="15"
+                      x="-116"
+                      y="-19"
+                      width="232"
+                      height="38"
+                      rx="19"
                       fill="rgba(7, 10, 16, 0.90)"
                       stroke="rgba(86, 141, 255, 0.45)"
                       strokeWidth="1.2"
                       filter="url(#pillShadow2k)"
                     />
                     <rect
-                      x="-78"
-                      y="-8"
-                      width="26"
-                      height="16"
+                      x="-106"
+                      y="-10"
+                      width="32"
+                      height="20"
                       rx="4"
                       fill="rgba(86, 141, 255, 0.2)"
                       stroke="rgba(86, 141, 255, 0.4)"
                       strokeWidth="0.8"
                     />
                     <text
-                      x="-65"
+                      x="-90"
                       y="1"
                       textAnchor="middle"
                       dominantBaseline="central"
                       fill="#8FB4FF"
-                      fontSize="9.5"
+                      fontSize="13.5"
                       fontFamily="var(--font-inter), monospace"
                       fontWeight="700"
                     >
                       {hub.lang}
                     </text>
                     <text
-                      x="-44"
+                      x="-64"
                       y="1"
                       textAnchor="start"
                       dominantBaseline="central"
                       fill="#FFFFFF"
-                      fontSize="12"
+                      fontSize="17"
                       fontFamily="var(--font-inter), monospace"
                       fontWeight="600"
-                      letterSpacing="0.08em"
+                      letterSpacing="0.07em"
                     >
                       {hub.name} · <tspan fill="#94A3B8" fontWeight="500">{hub.time}</tspan>
                     </text>

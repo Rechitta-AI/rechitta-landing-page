@@ -158,10 +158,12 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
   // — is measured off this rather than off the viewport.
   const rect = coverRect(viewport.width, viewport.height);
 
-  const screenLeft = rect.x + (LEFT / 100) * rect.width;
-  const screenTop = rect.y + (TOP / 100) * rect.height;
   const screenWidth = (WIDTH / 100) * rect.width;
   const screenHeight = (HEIGHT / 100) * rect.height;
+  const screenLeft = isPortrait
+    ? (viewport.width - screenWidth) / 2
+    : rect.x + (LEFT / 100) * rect.width;
+  const screenTop = rect.y + (TOP / 100) * rect.height;
 
   /*
    * Where the slide controls sit, measured from the top of the screen area.
@@ -472,12 +474,17 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
       <div
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
-        className="overflow-hidden relative pointer-events-auto rounded-sm"
+        className="overflow-hidden pointer-events-auto rounded-sm"
         style={{
           width: `${BASE_W}px`,
           height: `${BASE_H}px`,
-          transformOrigin: 'top left',
-          transform: `scale(${scaleRatio}) ${tilt}`.trim(),
+          position: isPortrait ? 'absolute' : 'relative',
+          left: isPortrait ? '50%' : undefined,
+          top: 0,
+          transformOrigin: isPortrait ? 'center top' : 'top left',
+          transform: isPortrait
+            ? `translateX(-50%) scale(${scaleRatio}) rotateX(${ROTATE_X}deg) scale(${SCALE})`
+            : `scale(${scaleRatio}) ${tilt}`.trim(),
           transformStyle: 'preserve-3d',
         }}
       >
