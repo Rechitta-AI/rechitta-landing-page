@@ -98,7 +98,7 @@ export default function CityNav({
             className={`group relative flex shrink-0 items-center justify-center rounded-full
                        ${box} text-white/70 hover:text-white
                        transition-[color,border-color,background-color,box-shadow,transform]
-                       duration-300 cursor-pointer active:scale-95 disabled:cursor-default`}
+                       duration-300 cursor-pointer active:scale-95 disabled:cursor-default touch-manipulation`}
             style={{
               /* Barely there until it is asked for — the chapter is a held
                  shot, and a solid control parked on it reads as chrome. */
@@ -106,8 +106,11 @@ export default function CityNav({
               border: '1px solid rgba(255, 255, 255, 0.22)',
               backdropFilter: 'blur(10px) saturate(140%)',
               WebkitBackdropFilter: 'blur(10px) saturate(140%)',
+              touchAction: 'manipulation',
             }}
           >
+            {/* Expanded thumb hit-area on touchscreens */}
+            <span className="absolute -inset-2 pointer-events-auto md:hidden" aria-hidden="true" />
             {/* The accent ring, drawn only on hover so the resting state stays
                 as quiet as the rest of the scene. */}
             <span

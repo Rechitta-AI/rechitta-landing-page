@@ -56,6 +56,7 @@ export default function OrbStage({
    * the top invisible.
    */
   const heroPoseRef = useRef<Sample | null>(null);
+  const dockPoseRef = useRef<{ x: number; y: number } | null>(null);
 
   const resolvedRef = useRef<ResolvedKeyframe[]>([]);
   const lastTimingRef = useRef<FilmTiming | null>(null);
@@ -89,18 +90,52 @@ export default function OrbStage({
   };
 
   /**
+   * Measures the bottom-center dock anchor inside the phone mockup.
+   * Gives pixel-perfect docking across every phone height and aspect ratio.
+   */
+  const measureDockPose = (): { x: number; y: number } | null => {
+    if (typeof window === 'undefined') return null;
+    const target = document.getElementById('multilingual-dock-anchor');
+    if (!target) return null;
+    const rect = target.getBoundingClientRect();
+    if (rect.width === 0 && rect.height === 0) return null;
+    return {
+      x: ((rect.left + rect.width / 2) / window.innerWidth) * 100,
+      y: ((rect.top + rect.height / 2) / window.innerHeight) * 100,
+    };
+  };
+
+  /**
    * Rebuilds the resolved path. Cheap, and only run when the film's measured
    * timing changes or the viewport resizes — not per frame.
    */
   const rebuildPath = () => {
     const timing = timingRef?.current ?? null;
     const hero = heroPoseRef.current;
+    const portrait = typeof window !== 'undefined' ? isPortraitFor(window.innerWidth, window.innerHeight) : false;
+    const dock = portrait ? (dockPoseRef.current ?? measureDockPose()) : null;
 
-    const path: Keyframe[] = hero
-      ? ORB_PATH.map((k) => (k.hero ? { ...k, x: hero.x, y: hero.y, scale: hero.scale } : k))
+    const path: Keyframe[] = hero || dock
+      ? ORB_PATH.map((k) => {
+          let next = k;
+          if (hero && k.hero) {
+            next = { ...next, x: hero.x, y: hero.y, scale: hero.scale };
+          }
+          if (dock && k.dock) {
+            next = {
+              ...next,
+              portrait: {
+                ...next.portrait,
+                x: +dock.x.toFixed(2),
+                y: +dock.y.toFixed(2),
+              },
+            };
+          }
+          return next;
+        })
       : ORB_PATH;
 
-    const resolved = resolvePath(path, timing, isPortraitFor(window.innerWidth, window.innerHeight));
+    const resolved = resolvePath(path, timing, portrait);
     resolvedRef.current = resolved;
     lastTimingRef.current = timing;
 
@@ -141,6 +176,8 @@ export default function OrbStage({
     const deltaY = targetRect.top + targetRect.height / 2 - (holderRect.top + holderRect.height / 2);
 
     heroPoseRef.current = measureHeroPose();
+    const dock = measureDockPose();
+    if (dock) dockPoseRef.current = dock;
     rebuildPath();
 
     const landingScale = heroPoseRef.current?.scale ?? (isPortraitFor(window.innerWidth, window.innerHeight) ? 0.75 : 1.2);
@@ -156,13 +193,20 @@ export default function OrbStage({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [introPhase]);
 
-  // ── Re-measure the hero anchor when the viewport changes ──────────────
+  // ── Re-measure the anchors when the viewport changes ──────────────────
   useEffect(() => {
     const onResize = () => {
       const measured = measureHeroPose();
       if (measured) heroPoseRef.current = measured;
+      const dock = measureDockPose();
+      if (dock) dockPoseRef.current = dock;
       rebuildPath();
     };
+    const dock = measureDockPose();
+    if (dock) {
+      dockPoseRef.current = dock;
+      rebuildPath();
+    }
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
     // eslint-disable-next-line react-hooks/exhaustive-deps

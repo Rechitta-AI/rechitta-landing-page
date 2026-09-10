@@ -142,7 +142,7 @@ export default function CityBackdrop({
       */}
       <div
         className="absolute z-[25] px-6 md:px-0
-                   left-0 right-0 top-[92px] text-center
+                   left-0 right-0 top-[max(4.25rem,calc(50%-26.5dvh-54px))] text-center
                    md:left-auto md:right-[7%] md:top-1/2 md:-translate-y-1/2 md:text-right md:max-w-[46vw]"
       >
         {/*
@@ -153,16 +153,15 @@ export default function CityBackdrop({
 
         {/*
           Portrait: they flank the name instead. The band between the header
-          and the top of the handset is barely two lines deep on a phone, and
-          a row of its own does not fit in it — either side of the name costs
-          no height at all.
+          and the top of the handset is cleanly spaced, and either side of
+          the name costs no height at all.
         */}
-        <div className="flex items-center justify-center gap-2 md:block">
+        <div className="flex items-center justify-center gap-3.5 md:block">
           <CityNav cityIndex={index} isMoving={isMoving} only={-1} size="sm" className="md:hidden" />
 
           <h2
             className="text-white leading-[0.92] tracking-tighter
-                       text-[clamp(1.75rem,9vw,2.75rem)] md:text-[clamp(3.25rem,7.5vw,7rem)]
+                       text-[clamp(2.15rem,10vw,3.25rem)] md:text-[clamp(3.25rem,7.5vw,7rem)]
                        [text-shadow:0_2px_28px_rgba(7,10,16,0.6)]"
             style={{ fontFamily: 'var(--font-inter)' }}
           >
@@ -172,14 +171,31 @@ export default function CityBackdrop({
           <CityNav cityIndex={index} isMoving={isMoving} only={1} size="sm" className="md:hidden" />
         </div>
 
-        <div className="mt-2 md:mt-5 flex flex-wrap items-baseline justify-center md:justify-end gap-x-3 gap-y-1">
-          <span className="font-mono text-[11px] md:text-[13px] tracking-[0.3em] text-[#8FB4FF] [text-shadow:0_1px_12px_rgba(7,10,16,0.85)]">
+        {/* Desktop: time sits beneath city name on the right side */}
+        <div className="hidden md:flex mt-5 flex-wrap items-baseline justify-end gap-x-3 gap-y-1">
+          <span className="font-mono text-[13px] tracking-[0.3em] text-[#8FB4FF] [text-shadow:0_1px_12px_rgba(7,10,16,0.85)]">
             {cityTime(city)} LOCAL
           </span>
-          <span className="hidden sm:inline font-mono text-[11px] md:text-[13px] tracking-[0.3em] text-white/45 [text-shadow:0_1px_12px_rgba(7,10,16,0.85)]">
-            <span className="md:hidden">· </span>THE SAME MOMENT
+          <span className="font-mono text-[13px] tracking-[0.3em] text-white/45 [text-shadow:0_1px_12px_rgba(7,10,16,0.85)]">
+            THE SAME MOMENT
           </span>
         </div>
+      </div>
+
+      {/*
+        Mobile Portrait only: Dynamically anchored directly below the phone's bottom,
+        ensuring guaranteed non-overlapping clearance from the docked orb on every device.
+      */}
+      <div
+        className="md:hidden absolute z-[25] left-0 right-0 top-[calc(50%+26.5dvh+34px)]
+                   flex items-baseline justify-center gap-x-2.5 px-4 text-center pointer-events-none"
+      >
+        <span className="font-mono text-[11px] tracking-[0.28em] text-[#8FB4FF] [text-shadow:0_1px_12px_rgba(7,10,16,0.85)]">
+          {cityTime(city)} LOCAL
+        </span>
+        <span className="font-mono text-[11px] tracking-[0.28em] text-white/45 [text-shadow:0_1px_12px_rgba(7,10,16,0.85)]">
+          · THE SAME MOMENT
+        </span>
       </div>
     </>
   );

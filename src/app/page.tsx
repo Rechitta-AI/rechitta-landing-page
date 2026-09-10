@@ -213,7 +213,7 @@ export default function ExperiencePage() {
               screen and in the middle of a portrait one.
             */}
             <div
-              className="absolute inset-0 backdrop-blur-[6px] bg-black/40 pointer-events-none [--focus-x:46%] md:[--focus-x:40%]"
+              className="absolute inset-0 backdrop-blur-[6px] bg-black/40 pointer-events-none [--focus-x:50%] md:[--focus-x:40%]"
               style={{
                 maskImage:
                   'radial-gradient(ellipse at var(--focus-x) center, transparent 15%, black 60%)',
@@ -230,46 +230,60 @@ export default function ExperiencePage() {
             */}
             <div
               id="multilingual-phone"
-              className="absolute -translate-x-1/2 pointer-events-none
-                         left-[46%] top-[164px]
-                         md:left-[40%] md:top-1/2 md:-translate-y-1/2
-                         h-[min(58vh,150vw)] md:h-[min(78vh,780px)]"
+              className="absolute pointer-events-none
+                         left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2
+                         h-[clamp(370px,53dvh,490px)]
+                         md:left-[40%] md:top-1/2 md:-translate-y-1/2 md:h-[min(78vh,780px)]"
             >
-              <div className="relative h-full w-auto animate-idle-float">
+              <div className="relative h-full aspect-[388/800]">
                 {/*
-                  Corner radii measured off the artwork's alpha: the frame's
-                  curve runs about 60px in horizontally and 80px vertically on
-                  a 388x800 image.
+                  Inner screen background: sealed insets and corner radius
+                  tucked cleanly under the bezel with zero gap above Dynamic Island
+                  and zero outer leakage.
                 */}
                 <div
-                  className="absolute inset-[1%] rounded-[15%/9.5%]"
+                  className="absolute inset-[0.8%_1.5%] rounded-[14%/7.5%] overflow-hidden"
                   style={{
                     background:
-                      'radial-gradient(ellipse at 50% 52%, rgba(58,72,96,0.95) 0%, rgba(16,20,29,0.96) 58%, rgba(11,14,21,0.97) 100%)',
+                      'radial-gradient(ellipse at 50% 50%, rgba(45,58,78,0.96) 0%, rgba(16,20,29,0.98) 60%, rgba(9,12,18,1) 100%)',
                   }}
-                />
+                >
+                  {/* Voice-dock ambient cradle glow at the bottom center of the phone screen */}
+                  <div className="absolute bottom-[3%] left-1/2 -translate-x-1/2 w-28 h-20 rounded-full bg-[#568DFF]/20 blur-xl pointer-events-none" />
+                  <div className="absolute bottom-[5%] left-1/2 -translate-x-1/2 w-14 h-14 rounded-full bg-[#568DFF]/15 blur-md pointer-events-none" />
+
+                  {/* Sleek home indicator bar at bottom center */}
+                  <div className="absolute bottom-[2.2%] left-1/2 -translate-x-1/2 w-24 h-[3.5px] rounded-full bg-white/20 pointer-events-none" />
+                </div>
 
                 <img
                   src="/film/frames/multilingual/phone-mockup.webp"
                   alt=""
-                  className="relative h-full w-auto object-contain"
+                  className="relative h-full w-auto object-contain select-none pointer-events-none"
                 />
 
-                <div className="absolute inset-0 flex flex-col items-center justify-center px-[11%] text-center">
+                {/* Exact dock anchor for the orb at the bottom center of the phone screen */}
+                <div
+                  id="multilingual-dock-anchor"
+                  className="absolute bottom-[7.5%] left-1/2 -translate-x-1/2 w-4 h-4 pointer-events-none"
+                />
+
+                {/* Briefing text: balanced typography, vertically centered inside screen */}
+                <div className="absolute inset-0 flex flex-col items-center justify-center pt-[14%] pb-[14%] px-[10%] text-center select-none pointer-events-none">
                   <p
                     key={cityIndex}
                     dir={CITIES[cityIndex]?.rtl ? 'rtl' : 'ltr'}
-                    className="animate-briefing-in text-white/95 leading-snug text-balance
-                               text-[clamp(0.95rem,2.5vh,1.9rem)]"
+                    className="animate-briefing-in text-white/95 font-medium leading-snug text-balance
+                               text-[clamp(1.08rem,2.6vh,1.75rem)] [text-shadow:0_2px_12px_rgba(0,0,0,0.6)]"
                     style={{ fontFamily: 'var(--font-inter), system-ui, sans-serif' }}
                   >
                     {CITIES[cityIndex]?.briefing}
                   </p>
-                  <div className="mt-[2.2vh] flex items-center gap-2 font-mono text-white/55 text-[clamp(0.5rem,1.1vh,0.72rem)] tracking-[0.28em]">
-                    <span className="h-1.5 w-1.5 rounded-full bg-[#568DFF] shadow-[0_0_8px_rgba(86,141,255,0.9)]" />
+                  <div className="mt-[2.2vh] flex items-center justify-center font-mono text-white/55 text-[clamp(0.55rem,1.1vh,0.72rem)] tracking-[0.25em]">
+                    <span className="h-1.5 w-1.5 rounded-full bg-[#568DFF] shadow-[0_0_8px_rgba(86,141,255,0.9)] mr-2 shrink-0" />
                     <span>{CITIES[cityIndex]?.language}</span>
-                    <span className="text-white/25">·</span>
-                    <span>LIVE DATA</span>
+                    <span className="text-white/30 mx-2">·</span>
+                    <span className="-mr-[0.25em]">LIVE DATA</span>
                   </div>
                 </div>
               </div>

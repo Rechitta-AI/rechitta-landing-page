@@ -70,6 +70,11 @@ export type Keyframe = Pose & {
    * above. The hero and the finale share it, which is what hides the loop.
    */
   hero?: true;
+  /**
+   * Portrait pose is taken from the measured `#multilingual-dock-anchor`
+   * at the bottom center of the phone mockup.
+   */
+  dock?: true;
   /** What this beat is, for the dev overlay and for anyone reading the path. */
   note: string;
 };

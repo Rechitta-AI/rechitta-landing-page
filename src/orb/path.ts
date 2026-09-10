@@ -168,15 +168,17 @@ export const ORB_PATH: Keyframe[] = [
    */
   {
     anchor: { progress: 0.52 },
-    // Portrait puts the handset mid-screen and shorter; its foot is higher.
-    portrait: { x: 46, y: 72, scale: 0.7 },
+    dock: true,
+    // Portrait centers the handset and docks the orb cleanly at its bottom center.
+    portrait: { x: 50, y: 72.4, scale: 0.7 },
     x: 40, y: 82, scale: 0.85, opacity: 1, blur: 0,
     ease: 'out',
     note: 'K13 — settles onto the foot of the phone as the chapter opens.',
   },
   {
     anchor: { progress: 0.93 },
-    portrait: { x: 46, y: 72, scale: 0.7 },
+    dock: true,
+    portrait: { x: 50, y: 72.4, scale: 0.7 },
     x: 40, y: 82, scale: 0.85, opacity: 1, blur: 0,
     ease: 'linear',
     note: 'K14 — holds on the dock, pulsing as each city takes over.',
@@ -238,7 +240,7 @@ export const EXCLUSION_ZONES: ExclusionZone[] = [
      */
     label: 'phone mockup screen, multilingual chapter',
     window: { from: 0.5, to: 0.95 },
-    rect: { x0: 26, y0: 6, x1: 54, y1: 70 },
+    rect: { x0: 26, y0: 6, x1: 54, y1: 60 },
   },
   {
     label: 'city name, multilingual chapter',

@@ -185,4 +185,13 @@ describe('the authored path', () => {
     expect(heroes[0].y).toBe(heroes[1].y);
     expect(heroes[0].scale).toBe(heroes[1].scale);
   });
+
+  it('authors docked keyframes centered horizontally for the phone mockup', async () => {
+    const { ORB_PATH } = await import('./path');
+    const docks = ORB_PATH.filter((k) => k.dock);
+    expect(docks).toHaveLength(2);
+    expect(docks[0].portrait?.x).toBe(50);
+    expect(docks[1].portrait?.x).toBe(50);
+    expect(docks[0].portrait?.y).toBe(docks[1].portrait?.y);
+  });
 });
