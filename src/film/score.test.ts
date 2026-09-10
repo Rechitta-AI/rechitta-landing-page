@@ -39,8 +39,8 @@ describe('finale responsive beats', () => {
   it('plays forward from 1.0s on desktop and from 4.6s on mobile portrait', async () => {
     const { BEATS, getBeatEnter } = await import('./score');
     const finale = BEATS.find((b) => b.id === 'finale')!;
-    expect(getBeatEnter(finale, false)).toEqual({ from: 1.0, to: 11.0, rate: 1.2 });
-    expect(getBeatEnter(finale, true)).toEqual({ from: 4.6, to: 11.0, rate: 1.2 });
+    expect(getBeatEnter(finale, false)).toEqual({ from: 1.0, to: 11.0, rate: 1.8 });
+    expect(getBeatEnter(finale, true)).toEqual({ from: 4.6, to: 11.0, rate: 1.8 });
   });
 });
 

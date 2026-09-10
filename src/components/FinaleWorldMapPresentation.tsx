@@ -315,12 +315,12 @@ export default function FinaleWorldMapPresentation({
       });
     } else {
       gsap.killTweensOf(panels);
+      if (el) gsap.killTweensOf(el.querySelectorAll('*'));
       gsap.to(panels, {
         opacity: 0,
-        // A dissolve across the camera move, rather than a cut at the start
-        // of it. Anywhere else, the shorter exit.
-        duration: isDissolving ? 1.5 : 0.3,
-        ease: isDissolving ? 'power1.in' : 'power2.inOut',
+        // Fade out immediately as soon as the sequence starts playing
+        duration: 0.25,
+        ease: 'power2.out',
         onComplete: () => {
           gsap.set(panels, { display: 'none' });
         },
