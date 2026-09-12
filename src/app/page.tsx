@@ -353,7 +353,7 @@ export default function ExperiencePage() {
                     every frame after it.
                   */}
                   <p className="hero-word eyebrow text-center text-white/45 mb-2 sm:mb-3 md:mb-4 text-[10px] sm:text-xs md:text-sm">
-                    AI briefings for Dubai real estate
+                    Real estate communication reimagined
                   </p>
 
                   <h1
@@ -374,7 +374,7 @@ export default function ExperiencePage() {
                   className="mt-3 sm:mt-5 md:mt-7 text-xs sm:text-sm md:text-base text-white/55 max-w-[20rem] sm:max-w-md md:max-w-xl leading-relaxed flex flex-wrap justify-center gap-x-[0.32em] gap-y-1 sm:gap-y-1.5"
                   style={{ fontFamily: 'var(--font-inter)' }}
                 >
-                  {'Live developer inventory, translated into conversation. Every broker and every buyer speaks the same language.'
+                  {'Project Briefings, 24/7, in all languages across the world.'
                     .split(' ')
                     .map((word, i) => (
                       <span key={i} className="inline-flex overflow-hidden">

@@ -204,6 +204,13 @@ export const BEATS: Beat[] = [
     park: 16.9,
     enter: { from: 2.0, to: 16.9, rate: 3.6 },
     hold: 1,
+    /*
+     * The broker's four objections, walked the way the boardroom walks its
+     * slides: a scroll turns to the next one and changes the answer beside it.
+     * Only once the list runs out does the gate below start asking for the
+     * call to action.
+     */
+    steps: 4,
     gate: true,
   },
   /*
@@ -255,7 +262,7 @@ export const BEATS: Beat[] = [
     label: 'VI · Presentation',
     clip: 'last',
     park: 1.0,
-    portraitPark: 4.6,
+    portraitPark: 5.2,
     progress: 0.96,
     progressFrom: CITIES_SPAN.end,
   },
@@ -267,7 +274,7 @@ export const BEATS: Beat[] = [
     park: 11.0,
     portraitPark: 11.0,
     enter: { from: 1.0, to: 11.0, rate: 1.8 },
-    portraitEnter: { from: 4.6, to: 11.0, rate: 1.8 },
+    portraitEnter: { from: 5.2, to: 11.0, rate: 1.8 },
     flash: false,
     progress: FINALE_SPAN.end,
     progressFrom: 0.96,

@@ -25,6 +25,16 @@ import type { ExclusionZone, Keyframe } from './types';
 /** Scale of the orb at the hero, matching the intro's GSAP landing. */
 const HERO_SCALE = 1.2;
 
+/**
+ * The floor every beat is clamped to, as a fraction of the hero's own scale.
+ *
+ * Depth in this path is drawn by shrinking, and several beats over the film
+ * took that far enough that the orb read as a speck rather than as a thing far
+ * away. Six tenths of the opening size is the smallest it may get; the
+ * renderer resolves the hero's measured scale and passes the product down.
+ */
+export const MIN_SCALE_FRACTION = 0.6;
+
 export const ORB_PATH: Keyframe[] = [
   // ── Act I — the dive ────────────────────────────────────────────────
   {
@@ -57,7 +67,14 @@ export const ORB_PATH: Keyframe[] = [
     anchor: { clip: 'scene1-3', t: 11.0 },
     // Below the flat deck and its slide controls, not across them.
     portrait: { x: 50, y: 90, scale: 0.24 },
-    x: 50, y: 78, scale: 0.3, opacity: 0.75, blur: 0,
+    /*
+     * Lowered from 78 onto the credenza face. The floor lifted this beat from
+     * 0.3 to 0.72, and at that size the orb was sitting on the deck's slide
+     * controls rather than hovering clear of them. Two nudges down later it is
+     * below the credenza's top edge, which is both out of the dock's way and
+     * what the note here has always claimed: resting on the furniture.
+     */
+    x: 50, y: 87, scale: 0.3, opacity: 0.75, blur: 0,
     ease: 'out',
     note: 'K4 — rests on the credenza below the screen. Holds through the whole deck.',
   },
@@ -92,7 +109,11 @@ export const ORB_PATH: Keyframe[] = [
     pulse: true,
     // Stacked, the live app sits centre screen; 23% lands on it.
     portrait: { x: 84, y: 20, scale: 0.5 },
-    x: 23, y: 33, scale: 0.6, opacity: 1, blur: 0,
+    /*
+     * Raised from 33. The objections now run down this side of the frame, and
+     * at the floored size the orb was sitting on the first card's top corner.
+     */
+    x: 23, y: 25, scale: 0.6, opacity: 1, blur: 0,
     ease: 'out',
     note: 'K9 — slides clear of the phone and flares. The app mockup lights.',
   },

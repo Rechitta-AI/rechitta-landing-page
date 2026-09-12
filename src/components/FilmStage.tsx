@@ -461,7 +461,12 @@ export default function FilmStage({
           window.clearTimeout(timer);
           resolve();
         };
-        const timer = window.setTimeout(done, 800);
+        /*
+          The safety net, not the schedule. It has to sit past the end of the
+          overlay's own timeline — that runs 1.2s now the sync badge holds —
+          or this fires first and the film moves on mid-cut.
+        */
+        const timer = window.setTimeout(done, 1600);
 
         window.dispatchEvent(
           new CustomEvent('rechitta:macro-focus-pull-transition', {

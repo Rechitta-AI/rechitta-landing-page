@@ -5,7 +5,7 @@ import gsap from 'gsap';
 import SplineOrb from './SplineOrb';
 import styles from './OrbStage.module.css';
 import { createClock, advanceClock } from '@/utils/filmClock';
-import { ORB_PATH, EXCLUSION_ZONES } from '@/orb/path';
+import { ORB_PATH, EXCLUSION_ZONES, MIN_SCALE_FRACTION } from '@/orb/path';
 import { findExclusionViolations, poseAt, resolvePath } from '@/orb/flight';
 import { isPortraitFor } from '@/hooks/useDeviceMode';
 import type { FilmTiming, Keyframe, ResolvedKeyframe } from '@/orb/types';
@@ -166,7 +166,14 @@ export default function OrbStage({
         })
       : ORB_PATH;
 
-    const resolved = resolvePath(path, timing, portrait);
+    /*
+      The floor, measured off whatever the hero actually landed at rather than
+      off the authored number: the hero's pose comes from the live
+      `#hero-o-anchor`, so on a portrait screen it is a different size and the
+      floor has to follow it.
+    */
+    const heroScale = hero?.scale ?? (portrait ? 0.75 : 1.2);
+    const resolved = resolvePath(path, timing, portrait, heroScale * MIN_SCALE_FRACTION);
     resolvedRef.current = resolved;
     lastTimingRef.current = timing;
 

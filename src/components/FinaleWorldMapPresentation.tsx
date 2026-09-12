@@ -6,18 +6,18 @@ import { coverRect, matrix3dFor } from '@/screens/warp';
 import { isPortraitFor } from '@/hooks/useDeviceMode';
 import { beatIndexById } from '@/film/score';
 import { useDemoModal } from '@/contexts/DemoModalContext';
-import BuilderCarousel, { BuilderMarquee } from './BuilderCarousel';
+import WallLogoReel, { BuilderMarquee, DEVELOPER_LOGOS, PROJECT_LOGOS } from './BuilderCarousel';
 import { MONITOR_CORNERS, DEFAULT_CALIBRATION, sanitizeCalibration, type CalibrationCoords } from './MonitorCalibrator';
 
 /**
  * 4-Corner 3D Calibrated Coordinates on mobile portrait (% of video cover rect)
- * measured at t = 4.6s where the boardroom monitor is 100% fully in view.
+ * measured at t = 5.2s where the boardroom monitor is 100% fully in view with all 4 bezels.
  */
 export const MOBILE_MONITOR_CORNERS = {
-  tl: [37.89, 19.72] as [number, number],
-  tr: [61.09, 19.72] as [number, number],
-  br: [61.09, 43.61] as [number, number],
-  bl: [37.89, 43.61] as [number, number],
+  tl: [38.54, 22.26] as [number, number],
+  tr: [59.22, 22.36] as [number, number],
+  br: [59.22, 43.23] as [number, number],
+  bl: [38.54, 42.95] as [number, number],
 };
 
 /**
@@ -147,6 +147,7 @@ export default function FinaleWorldMapPresentation({
   /* The builders' reel sits beside the monitor, not on it: the map container
      is warped onto the screen's quad and everything inside it warps with it. */
   const reelRef = useRef<HTMLDivElement>(null);
+  const rightReelRef = useRef<HTMLDivElement>(null);
   const marqueeRef = useRef<HTMLDivElement>(null);
   const [viewport, setViewport] = useState({ width: 1920, height: 1080 });
   const [calibration, setCalibration] = useState<CalibrationCoords>(() => {
@@ -197,22 +198,28 @@ export default function FinaleWorldMapPresentation({
   const flat = isPortraitFor(viewport.width, viewport.height);
   const rect = coverRect(viewport.width, viewport.height);
 
+  // On mobile portrait, center the physical presentation monitor horizontally
+  // The monitor in the 1920x1078 frame at t=5.2s is centered at x=938.5 (21.5px left of video center 960).
+  // Shifting by +21.5/1920 * rect.width places the monitor exactly in the horizontal center.
+  const shiftX = flat ? Math.round(rect.width * (21.5 / 1920)) : 0;
+  const effectiveRectX = rect.x + shiftX;
+
   const quadCoords = flat ? MOBILE_MONITOR_CORNERS : calibration;
 
   const tlPx: [number, number] = [
-    rect.x + (quadCoords.tl[0] / 100) * rect.width,
+    effectiveRectX + (quadCoords.tl[0] / 100) * rect.width,
     rect.y + (quadCoords.tl[1] / 100) * rect.height,
   ];
   const trPx: [number, number] = [
-    rect.x + (quadCoords.tr[0] / 100) * rect.width,
+    effectiveRectX + (quadCoords.tr[0] / 100) * rect.width,
     rect.y + (quadCoords.tr[1] / 100) * rect.height,
   ];
   const brPx: [number, number] = [
-    rect.x + (quadCoords.br[0] / 100) * rect.width,
+    effectiveRectX + (quadCoords.br[0] / 100) * rect.width,
     rect.y + (quadCoords.br[1] / 100) * rect.height,
   ];
   const blPx: [number, number] = [
-    rect.x + (quadCoords.bl[0] / 100) * rect.width,
+    effectiveRectX + (quadCoords.bl[0] / 100) * rect.width,
     rect.y + (quadCoords.bl[1] / 100) * rect.height,
   ];
 
@@ -243,6 +250,8 @@ export default function FinaleWorldMapPresentation({
      than 16:9 crops the frame until there is nothing outboard of it to sit
      in; the reel steps out rather than climbing onto the screen. */
   const reelFits = !flat && tlPx[0] - (reelLeft + reelWidth) >= 16;
+  const rightReelLeft = Math.min(viewport.width - reelWidth - 16, rect.x + rect.width * 0.978 - reelWidth);
+  const rightReelFits = !flat && rightReelLeft - trPx[0] >= 16;
 
   /*
    * On screen while the film is parked on the presentation, and held through
@@ -291,11 +300,44 @@ export default function FinaleWorldMapPresentation({
     return () => window.removeEventListener('rechitta:ignite-world-map', onIgnite);
   }, []);
 
+  // Keep the physical boardroom monitor centered horizontally on mobile portrait
+  useEffect(() => {
+    const applyVideoPosition = () => {
+      const videos = document.querySelectorAll<HTMLVideoElement>('#film-stage-host video');
+      videos.forEach((v) => {
+        if (v.dataset.clip === 'last') {
+          if (flat && isVisible) {
+            v.style.transition = 'object-position 0.4s ease-out';
+            v.style.objectPosition = `calc(50% + ${shiftX}px) 50%`;
+          } else {
+            v.style.transition = 'object-position 0.4s ease-out';
+            v.style.objectPosition = '50% 50%';
+          }
+        }
+      });
+    };
+
+    applyVideoPosition();
+    const rafId = requestAnimationFrame(applyVideoPosition);
+    const timerId = setTimeout(applyVideoPosition, 100);
+
+    return () => {
+      cancelAnimationFrame(rafId);
+      clearTimeout(timerId);
+      const videos = document.querySelectorAll<HTMLVideoElement>('#film-stage-host video');
+      videos.forEach((v) => {
+        if (v.dataset.clip === 'last') {
+          v.style.objectPosition = '50% 50%';
+        }
+      });
+    };
+  }, [isVisible, flat, shiftX]);
+
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
     // The map, the reel beside it, and the mobile marquee are lit and dimmed as one.
-    const panels = [el, reelRef.current, marqueeRef.current].filter(Boolean);
+    const panels = [el, reelRef.current, rightReelRef.current, marqueeRef.current].filter(Boolean);
 
     if (isVisible) {
       gsap.killTweensOf(panels);
@@ -309,6 +351,13 @@ export default function FinaleWorldMapPresentation({
         gsap.fromTo(
           reelRef.current,
           { opacity: 0, x: -16, filter: 'blur(6px)' },
+          { opacity: 1, x: 0, filter: 'blur(0px)', duration: 0.48, ease: 'power3.out' }
+        );
+      }
+      if (rightReelRef.current) {
+        gsap.fromTo(
+          rightReelRef.current,
+          { opacity: 0, x: 16, filter: 'blur(6px)' },
           { opacity: 1, x: 0, filter: 'blur(0px)', duration: 0.48, ease: 'power3.out' }
         );
       }
@@ -432,7 +481,24 @@ export default function FinaleWorldMapPresentation({
           {/* Centring on its own element, so the fade's transform has nothing
               of ours to overwrite. */}
           <div style={{ transform: 'translateY(-50%)' }}>
-            <BuilderCarousel width={reelWidth} height={reelHeight} />
+            <WallLogoReel logos={DEVELOPER_LOGOS} width={reelWidth} height={reelHeight} duration={34} />
+          </div>
+        </div>
+      )}
+
+      {rightReelFits && (
+        <div
+          ref={rightReelRef}
+          className="fixed pointer-events-none select-none"
+          style={{
+            display: 'none',
+            left: `${rightReelLeft}px`,
+            top: `${reelCentreY}px`,
+            zIndex: 49,
+          }}
+        >
+          <div style={{ transform: 'translateY(-50%)' }}>
+            <WallLogoReel logos={PROJECT_LOGOS} width={reelWidth} height={reelHeight} duration={41} />
           </div>
         </div>
       )}
@@ -444,7 +510,7 @@ export default function FinaleWorldMapPresentation({
           className="fixed left-0 right-0 pointer-events-auto select-none px-4 sm:px-6 flex flex-col"
           style={{
             display: 'none',
-            top: `${Math.round(blPx[1] + 62)}px`,
+            top: `${Math.round(blPx[1] + 24)}px`,
             zIndex: 50,
           }}
         >

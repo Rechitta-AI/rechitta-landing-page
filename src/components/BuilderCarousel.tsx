@@ -2,81 +2,144 @@
 
 import React from 'react';
 
+export type LogoAsset = {
+  /** Path under `public/`. */
+  src: string;
+  /** The company or project, for assistive tech only — never painted. */
+  alt: string;
+};
+
 /**
  * The developers whose projects the briefing is built from.
  *
- * These are placeholder marks: a monogram tile drawn from the name, not the
- * builder's own logo. Swap `mark` for an <img> once licensed artwork lands —
- * the tile is sized to a square so a real logo can drop straight into it.
+ * Artwork only: no names, no monograms. Every mark is normalised to white by
+ * the reel (see `LOGO_FILTER`), so a logo drawn in any colour can be dropped
+ * in here without being re-cut.
  */
-const BUILDERS = [
-  { name: 'Emaar', mark: 'EM' },
-  { name: 'Damac', mark: 'DM' },
-  { name: 'Nakheel', mark: 'NK' },
-  { name: 'Sobha', mark: 'SR' },
-  { name: 'Meraas', mark: 'MR' },
-  { name: 'Omniyat', mark: 'OM' },
-  { name: 'Aldar', mark: 'AL' },
-  { name: 'Ellington', mark: 'EL' },
-  { name: 'Danube', mark: 'DN' },
-  { name: 'Azizi', mark: 'AZ' },
+export const DEVELOPER_LOGOS: LogoAsset[] = [
+  { src: '/developers/dev/mantra.png', alt: 'Mantra Properties' },
+  { src: '/developers/dev/west5.png', alt: 'WestF5 Developments' },
+  { src: '/developers/dev/foster.png', alt: 'Foster Developers' },
+  { src: '/developers/dev/CG.png', alt: 'CG Developers' },
+  { src: '/developers/dev/anax.png', alt: 'Anax Developments' },
+  { src: '/developers/dev/maaia.png', alt: 'MAAIA Developers' },
+  { src: '/developers/dev/barco.png', alt: 'Barco Developers' },
+  { src: '/developers/dev/aum.png', alt: 'AUM Development' },
+  { src: '/developers/dev/arista.png', alt: 'Arista Properties' },
+  { src: '/developers/dev/grovy.png', alt: 'Grovy Developers' },
 ];
 
-export type BuilderCarouselProps = {
-  /** Painted width, in pixels. The type scales with it. */
+/**
+ * The projects themselves, for the wall on the right of the display.
+ */
+export const PROJECT_LOGOS: LogoAsset[] = [
+  { src: '/developers/projects/jacob-logo.webp', alt: 'Jacob&Co Residences' },
+  { src: '/developers/projects/the-archive.svg', alt: 'The Archive' },
+  { src: '/developers/projects/doubletree.svg', alt: 'DoubleTree by Hilton' },
+  { src: '/developers/projects/w-residences.svg', alt: 'W Residences' },
+  { src: '/developers/projects/wadi-villas.svg', alt: 'Wadi Villas' },
+  { src: '/developers/projects/jw-marriott.svg', alt: 'JW Marriott Al Marjan Island' },
+  { src: '/developers/projects/241waterside.svg', alt: '241Waterside' },
+  { src: '/developers/projects/il-vento.svg', alt: 'IL Vento' },
+  { src: '/developers/projects/ryze.svg', alt: 'Ryze' },
+  { src: '/developers/projects/marafid.svg', alt: 'Marafid Residences' },
+  { src: '/developers/projects/livia.svg', alt: 'Livia Residences' },
+  { src: '/developers/projects/la-vue.svg', alt: 'La Vue' },
+  { src: '/developers/projects/v-suites.svg', alt: 'V Suites' },
+  { src: '/developers/projects/rivo.svg', alt: 'Rivo' },
+  { src: '/developers/projects/vedaresidences.svg', alt: 'VedaResidences' },
+];
+
+/**
+ * Every mark painted as white artwork on its chip.
+ *
+ * The logos in hand are a mix of polarities — Emaar, Damac and Danube are
+ * drawn white on transparent, Binghatti black on transparent — so painting
+ * them as supplied would make half of them vanish against whatever they land
+ * on. `brightness(0)` flattens every opaque pixel to black and `invert(1)`
+ * lifts it to white, leaving the alpha channel alone. It costs nothing and it
+ * means the next logo added does not have to match the last one.
+ */
+const LOGO_FILTER = 'brightness(0) invert(1)';
+
+/*
+ * How the reel meets its two ends.
+ *
+ * Long at the top and short at the bottom, deliberately. The bottom edge of
+ * the window is laid on the credenza's top edge, so a mark there is coming out
+ * of the woodwork and only needs the few pixels either side of the line to
+ * stop being a hard cut. The top edge is open room, and a mark leaving into it
+ * has to thin out over a real distance or it reads as hitting a ceiling
+ * rather than dissolving into one.
+ */
+const MASK = 'linear-gradient(to bottom, transparent 0%, black 19%, black 91%, transparent 100%)';
+
+export type WallLogoReelProps = {
+  logos: LogoAsset[];
+  /** Painted width of the strip, in pixels. Everything scales off it. */
   width: number;
-  /** How tall the reel's window is, in pixels. */
+  /** Height of the window the reel runs behind, in pixels. */
   height: number;
   /** Seconds for one full pass of the list. */
   duration?: number;
 };
 
 /**
- * A slow vertical reel of the builders behind the deck.
+ * A slow vertical reel of logos, run up one of the boardroom's wall panels.
  *
  * The list is rendered twice and the track travels exactly half its own
  * height, so the second copy is under the window the moment the first leaves
- * it and the loop has no seam. Nothing here is interactive — it sits on the
- * wall beside the screen as set dressing, and it must never take a click the
- * film is waiting on.
+ * it and the loop has no seam. Both ends of the window are masked to nothing,
+ * which is what sells the read the scene is after: marks rise out of the
+ * credenza at the bottom of the wall and dissolve into the ceiling at the top,
+ * rather than being clipped against an edge.
+ *
+ * Nothing here is interactive — it is set dressing beside the screen, and it
+ * must never take a click the film is waiting on.
  */
-export default function BuilderCarousel({ width, height, duration = 26 }: BuilderCarouselProps) {
-  // The strip is placed against the footage, so everything inside it is sized
-  // off the painted width rather than off the root font size.
-  const pad = Math.round(width * 0.09);
-  const tile = Math.round(width * 0.2);
-  const nameSize = Math.max(9, Math.round(width * 0.088));
-  const eyebrowSize = Math.max(8, Math.round(width * 0.062));
-  const rowGap = Math.round(width * 0.075);
+export default function WallLogoReel({ logos, width, height, duration = 34 }: WallLogoReelProps) {
+  if (logos.length === 0) return null;
 
-  const reel = (
-    <div className="flex flex-col" style={{ gap: `${rowGap}px`, paddingBottom: `${rowGap}px` }}>
-      {BUILDERS.map((builder) => (
-        <div key={builder.name} className="flex items-center" style={{ gap: `${pad * 0.6}px` }}>
-          <span
-            className="shrink-0 flex items-center justify-center rounded-[22%] font-bold text-white/85"
+  const gap = Math.round(width * 0.3);
+  const chipHeight = Math.round(width * 0.46);
+
+  const strip = (
+    <div className="flex flex-col" style={{ gap: `${gap}px`, paddingBottom: `${gap}px` }}>
+      {logos.map((logo) => (
+        <div
+          key={logo.src}
+          className="flex shrink-0 items-center justify-center rounded-2xl"
+          style={{
+            height: `${chipHeight}px`,
+            padding: `0 ${Math.round(width * 0.07)}px`,
+            background: 'rgba(10, 14, 24, 0.42)',
+            border: '1px solid rgba(255,255,255,0.14)',
+            backdropFilter: 'blur(14px) saturate(150%)',
+            WebkitBackdropFilter: 'blur(14px) saturate(150%)',
+            boxShadow: '0 18px 44px -22px rgba(0,0,0,0.9)',
+          }}
+        >
+          {/*
+            A plain <img>: these are fixed decorative marks of a handful of
+            kilobytes, one of them an SVG, and routing them through the image
+            optimiser would need SVG explicitly allowed for no gain.
+          */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={logo.src}
+            alt=""
+            aria-hidden="true"
+            draggable={false}
             style={{
-              width: `${tile}px`,
-              height: `${tile}px`,
-              fontSize: `${Math.round(tile * 0.4)}px`,
-              letterSpacing: '0.04em',
-              background: 'linear-gradient(150deg, rgba(255,255,255,0.16), rgba(255,255,255,0.04))',
-              border: '1px solid rgba(255,255,255,0.16)',
-              fontFamily: 'var(--font-inter), system-ui, sans-serif',
+              maxWidth: '100%',
+              maxHeight: `${Math.round(chipHeight * 0.74)}px`,
+              width: 'auto',
+              height: 'auto',
+              objectFit: 'contain',
+              filter: LOGO_FILTER,
+              opacity: 0.9,
             }}
-          >
-            {builder.mark}
-          </span>
-          <span
-            className="truncate font-semibold text-white/80"
-            style={{
-              fontSize: `${nameSize}px`,
-              letterSpacing: '0.02em',
-              fontFamily: 'var(--font-inter), system-ui, sans-serif',
-            }}
-          >
-            {builder.name}
-          </span>
+          />
         </div>
       ))}
     </div>
@@ -85,96 +148,57 @@ export default function BuilderCarousel({ width, height, duration = 26 }: Builde
   return (
     <div
       aria-hidden="true"
-      className="select-none rounded-2xl overflow-hidden"
+      className="relative select-none overflow-hidden"
       style={{
         width: `${width}px`,
-        padding: `${pad}px ${pad}px ${Math.round(pad * 0.7)}px`,
-        background: 'rgba(10, 14, 24, 0.62)',
-        border: '1px solid rgba(255,255,255,0.12)',
-        backdropFilter: 'blur(18px) saturate(150%)',
-        WebkitBackdropFilter: 'blur(18px) saturate(150%)',
-        boxShadow: '0 24px 60px -24px rgba(0,0,0,0.85)',
+        height: `${height}px`,
+        maskImage: MASK,
+        WebkitMaskImage: MASK,
       }}
     >
-      <div className="flex flex-col" style={{ gap: `${Math.round(pad * 0.45)}px` }}>
-        <span
-          className="text-white/45"
-          style={{
-            fontSize: `${eyebrowSize}px`,
-            fontWeight: 600,
-            letterSpacing: '0.32em',
-            textTransform: 'uppercase',
-            fontFamily: 'var(--font-inter), system-ui, sans-serif',
-          }}
-        >
-          Projects by
-        </span>
-        <span
-          aria-hidden="true"
-          className="block h-px"
-          style={{
-            width: '2.25rem',
-            background: 'linear-gradient(to right, var(--accent), transparent)',
-          }}
-        />
-      </div>
-
-      {/*
-        The window the reel runs behind. The mask fades both ends so names
-        arrive and leave rather than being clipped mid-letter.
-      */}
       <div
-        className="relative overflow-hidden"
-        style={{
-          height: `${height}px`,
-          marginTop: `${Math.round(pad * 0.8)}px`,
-          maskImage: 'linear-gradient(to bottom, transparent, black 12%, black 88%, transparent)',
-          WebkitMaskImage:
-            'linear-gradient(to bottom, transparent, black 12%, black 88%, transparent)',
-        }}
+        className="animate-builder-reel absolute inset-x-0 top-0"
+        style={{ animationDuration: `${duration}s` }}
       >
-        <div
-          className="animate-builder-reel absolute inset-x-0 top-0"
-          style={{ animationDuration: `${duration}s` }}
-        >
-          {reel}
-          {reel}
-        </div>
+        {strip}
+        {strip}
       </div>
     </div>
   );
 }
 
 /**
- * A horizontal continuous marquee of Dubai developer partners for mobile and tablet views.
+ * A horizontal continuous marquee of the same marks, for the portrait dock,
+ * where the deck comes off the wall and there are no panels to run them up.
  */
 export function BuilderMarquee({ className = '' }: { className?: string }) {
-  const items = [...BUILDERS, ...BUILDERS];
+  const items = [...DEVELOPER_LOGOS, ...PROJECT_LOGOS];
   return (
     <div className={`overflow-hidden select-none ${className}`} aria-hidden="true">
-      <div className="flex items-center justify-center gap-2 mb-1 px-2">
-        <span className="h-px w-6 bg-gradient-to-r from-transparent to-white/20" />
-        <span className="text-[9px] font-mono tracking-[0.24em] text-white/50 uppercase font-semibold">
-          Trusted by Dubai Developers
-        </span>
-        <span className="h-px w-6 bg-gradient-to-l from-transparent to-white/20" />
-      </div>
       <div
-        className="relative overflow-hidden flex items-center py-1 rounded-xl bg-black/30 backdrop-blur-md border border-white/10 shadow-inner"
+        className="relative flex items-center overflow-hidden rounded-xl border border-white/10 bg-black/30 py-1.5 shadow-inner backdrop-blur-md"
         style={{
           maskImage: 'linear-gradient(to right, transparent, black 8%, black 92%, transparent)',
           WebkitMaskImage: 'linear-gradient(to right, transparent, black 8%, black 92%, transparent)',
         }}
       >
-        <div className="flex shrink-0 items-center gap-4 animate-marquee whitespace-nowrap px-4">
-          {items.map((b, idx) => (
-            <span key={idx} className="flex items-center gap-1.5 text-[11px] font-medium tracking-wide text-white/80 font-mono">
-              <span className="w-4 h-4 rounded-[4px] bg-white/12 text-[8px] flex items-center justify-center text-white/90 border border-white/15 font-bold">
-                {b.mark}
-              </span>
-              <span>{b.name}</span>
-              <span className="text-white/25 ml-2">•</span>
-            </span>
+        <div className="animate-marquee flex shrink-0 items-center gap-7 whitespace-nowrap px-4">
+          {items.map((logo, idx) => (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              key={idx}
+              src={logo.src}
+              alt=""
+              aria-hidden="true"
+              draggable={false}
+              style={{
+                height: '18px',
+                width: 'auto',
+                objectFit: 'contain',
+                filter: LOGO_FILTER,
+                opacity: 0.9,
+              }}
+            />
           ))}
         </div>
       </div>

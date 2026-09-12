@@ -59,6 +59,16 @@
   animation: orbDriftIcon 7s ease-in-out infinite;
 }
 
+@media (max-width: 810px) {
+  .orb {
+    transform: scale(0.30);
+  }
+
+  .brandIcon {
+    width: clamp(72px, 14vw, 88px);
+  }
+}
+
 @keyframes orbDriftIcon {
 
   0%,

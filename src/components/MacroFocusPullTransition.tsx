@@ -7,13 +7,21 @@ import gsap from 'gsap';
  * Optical Match-Cut Screen Handoff Transition.
  *
  * Bridges the Multilingual Cities chapter (Paris phone screen) to the Finale (Boardroom Monitor):
- * - Phase 1 (0ms - 200ms): Central screen-matched luminance bloom flares, optical rack-focus blur peaks (16px),
+ * - Phase 1 (0ms - 220ms): Central screen-matched luminance bloom flares, optical rack-focus blur peaks (16px),
  *   and an electric blue anamorphic lens flare sweeps across the frame.
- * - Phase 2 (at 200ms): Instantaneous video/stage DOM hand-off under peak optical bloom, firing 'rechitta:ignite-world-map'.
- * - Phase 3 (200ms - 460ms): Optical blur and bloom contract directly into the boardroom monitor bezels,
+ * - Phase 2 (220ms - 920ms): The bloom holds while the badge is read. Without this the whole
+ *   thing ran in 460ms and the one line of copy on it was gone before anyone could
+ *   finish it — a sync that says what it is doing has to be legible to be worth showing.
+ * - Phase 3 (at 920ms): Instantaneous video/stage DOM hand-off under peak optical bloom, firing 'rechitta:ignite-world-map'.
+ * - Phase 4 (920ms - 1200ms): Optical blur and bloom contract directly into the boardroom monitor bezels,
  *   snapping razor-sharp focus onto the physical display.
  * - Reversible: Symmetrical optical focus pull on reverse scroll (Dubai -> Paris).
  */
+/** How long the bloomed frame holds on the badge before the cut, in seconds. */
+const HOLD = 0.7;
+/** When the DOM hand-off happens: the end of the ramp plus the hold. */
+const CUT = 0.22 + HOLD;
+
 export default function MacroFocusPullTransition() {
   const containerRef = useRef<HTMLDivElement>(null);
   const blurOverlayRef = useRef<HTMLDivElement>(null);
@@ -60,7 +68,7 @@ export default function MacroFocusPullTransition() {
       });
       timelineRef.current = tl;
 
-      // ── MATCH-CUT CHOREOGRAPHY (460ms Total) ──────────────────────────
+      // ── MATCH-CUT CHOREOGRAPHY (1.20s total, 0.70s of it the hold) ────
 
       tl.set(container, { display: 'block' });
       tl.set(blurOverlay, { opacity: 0, backdropFilter: 'blur(0px)' });
@@ -111,7 +119,22 @@ export default function MacroFocusPullTransition() {
         0.06
       );
 
-      // Phase 2: Exactly at 0.20s — Seamless match-cut DOM swap beneath peak bloom
+      /*
+       * Phase 2: 0.22s -> 0.92s — the hold.
+       *
+       * The frame is at peak bloom with one line of copy on it, which is the
+       * whole point of the beat: the film is saying what it is doing between
+       * two scenes. It holds long enough to be read.
+       *
+       * The streak and the bloom keep drifting through it, by almost nothing.
+       * Held at fixed values for seven tenths of a second the frame stops
+       * reading as a shot and starts reading as a stall.
+       */
+      tl.to(badge, { opacity: 1, duration: HOLD, ease: 'none' }, 0.22);
+      tl.to(flare, { scaleX: 1.08, duration: HOLD, ease: 'sine.inOut' }, 0.22);
+      tl.to(bloomOverlay, { scale: 1.12, duration: HOLD, ease: 'sine.inOut' }, 0.22);
+
+      // Phase 3: at 0.92s — Seamless match-cut DOM swap beneath peak bloom
       tl.call(
         () => {
           if (swap) {
@@ -124,10 +147,10 @@ export default function MacroFocusPullTransition() {
           window.dispatchEvent(new CustomEvent('rechitta:ignite-world-map', { detail: { dir } }));
         },
         undefined,
-        0.20
+        CUT
       );
 
-      // Phase 3: 0.20s -> 0.46s — Optical blur and bloom clear, snapping sharp focus onto boardroom screen
+      // Phase 4: 0.92s -> 1.20s — Optical blur and bloom clear, snapping sharp focus onto boardroom screen
       tl.to(
         flare,
         {
@@ -136,7 +159,7 @@ export default function MacroFocusPullTransition() {
           duration: 0.18,
           ease: 'power2.in',
         },
-        0.20
+        CUT
       );
       tl.to(
         badge,
@@ -147,7 +170,7 @@ export default function MacroFocusPullTransition() {
           duration: 0.16,
           ease: 'power2.in',
         },
-        0.22
+        CUT + 0.02
       );
       tl.to(
         bloomOverlay,
@@ -157,7 +180,7 @@ export default function MacroFocusPullTransition() {
           duration: 0.24,
           ease: 'power3.out',
         },
-        0.22
+        CUT + 0.02
       );
       tl.to(
         blurOverlay,
@@ -167,7 +190,7 @@ export default function MacroFocusPullTransition() {
           duration: 0.25,
           ease: 'power3.out',
         },
-        0.21
+        CUT + 0.01
       );
     };
 

@@ -204,3 +204,52 @@ describe('the authored path', () => {
     expect(finaleDocks[0].ease).toBe('out');
   });
 });
+
+describe('minimum scale floor', () => {
+  const timing: FilmTiming = {
+    clips: [
+      { key: 'a', trimIn: 0, trimOut: 10, duration: 10, holdWeight: 0, offsetUnits: 0 },
+    ],
+    totalUnits: 10,
+    startProgress: 0,
+    endProgress: 1,
+  };
+
+  const tiny: Keyframe[] = [
+    { anchor: { clip: 'a', t: 0 }, x: 0, y: 0, scale: 1.2, opacity: 1, blur: 0, ease: 'linear', note: 'hero' },
+    { anchor: { clip: 'a', t: 5 }, x: 0, y: 0, scale: 0.2, opacity: 1, blur: 0, ease: 'linear', note: 'speck' },
+    { anchor: { clip: 'a', t: 10 }, x: 0, y: 0, scale: 0.3, opacity: 1, blur: 0, ease: 'linear', note: 'small' },
+  ];
+
+  it('lifts every beat under the floor up to it', () => {
+    const resolved = resolvePath(tiny, timing, false, 0.72);
+    expect(resolved.map((k) => k.scale)).toEqual([1.2, 0.72, 0.72]);
+  });
+
+  it('leaves beats already above the floor alone', () => {
+    const resolved = resolvePath(tiny, timing, false, 0.1);
+    expect(resolved.map((k) => k.scale)).toEqual([1.2, 0.2, 0.3]);
+  });
+
+  it('never interpolates below the floor between two beats', () => {
+    const resolved = resolvePath(tiny, timing, false, 0.72);
+    for (let p = 0; p <= 1; p += 0.01) {
+      expect(poseAt(resolved, p).scale).toBeGreaterThanOrEqual(0.72 - 1e-9);
+    }
+  });
+
+  it('clamps a portrait override too', () => {
+    const withPortrait: Keyframe[] = [
+      {
+        anchor: { clip: 'a', t: 0 },
+        portrait: { scale: 0.24 },
+        x: 0, y: 0, scale: 0.3, opacity: 1, blur: 0, ease: 'linear', note: 'flat deck',
+      },
+    ];
+    expect(resolvePath(withPortrait, timing, true, 0.45)[0].scale).toBe(0.45);
+  });
+
+  it('defaults to no floor when none is given', () => {
+    expect(resolvePath(tiny, timing)[1].scale).toBe(0.2);
+  });
+});

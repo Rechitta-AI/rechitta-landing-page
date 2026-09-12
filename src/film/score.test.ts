@@ -29,18 +29,18 @@ describe('the multilingual chapter', () => {
 });
 
 describe('finale responsive beats', () => {
-  it('parks at 1.0s on desktop and 4.6s on mobile portrait', async () => {
+  it('parks at 1.0s on desktop and 5.2s on mobile portrait', async () => {
     const { BEATS, getBeatPark } = await import('./score');
     const finaleScreen = BEATS.find((b) => b.id === 'finale-screen')!;
     expect(getBeatPark(finaleScreen, false)).toBe(1.0);
-    expect(getBeatPark(finaleScreen, true)).toBe(4.6);
+    expect(getBeatPark(finaleScreen, true)).toBe(5.2);
   });
 
-  it('plays forward from 1.0s on desktop and from 4.6s on mobile portrait', async () => {
+  it('plays forward from 1.0s on desktop and from 5.2s on mobile portrait', async () => {
     const { BEATS, getBeatEnter } = await import('./score');
     const finale = BEATS.find((b) => b.id === 'finale')!;
     expect(getBeatEnter(finale, false)).toEqual({ from: 1.0, to: 11.0, rate: 1.8 });
-    expect(getBeatEnter(finale, true)).toEqual({ from: 4.6, to: 11.0, rate: 1.8 });
+    expect(getBeatEnter(finale, true)).toEqual({ from: 5.2, to: 11.0, rate: 1.8 });
   });
 });
 
