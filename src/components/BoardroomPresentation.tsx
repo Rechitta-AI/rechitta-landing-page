@@ -6,55 +6,67 @@ import { coverRect } from '@/screens/warp';
 import { isPortraitFor } from '@/hooks/useDeviceMode';
 import { setHold } from '@/film/holds';
 import ClickPrompt from './ClickPrompt';
-import BuilderCarousel, { BuilderMarquee } from './BuilderCarousel';
+import WallLogoReel, {
+  BuilderMarquee,
+  DEVELOPER_LOGOS,
+  PROJECT_LOGOS,
+} from './BuilderCarousel';
 
-/** Interactive questions on Slide 3 showcasing Rechitta's instant intelligence */
-const SLIDE_3_QUESTIONS = [
-  {
-    chip: 'SPV & Offshore Ownership',
-    q: 'Can offshore SPVs purchase Penthouse 4B?',
-    a: 'Yes. Fully SPV-compliant via DLD registration with standard offshore holding documentation approved within 24 hours.',
-  },
-  {
-    chip: 'Yield & Payment Terms',
-    q: 'What is the projected net yield for Tower 2?',
-    a: '7.8% projected net yield based on prime waterfront comps. Includes a 5-year post-handover 0% interest payment plan.',
-  },
-  {
-    chip: 'Elevator & Burj Views',
-    q: 'Which units have sunset Burj Khalifa views?',
-    a: 'Levels 42-58. West-facing 3-bed duplexes have private high-speed elevators and 270° unobstructed Burj skyline views.',
-  },
+/*
+ * The briefing calendar on Slide 1: six months of appointments, booked solid
+ * and still nowhere near the whole network.
+ */
+const CALENDAR_AGENCIES = [
+  { name: 'Betterhomes', day: 1, slot: 0 },
+  { name: 'Allsopp', day: 1, slot: 2 },
+  { name: 'Espace', day: 2, slot: 1 },
+  { name: 'Driven', day: 2, slot: 3 },
+  { name: 'Provident', day: 3, slot: 0 },
+  { name: 'haus & haus', day: 3, slot: 2 },
+  { name: 'Metropolitan', day: 4, slot: 1 },
+  { name: 'fäm', day: 4, slot: 3 },
+  { name: 'Union Square', day: 5, slot: 0 },
+  { name: '+ 1,191 more', day: 5, slot: 2, overflow: true },
 ];
 
-/** The deck shown on the boardroom screen, matching docs/extracted_copy.md */
+/*
+ * The relay on Slide 2. Each hop keeps less of the briefing than the one
+ * before it, and the ring is drawn to match.
+ */
+const LANGUAGE_RELAY = [
+  { label: 'Developer', loses: 'Speaks one language', solid: true },
+  { label: 'Brokers', loses: 'Loses confidence', solid: false },
+  { label: 'Buyers', loses: 'Loses trust', solid: false },
+];
+
+/** The deck shown on the boardroom screen: today's briefing problems, then the fix. */
 const SLIDES = [
   {
     id: 1,
-    tag: '01 / THE STATUS QUO',
-    headline: 'Every project starts with a pitch.',
-    body: 'A deck, a brochure, a sales team working the phones. Repeated for every broker, every buyer, every question.',
+    tag: '01 / SCHEDULING',
+    headline: 'Time crunch, availability issues.',
+    body: '40,000 brokers of Dubai, 1,200 agencies - briefing them is six months of scheduling and presenting.',
   },
   {
     id: 2,
-    tag: '02 / THE SHIFT',
-    headline: 'Rechitta turns that pitch into a briefing.',
-    body: 'Upload the project once: media, pricing, floor plans, the story. Every broker gets briefed exactly the same way, instantly.',
+    tag: '02 / LANGUAGE',
+    headline: 'Language.',
+    body: 'Urgently need Chinese, Russian and Arabic presenters. And a brochure in all languages.',
   },
   {
     id: 3,
-    tag: '03 / INSTANT KNOWLEDGE',
-    headline: 'Ask it anything.',
-    body: "Payment plans, unit views, handover dates, answered in real time. The way a broker would if they'd built the project themselves.",
+    tag: '03 / FEEDBACK',
+    headline: 'No proper way to clear brokers\u2019 queries',
+    body: 'and understand the pulse of the market about our project.',
   },
   {
     id: 4,
-    tag: '04 / THE REALITY',
-    headline: "Reaching 40,000 brokers with a 30-person sales team shouldn't take three months.",
+    tag: '04 / THE SOLUTION',
+    headline: 'Competitors are already using this; we should use it too.',
     /*
-     * No body on purpose. It restated the headline's own numbers back at the
-     * viewer, and on the one slide that asks for a click it was three lines of
-     * reading between the question and the buttons.
+     * No body. The one line under the headline is the product name and the
+     * promise, and it is set as part of the slide rather than as body copy so
+     * the button below it stays the largest object on the slide.
      */
     body: '',
     isInteractive: true,
@@ -87,34 +99,7 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
 
   // Pure button & keyboard driven slide navigation (decoupled from scroll)
   const [activeSlide, setActiveSlide] = useState(0);
-  const [selectedQuestion, setSelectedQuestion] = useState(0);
-  const [streamedText, setStreamedText] = useState(SLIDE_3_QUESTIONS[0].a);
-  const [isStreaming, setIsStreaming] = useState(false);
-
-  // Real-Time AI Token Stream when switching questions on Slide 3
-  useEffect(() => {
-    const fullText = SLIDE_3_QUESTIONS[selectedQuestion].a;
-    setStreamedText('');
-    setIsStreaming(true);
-
-    let charIndex = 0;
-    // Rapid streaming: 2 characters every 14ms (~450ms total for responsive feel)
-    const timer = setInterval(() => {
-      charIndex += 2;
-      if (charIndex >= fullText.length) {
-        setStreamedText(fullText);
-        setIsStreaming(false);
-        clearInterval(timer);
-      } else {
-        setStreamedText(fullText.slice(0, charIndex));
-      }
-    }, 14);
-
-    return () => clearInterval(timer);
-  }, [selectedQuestion]);
-
-  // Slide 4 interactive state machine
-  const [quizState, setQuizState] = useState<'prompt' | 'yes' | 'no'>('prompt');
+  // Slide 4 hand-off state machine
   const [isUploading, setIsUploading] = useState(false);
   const [isSynced, setIsSynced] = useState(false);
   const [viewport, setViewport] = useState({ width: 1920, height: 1080 });
@@ -141,65 +126,119 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
   const ROTATE_Z = 0.3;
   const SCALE = 1.03;
 
-  // The deck is laid out on a fixed reference canvas and scaled to fit, so it
-  // stays one piece however large the screen it is painted onto is.
-  const LANDSCAPE_BASE = { w: 826, h: 462 };
   /*
-   * On both wide and portrait screens, the presentation is pinned directly
-   * to the 4K OLED display mounted on the boardroom wall in the footage.
-   * There is NO separate pop-out modal or floating card.
+   * The deck is laid out on a fixed reference canvas and scaled to fit, so it
+   * stays one piece however large the surface it is painted onto is.
+   *
+   * Two canvases, because the deck is doing two different jobs. On a wide
+   * screen it is pinned to the 4K display on the boardroom wall and has to be
+   * that display's 16:9 shape. On a portrait screen the footage crops so hard
+   * that the display runs off both sides of the viewport — the shot is 16:9
+   * and the phone holding it is not — so the deck comes off the wall and
+   * stands on its own as a centred card, and a card wants a portrait shape.
    */
+  const LANDSCAPE_BASE = { w: 826, h: 462 };
+  const PORTRAIT_BASE = { w: 520, h: 680 };
   const isPortrait = isPortraitFor(viewport.width, viewport.height);
-  const BASE_W = LANDSCAPE_BASE.w;
-  const BASE_H = LANDSCAPE_BASE.h;
+  const BASE_W = isPortrait ? PORTRAIT_BASE.w : LANDSCAPE_BASE.w;
+  const BASE_H = isPortrait ? PORTRAIT_BASE.h : LANDSCAPE_BASE.h;
 
   // Where the 16:9 footage actually lands in the viewport. Everything placed
-  // against the room — the screen, the arrows on the wall, the builders' reel
-  // — is measured off this rather than off the viewport.
+  // against the room — the screen, the wall reels — is measured off this
+  // rather than off the viewport.
   const rect = coverRect(viewport.width, viewport.height);
 
-  const screenWidth = (WIDTH / 100) * rect.width;
-  const screenHeight = (HEIGHT / 100) * rect.height;
+  /*
+   * Painted size.
+   *
+   * Landscape takes it from the footage, because it is tracking a real object
+   * in the shot. Portrait takes it from the viewport, because it is not: it
+   * used to take 43% of the *footage* width there too, and a portrait
+   * viewport's covering rect is its own height times 16/9, so on a 390pt
+   * phone the deck came out 645pt wide and ran off both edges.
+   */
+  const screenWidth = isPortrait
+    ? Math.min(
+        viewport.width - 28,
+        PORTRAIT_BASE.w,
+        // And short viewports are capped by height, not width: an iPhone SE
+        // has the width for a 454pt card and nowhere to put the controls and
+        // the marquee underneath it. 230 is that furniture plus the rail.
+        ((viewport.height - 230) * PORTRAIT_BASE.w) / PORTRAIT_BASE.h,
+      )
+    : (WIDTH / 100) * rect.width;
+  const screenHeight = isPortrait
+    ? screenWidth * (BASE_H / BASE_W)
+    : (HEIGHT / 100) * rect.height;
   const screenLeft = isPortrait
     ? (viewport.width - screenWidth) / 2
     : rect.x + (LEFT / 100) * rect.width;
-  const screenTop = rect.y + (TOP / 100) * rect.height;
+  /*
+   * Portrait centres the whole stack — the card, the controls under it and the
+   * marquee under those — rather than starting it 17% down as if it were still
+   * tracking the display.
+   */
+  const portraitStackHeight = screenHeight + 120;
+  const screenTop = isPortrait
+    ? Math.max(viewport.height * 0.08, (viewport.height - portraitStackHeight) / 2)
+    : rect.y + (TOP / 100) * rect.height;
 
   /*
    * Where the slide controls sit, measured from the top of the screen area.
    *
    * The display in the footage runs from 17% to 65.6% down the frame, its
-   * casing ends around 69%, and the credenza starts around 76%. Putting the
-   * controls a little over a tenth of the frame below the screen lands them in
-   * that gap — clear of the picture, clear of the furniture.
-   */
-  const controlsTop = isPortrait ? screenHeight + 14 : screenHeight + rect.height * 0.055;
-
-  /*
-   * The arrows on the wall.
+   * casing ends around 69%, and the credenza starts around 76%. That gap is
+   * where these go — clear of the picture, clear of the furniture.
    *
-   * The beige panel the display is mounted on runs from about 15.5% to 29% of
-   * the frame on the left and mirrors that on the right. Half of that gap out
-   * from the screen's edge puts each arrow in the middle of its own panel,
-   * clear of both the bezel and the windows beyond it.
+   * They sit at the top of it rather than the middle: the orb parks on the
+   * credenza through the whole deck, and the scale floor made it large enough
+   * to reach up into the space these used to occupy.
    */
-  const armOffset = rect.width * 0.065;
-  const armSize = Math.min(80, Math.max(56, rect.width * 0.04));
+  const controlsTop = isPortrait ? screenHeight + 14 : screenHeight + rect.height * 0.035;
 
   /*
-   * The builders' reel, over the window on the far left.
+   * The two wall panels the display is mounted between.
+   *
+   * Everything here is a fraction of the *footage*, not of the viewport, so
+   * the reels stay on the wall whatever a viewport's aspect crops off the
+   * sides. Measured off the frame:
+   *
+   *   - the display's wooden surround occupies 26.3% to 73.9% across. The
+   *     earlier numbers were taken from the screen surface at 29% to 72%,
+   *     which is inside the woodwork — that is why the chips were landing on
+   *     the bezel.
+   *   - the beige wall either side of it runs out to about 14% and 87.5%
+   *     before the windows start.
+   *   - the credenza's top edge is at 74.5% down.
    */
-  const reelWidth = Math.min(230, Math.max(150, rect.width * 0.125));
-  const reelLeft = Math.max(16, rect.x + rect.width * 0.022);
-  const reelCentreY = rect.y + rect.height * 0.42;
-  const reelHeight = Math.min(rect.height * 0.34, 280);
+  const WALL_TOP = 0.08;
+  const WALL_BOTTOM = 0.745;
+  const wallTop = rect.y + WALL_TOP * rect.height;
+  const wallHeight = (WALL_BOTTOM - WALL_TOP) * rect.height;
+
+  const wallPanel = (from: number, to: number) => {
+    const x0 = rect.x + from * rect.width;
+    const span = (to - from) * rect.width;
+    const inset = span * 0.12;
+    return { left: x0 + inset, width: span - inset * 2 };
+  };
+  // Pulled out toward the windows, leaving roughly 2.5% of the frame between
+  // each strip and the surround.
+  const leftWall = wallPanel(0.145, 0.248);
+  const rightWall = wallPanel(0.752, 0.855);
 
   /*
    * A viewport far taller than 16:9 crops the footage hard from the sides, and
-   * the outboard strip the reel wants stops existing. Rather than let it slide
-   * under the arrow — or off the edge — it steps out until there is room.
+   * the panels the reels want stop existing. Rather than let them slide under
+   * the bezel — or off the edge — they step out until there is room for both.
    */
-  const reelFits = !isPortrait && screenLeft - armOffset - armSize / 2 - (reelLeft + reelWidth) >= 16;
+  const wallsFit =
+    !isPortrait &&
+    leftWall.width >= 88 &&
+    leftWall.left >= 8 &&
+    rightWall.left + rightWall.width <= viewport.width - 8;
+
+  const isSolutionSlide = activeSlide === SLIDES.length - 1;
 
   const scaleRatio = screenWidth / BASE_W;
   const tilt = `rotateY(${ROTATE_Y}deg) rotateX(${ROTATE_X}deg) rotateZ(${ROTATE_Z}deg) scale(${SCALE})`;
@@ -298,12 +337,17 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
 
     if (!slidesRef.current) return;
 
-    // Animate the sliding track with high-end spring ease
+    /*
+      The track moves as one piece, on the GPU. `force3D` keeps it on a
+      composited layer for the whole tween rather than promoting and demoting
+      it at each end, which was showing up as a hitch on the first frame.
+    */
     gsap.to(slidesRef.current, {
-      x: `-${activeSlide * 25}%`,
-      duration: 0.65,
-      ease: 'power3.inOut',
+      xPercent: -activeSlide * 25,
+      duration: 0.78,
+      ease: 'power2.inOut',
       overwrite: 'auto',
+      force3D: true,
     });
   }, [activeSlide]);
 
@@ -355,30 +399,30 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
   }, []);
 
   /**
-   * The deck's last slide asks a question, and the film waits for the answer.
+   * The deck's last slide hands the project over, and the film waits for it.
    *
    * Scrolling past it used to carry on to the broker regardless, which made
-   * the question decorative. The film asks before every forward move whether
-   * a beat is ready to be left; while this one is not, it holds.
+   * the button decorative. The film asks before every forward move whether a
+   * beat is ready to be left; until the project is sent, this one is not.
    */
-  const [nudgeQuiz, setNudgeQuiz] = useState(false);
+  const [nudgeCta, setNudgeCta] = useState(false);
   useEffect(() => {
-    setHold('boardroom', quizState === 'prompt');
-  }, [quizState]);
+    setHold('boardroom', !isUploading && !isSynced);
+  }, [isUploading, isSynced]);
 
   useEffect(() => {
     // Never leave the film held by an overlay that has gone away.
     return () => setHold('boardroom', false);
   }, []);
 
-  /** The film refused to move on; draw the eye to the question. */
+  /** The film refused to move on; draw the eye to the button. */
   useEffect(() => {
     const onBlocked = (e: Event) => {
       const detail = (e as CustomEvent<{ beat?: string }>).detail;
       if (detail?.beat !== 'boardroom') return;
       setActiveSlide(SLIDES.length - 1);
-      setNudgeQuiz(true);
-      window.setTimeout(() => setNudgeQuiz(false), 1400);
+      setNudgeCta(true);
+      window.setTimeout(() => setNudgeCta(false), 1400);
     };
     window.addEventListener('rechitta:blocked', onBlocked);
     return () => window.removeEventListener('rechitta:blocked', onBlocked);
@@ -441,19 +485,34 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
   return (
     <>
       {/*
-        Who the deck is actually about. On a portrait screen the deck comes off
-        the wall and fills the viewport, so there is nowhere to put this.
+        Who the deck is about, and what they have built — running up the walls
+        either side of the display. On a portrait screen the deck comes off the
+        wall and fills the viewport, so there are no panels to run them up and
+        the marquee in the control dock stands in for both.
+
+        One wrapper for both strips: the entrance and exit tween it alongside
+        the deck, and it has to be a single element for that.
       */}
-      {reelFits && (
+      {wallsFit && (
         <div
           ref={reelRef}
-          className="absolute pointer-events-none opacity-0 invisible select-none"
-          style={{ left: `${reelLeft}px`, top: `${reelCentreY}px`, zIndex: 49 }}
+          className="absolute inset-0 pointer-events-none opacity-0 invisible select-none"
+          style={{ zIndex: 49 }}
         >
-          {/* The centring lives on its own element: the fade tweens the
-              wrapper's transform, and would eat a translate set alongside it. */}
-          <div style={{ transform: 'translateY(-50%)' }}>
-            <BuilderCarousel width={reelWidth} height={reelHeight} />
+          <div
+            className="absolute"
+            style={{ left: `${leftWall.left}px`, top: `${wallTop}px` }}
+          >
+            <WallLogoReel logos={DEVELOPER_LOGOS} width={leftWall.width} height={wallHeight} duration={34} />
+          </div>
+
+          {/* The project set, standing in as the developer list until project
+              artwork lands in `public/project_logos/`. */}
+          <div
+            className="absolute"
+            style={{ left: `${rightWall.left}px`, top: `${wallTop}px` }}
+          >
+            <WallLogoReel logos={PROJECT_LOGOS} width={rightWall.width} height={wallHeight} duration={41} />
           </div>
         </div>
       )}
@@ -488,69 +547,127 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
           transformStyle: 'preserve-3d',
         }}
       >
-        {/* Ambient Display Backlight */}
-        <div className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-neutral-200/50 via-transparent to-transparent opacity-60" />
+        {/*
+          The paper the deck is printed on.
+
+          A flat white panel on a wall screen has nothing for the eye to catch,
+          which is most of why the slides read as a screenshot. A hairline
+          measure across the top, a faint grid, and a wash that lifts toward
+          the top edge give the surface somewhere to start.
+        */}
+        <div className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-neutral-200/45 via-transparent to-transparent opacity-70" />
+        <div
+          className="pointer-events-none absolute inset-0 z-0 opacity-[0.55]"
+          style={{
+            backgroundImage:
+              'linear-gradient(to right, rgba(23,23,23,0.028) 1px, transparent 1px), linear-gradient(to bottom, rgba(23,23,23,0.028) 1px, transparent 1px)',
+            backgroundSize: '46px 46px',
+            maskImage: 'radial-gradient(ellipse at 50% 40%, #000 25%, transparent 78%)',
+            WebkitMaskImage: 'radial-gradient(ellipse at 50% 40%, #000 25%, transparent 78%)',
+          }}
+          aria-hidden="true"
+        />
+        <div
+          className="pointer-events-none absolute inset-x-0 top-0 z-20 h-[2px]"
+          style={{
+            background:
+              'linear-gradient(to right, transparent, rgba(63,116,224,0.55) 18%, rgba(63,116,224,0.55) 82%, transparent)',
+          }}
+          aria-hidden="true"
+        />
 
         {/* Top Header Chrome */}
         <div
-          className={`absolute top-3.5 z-20 flex items-center justify-between gap-3 border-b border-neutral-900/10 pb-1.5 pointer-events-none text-[10px] md:text-[11px] font-mono tracking-widest text-neutral-400 uppercase ${
+          className={`absolute top-3.5 z-20 flex items-center justify-between gap-3 border-b border-neutral-900/10 pb-1.5 pointer-events-none text-[11px] font-mono tracking-widest text-neutral-400 uppercase ${
             isPortrait
               ? 'left-1/2 -translate-x-1/2 w-[82%] max-w-[400px]'
-              : 'left-6 right-6 sm:left-8 sm:right-8'
+              : 'left-8 right-8'
           }`}
         >
+          {/*
+            One label, carried across the whole deck: this is the internal
+            presentation about what briefing costs today. It only changes on
+            the last slide, which is the one that answers it.
+          */}
           <div className="flex items-center gap-2 min-w-0">
-            <span className="w-1.5 h-1.5 shrink-0 rounded-full bg-neutral-900" />
-            <span className="font-semibold text-neutral-800 tracking-wider truncate">
-              {isPortrait ? 'RECHITTA // BOARDROOM' : 'RECHITTA // DEVELOPER PRESENTATION'}
+            <span
+              className={`w-1.5 h-1.5 shrink-0 rounded-full ${
+                isSolutionSlide ? 'bg-[#3f74e0]' : 'bg-neutral-900'
+              }`}
+            />
+            <span
+              className={`font-semibold tracking-wider truncate ${
+                isSolutionSlide ? 'text-[#3f74e0]' : 'text-neutral-800'
+              }`}
+            >
+              {isSolutionSlide ? 'The solution' : "Today's briefing problems"}
             </span>
-          </div>
-          <div className="flex items-center gap-1.5 shrink-0 text-neutral-500 font-medium">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            <span>{isPortrait ? 'SYNC READY' : 'DLD INTEGRATED // SYNC READY'}</span>
           </div>
         </div>
 
         {/* Bottom Footer Chrome */}
         <div
-          className={`absolute bottom-3 z-20 flex items-center justify-between gap-3 border-t border-neutral-900/10 pt-1.5 pointer-events-none text-[9px] md:text-[10px] font-mono tracking-widest text-neutral-400 uppercase ${
+          className={`absolute bottom-3 z-20 flex items-center justify-between gap-3 border-t border-neutral-900/10 pt-1.5 pointer-events-none text-[10px] font-mono tracking-widest text-neutral-400 uppercase ${
             isPortrait
               ? 'left-1/2 -translate-x-1/2 w-[82%] max-w-[400px]'
-              : 'left-6 right-6 sm:left-8 sm:right-8'
+              : 'left-8 right-8'
           }`}
         >
           <span className="truncate">{isPortrait ? 'CONFIDENTIAL' : 'CONFIDENTIAL DEVELOPER DOSSIER'}</span>
-          <span className="shrink-0 font-bold text-neutral-800">0{activeSlide + 1} / 04</span>
+          <span className="shrink-0 font-bold text-neutral-700">0{activeSlide + 1} / 04</span>
         </div>
 
-        {/* The Sliding Track (4x width for 4 slides) */}
-        <div ref={slidesRef} className="absolute inset-0 w-[400%] h-full flex z-10">
+        {/*
+          The Sliding Track (4x width for 4 slides).
+
+          Nothing below here carries a responsive prefix, on purpose. This is a
+          fixed reference canvas that is scaled to fit its surface, so the
+          scale is what adapts it — a `md:` inside it would change the design's
+          shape on top of that scaling, off a viewport width the canvas has no
+          relationship to. The sizes here are the design's own.
+        */}
+        <div
+          ref={slidesRef}
+          className="absolute inset-0 w-[400%] h-full flex z-10"
+          style={{ willChange: 'transform' }}
+        >
           {SLIDES.map((slide) => (
             <div
               key={slide.id}
-              className="w-1/4 h-full flex flex-col items-center justify-center px-4 md:px-12 py-3 text-center relative overflow-hidden"
+              className="w-1/4 h-full flex flex-col items-center justify-center px-12 py-9 text-center relative overflow-hidden"
             >
-              {/* Giant Architectural Watermark Numeral */}
+              {/*
+                The numeral, set into the paper rather than printed on it.
+
+                It used to run off the bottom edge at 190px, which read as a
+                crop rather than as a watermark. Outlined, sitting clear of the
+                copy, it marks the slide without competing with it.
+              */}
               <div
-                className={`absolute -bottom-6 text-[120px] sm:text-[160px] md:text-[190px] font-bold text-neutral-900/[0.035] leading-none select-none pointer-events-none font-mono ${
-                  isPortrait ? 'right-1/2 translate-x-1/2' : 'right-4 sm:right-8'
+                className={`pointer-events-none absolute select-none text-[132px] leading-none font-semibold ${
+                  isPortrait ? 'bottom-6 right-1/2 translate-x-1/2' : 'bottom-5 right-7'
                 }`}
-                style={{ fontFamily: 'var(--font-inter)' }}
+                style={{
+                  fontFamily: 'var(--font-inter)',
+                  fontVariationSettings: '"opsz" 32',
+                  letterSpacing: '-0.06em',
+                  color: 'transparent',
+                  WebkitTextStroke: '1px rgba(23, 23, 23, 0.055)',
+                }}
               >
                 0{slide.id}
               </div>
 
               <div
-                className="w-full max-w-[410px] md:max-w-xl flex flex-col items-center justify-center relative z-10 transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]"
-                style={{
-                  transform:
-                    slide.id === 4 && quizState !== 'prompt' ? 'translateY(-16px)' : 'translateY(0)',
-                }}
+                /* The live slide's tiers replay their entrance; the ones
+                   sliding out of frame hold their finished state. */
+                data-deck-live={SLIDES[activeSlide]?.id === slide.id}
+                className="w-full max-w-[34rem] flex flex-col items-center justify-center relative z-10"
               >
                 {/* Section eyebrow, on the shared editorial tier. */}
-                <div className="mb-2 flex flex-col items-center gap-1.5">
+                <div className="deck-tier mb-5 flex flex-col items-center gap-2" style={{ '--tier': 0 } as React.CSSProperties}>
                   <span
-                    className="eyebrow text-neutral-500"
+                    className={`deck-eyebrow ${isSolutionSlide && slide.isInteractive ? 'text-[#3f74e0]' : 'text-neutral-400'}`}
                     style={{ fontFamily: 'var(--font-inter)' }}
                   >
                     {slide.tag}
@@ -558,290 +675,299 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
                   <span className="eyebrow-rule" data-align="center" aria-hidden="true" />
                 </div>
 
-                {/* Headline in Clean Editorial Sans (Inter) */}
-                <div className="overflow-hidden mb-2">
-                  <h2
-                    className="text-2xl sm:text-3xl md:text-[2.65rem] lg:text-[2.9rem] font-bold text-neutral-900 tracking-tight leading-[1.12]"
-                    style={{ fontFamily: 'var(--font-inter)' }}
-                  >
-                    {slide.headline}
-                  </h2>
-                </div>
+                {/* The headline, in Inter's display cut. */}
+                <h2
+                  className="deck-tier deck-headline text-[2.6rem] text-neutral-900"
+                  style={{ fontFamily: 'var(--font-inter)', '--tier': 1 } as React.CSSProperties}
+                >
+                  {slide.headline}
+                </h2>
 
-                {/* Body in Clean Editorial Sans (Inter). Slide 4 has none. */}
+                {/* Body copy, on a measure wide enough to read at a distance. */}
                 {slide.body && (
                   <p
-                    className="text-sm sm:text-[15px] md:text-base text-neutral-600 font-normal leading-relaxed max-w-[34ch] text-balance mb-3"
-                    style={{ fontFamily: 'var(--font-inter)' }}
+                    className="deck-tier deck-body mt-3.5 max-w-[42ch] text-[16.5px] text-neutral-500"
+                    style={{ fontFamily: 'var(--font-inter)', '--tier': 2 } as React.CSSProperties}
                   >
                     {slide.body}
                   </p>
                 )}
 
-                {/* SLIDE 1 VISUAL CENTERPIECE: The Unread Document Graveyard */}
+                {/*
+                  SLIDE 1: the briefing calendar.
+
+                  Five weeks of it, booked wall to wall with agency names and
+                  still only nine of twelve hundred — the point is the mess and
+                  the counter under it, not any one appointment.
+                */}
                 {slide.id === 1 && (
-                  <div className="mt-2.5 w-full max-w-md flex flex-col items-center">
-                    {/* Simulated Overlapping Document Dossiers */}
-                    <div className="relative w-full h-18 flex items-center justify-center">
-                      {/* Document 3 (Back / Offset) */}
-                      <div className="absolute w-[86%] h-11 bg-neutral-100/80 border border-neutral-200/70 rounded-xl shadow-xs -rotate-2 -translate-y-2 flex items-center px-4 justify-between opacity-50">
-                        <span className="text-[10px] text-neutral-400 font-mono truncate">Architectural_Floorplans_2026.dwg</span>
-                        <span className="text-[9px] text-neutral-400 font-medium shrink-0">180 MB</span>
+                  <div
+                    className="deck-tier mt-7 w-full max-w-[26rem] flex flex-col items-center"
+                    style={{ '--tier': 3 } as React.CSSProperties}
+                  >
+                    <div className="w-full rounded-2xl border border-neutral-200/80 bg-white px-3.5 pt-3 pb-3.5 shadow-[0_2px_10px_-4px_rgba(23,23,23,0.12)]">
+                      <div className="mb-2.5 flex items-center justify-between px-0.5">
+                        <span className="deck-caption text-[8.5px] text-neutral-400">
+                          Briefing calendar
+                        </span>
+                        <span className="deck-caption text-[8.5px] text-neutral-400">
+                          Weeks 1-5 of 26
+                        </span>
                       </div>
-                      {/* Document 2 (Middle) */}
-                      <div className="absolute w-[93%] h-12 bg-neutral-50/90 border border-neutral-200/80 rounded-xl shadow-xs rotate-1 -translate-y-1 flex items-center px-4 justify-between opacity-80">
-                        <span className="text-[10px] text-neutral-500 font-mono truncate">TowerB_Price_Sheet_May_Rev4.xlsx</span>
-                        <span className="text-[9px] text-neutral-400 font-medium shrink-0">84 Units</span>
-                      </div>
-                      {/* Document 1 (Front / Active) */}
-                      <div className="absolute w-full h-13 bg-white border border-neutral-200 rounded-xl shadow-md flex items-center px-3.5 justify-between z-10">
-                        <div className="flex items-center gap-2.5 overflow-hidden">
-                          <div className="w-7 h-7 rounded-lg bg-slate-100 border border-slate-300 text-slate-500 flex items-center justify-center text-[9px] font-bold shrink-0">
-                            PDF
-                          </div>
-                          <div className="flex flex-col text-left overflow-hidden">
-                            <span className="text-[11px] md:text-xs font-semibold text-neutral-800 tracking-tight truncate">
-                              Master_Launch_Brochure.pdf
+
+                      <div className="grid grid-cols-5 gap-1.5">
+                        {[1, 2, 3, 4, 5].map((day) => (
+                          <div key={day} className="flex flex-col gap-1.5">
+                            <span className="deck-caption text-center text-[8px] text-neutral-300">
+                              {['Mon', 'Tue', 'Wed', 'Thu', 'Fri'][day - 1]}
                             </span>
-                            <span className="text-[9px] text-neutral-400 font-normal">
-                              142 Pages • Unindexed • Static
-                            </span>
+                            {/* Four slots a day. Most of them taken. */}
+                            <div className="flex h-[74px] flex-col gap-[4px] rounded-lg bg-neutral-50 p-[4px] ring-1 ring-inset ring-neutral-200/70">
+                              {[0, 1, 2, 3].map((slot) => {
+                                const booking = CALENDAR_AGENCIES.find(
+                                  (a) => a.day === day && a.slot === slot,
+                                );
+                                if (!booking) {
+                                  return (
+                                    <div
+                                      key={slot}
+                                      className="flex-1 rounded-[4px] border border-dashed border-neutral-200"
+                                    />
+                                  );
+                                }
+                                return (
+                                  <div
+                                    key={slot}
+                                    /* Each card sits a hair off square on
+                                       purpose: a calendar this oversubscribed
+                                       never looks tidy. */
+                                    className={`flex flex-1 items-center overflow-hidden rounded-[4px] px-1.5 ${
+                                      booking.overflow
+                                        ? 'bg-[#3f74e0] text-white'
+                                        : 'bg-neutral-900 text-neutral-100'
+                                    }`}
+                                    style={{
+                                      transform: `rotate(${((booking.slot % 2 ? 1 : -1) * (0.7 + (booking.day % 3) * 0.3)).toFixed(2)}deg)`,
+                                    }}
+                                  >
+                                    <span className="truncate text-[7.5px] font-semibold leading-none tracking-tight">
+                                      {booking.name}
+                                    </span>
+                                  </div>
+                                );
+                              })}
+                            </div>
                           </div>
-                        </div>
-                        <span className="text-[9px] font-semibold text-sky-700 bg-sky-50 px-2 py-0.5 rounded-full border border-sky-200/80 shrink-0">
-                          Unread
-                        </span>
+                        ))}
                       </div>
                     </div>
 
-                    {/* Warning Stat Pill */}
-                    <div className="mt-2.5 flex items-center gap-2 px-3 py-1 rounded-full bg-sky-50/90 border border-sky-200/90 text-[10px] text-sky-800 font-medium shadow-2xs">
-                      <span className="w-1.5 h-1.5 rounded-full bg-sky-500 animate-ping" />
-                      <span>94% of Brokers Never Read It</span>
-                      <span className="text-sky-300">•</span>
-                      <span>3 Months to Circulate</span>
-                    </div>
-                  </div>
-                )}
-
-                {/* SLIDE 2 VISUAL CENTERPIECE: CAD to Neural Agent Pipeline */}
-                {slide.id === 2 && (
-                  <div className="mt-2.5 w-full max-w-md p-3 rounded-2xl bg-neutral-50/95 border border-neutral-200/90 shadow-xs">
-                    <div className="flex items-center justify-between gap-2">
-                      {/* Left: Raw Project Data */}
-                      <div className="flex flex-col items-center text-center p-2 rounded-xl bg-white border border-neutral-200/80 shadow-2xs w-[40%]">
-                        <div className="w-6 h-6 rounded-lg bg-neutral-100 flex items-center justify-center text-[11px] text-neutral-600 mb-1">
-                          📁
-                        </div>
-                        <span className="text-[10px] md:text-[11px] font-semibold text-neutral-800">Static Files</span>
-                        <span className="text-[8px] md:text-[9px] text-neutral-400 mt-0.5">CAD • PDF • Excel</span>
-                      </div>
-
-                      {/* Center: Live Neural Transformation */}
-                      <div className="flex flex-col items-center justify-center flex-1 px-1">
-                        <span className="text-[8px] md:text-[9px] text-sky-600 font-bold uppercase tracking-wider mb-1">
-                          Vectorized
-                        </span>
-                        <div className="w-full h-1 bg-neutral-200 rounded-full relative overflow-hidden">
-                          <div className="absolute inset-0 bg-gradient-to-r from-neutral-300 via-sky-500 to-sky-400 animate-pulse" />
-                        </div>
-                        <span className="text-[8px] md:text-[9px] text-neutral-400 font-mono mt-1">12.4s</span>
-                      </div>
-
-                      {/* Right: Instant AI Agent */}
-                      <div className="flex flex-col items-center text-center p-2 rounded-xl bg-white border border-sky-200/80 shadow-2xs w-[40%] relative">
-                        <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
-                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-400 opacity-75" />
-                          <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-sky-500" />
-                        </span>
-                        <div className="w-6 h-6 rounded-lg bg-sky-50 flex items-center justify-center text-[11px] text-sky-600 mb-1">
-                          ⚡
-                        </div>
-                        <span className="text-[10px] md:text-[11px] font-semibold text-sky-900">Rechitta Brain</span>
-                        <span className="text-[8px] md:text-[9px] text-sky-600 mt-0.5">40,000 Brokers</span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* SLIDE 3 VISUAL ARTIFACT: 3 Interactive Question Chips + Live AI Response */}
-                {slide.id === 3 && (
-                  <div className="w-full flex flex-col items-center mt-2">
-                    {/* Chips */}
-                    <div className="flex flex-wrap justify-center gap-1.5 max-w-lg pointer-events-auto">
-                      {SLIDE_3_QUESTIONS.map((item, idx) => (
-                        <button
-                          key={idx}
-                          onClick={() => setSelectedQuestion(idx)}
-                          className={`px-3 py-1 rounded-full text-[11px] md:text-xs transition-all duration-200 font-medium border cursor-pointer ${selectedQuestion === idx
-                            ? 'bg-neutral-900 text-white border-neutral-900 shadow-xs scale-102'
-                            : 'bg-white/90 text-neutral-600 border-neutral-200 hover:border-neutral-400 hover:bg-white'
-                            }`}
-                          style={{ fontFamily: 'var(--font-inter)' }}
-                        >
-                          {item.chip}
-                        </button>
-                      ))}
-                    </div>
-
-                    {/* Live AI Response Card */}
-                    <div className="mt-2 max-w-md w-full p-2.5 sm:p-3 rounded-xl bg-neutral-50/95 border border-neutral-200/80 shadow-xs text-left pointer-events-auto min-h-[64px] sm:min-h-[76px] flex flex-col justify-start">
-                      <div className="flex items-center justify-between mb-1">
-                        <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider">
-                          <span className="relative flex h-2 w-2">
-                            <span
-                              className={`animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-400 opacity-75 ${isStreaming ? 'duration-300' : 'duration-1000'
-                                }`}
-                            />
-                            <span className="relative inline-flex rounded-full h-2 w-2 bg-sky-500" />
-                          </span>
-                          <span
-                            className={
-                              isStreaming
-                                ? 'text-sky-700 font-bold'
-                                : 'text-neutral-600 font-semibold'
-                            }
-                          >
-                            {isStreaming
-                              ? 'Streaming Vector Knowledge...'
-                              : 'Verified by Rechitta Agent'}
-                          </span>
-                        </div>
-                        <span className="text-[9px] text-neutral-400 font-mono tracking-tight">
-                          {isStreaming ? '0.04s' : '0.00s latency'}
-                        </span>
-                      </div>
-                      <p
-                        className="text-[11px] md:text-xs text-neutral-800 leading-relaxed font-normal"
-                        style={{ fontFamily: 'var(--font-inter)' }}
-                      >
-                        {streamedText}
-                        {isStreaming && (
-                          <span className="inline-block w-1.5 h-3 bg-sky-500 ml-1 translate-y-0.5 animate-pulse" />
-                        )}
-                      </p>
+                    <div className="mt-4 flex items-center gap-2.5 text-[11px] font-medium text-neutral-500">
+                      <span className="text-neutral-900 font-semibold">9 agencies booked</span>
+                      <span className="h-3 w-px bg-neutral-200" />
+                      <span className="text-[#3f74e0] font-semibold">1,191 still waiting</span>
                     </div>
                   </div>
                 )}
 
                 {/*
-                  SLIDE 4: the question, then the one thing to press.
+                  SLIDE 2: the relay, and what it costs at each hop.
 
-                  This used to answer itself. Both branches paid out a full
-                  sentence of explanation inside a pill, above a status dock
-                  carrying a second headline, a status line, a footnote row and
-                  the button - so the control the film is actually waiting on
-                  was the smallest thing on the slide. Now the branch is four
-                  words and the call to action is the only object under it.
+                  The ring is drawn solid at the developer and dashes further
+                  apart at every hand-off after it, so the loss is in the
+                  drawing rather than only in the caption.
+                */}
+                {slide.id === 2 && (
+                  <div
+                    className="deck-tier mt-8 w-full max-w-[27rem]"
+                    style={{ '--tier': 3 } as React.CSSProperties}
+                  >
+                    <div className="flex items-start justify-between gap-1">
+                      {LANGUAGE_RELAY.map((stage, i) => (
+                        <React.Fragment key={stage.label}>
+                          {i > 0 && (
+                            <div className="flex flex-1 items-center justify-center gap-[5px] pt-[34px]">
+                              {[0, 1, 2, 3].map((n) => (
+                                <span
+                                  key={n}
+                                  className="text-[11px] font-semibold leading-none text-neutral-400"
+                                  style={{ opacity: 0.7 - i * 0.18 - n * 0.11 }}
+                                >
+                                  &rsaquo;
+                                </span>
+                              ))}
+                            </div>
+                          )}
+
+                          <div className="flex shrink-0 flex-col items-center gap-2.5">
+                            <div
+                              className="flex h-[76px] w-[76px] items-center justify-center rounded-full px-1.5 text-center"
+                              style={{
+                                border: stage.solid
+                                  ? '1.5px solid #3f74e0'
+                                  : `1.5px dashed rgba(115, 115, 115, ${0.7 - i * 0.2})`,
+                              }}
+                            >
+                              <span
+                                className="text-[11px] font-semibold leading-tight tracking-tight"
+                                style={{
+                                  color: stage.solid ? '#3f74e0' : '#404040',
+                                  opacity: stage.solid ? 1 : 0.85 - i * 0.18,
+                                }}
+                              >
+                                {stage.label}
+                              </span>
+                            </div>
+                            <span
+                              className="deck-caption text-[8px]"
+                              style={{
+                                color: stage.solid ? '#3f74e0' : '#737373',
+                                opacity: stage.solid ? 1 : 0.9 - i * 0.2,
+                              }}
+                            >
+                              {stage.loses}
+                            </span>
+                          </div>
+                        </React.Fragment>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/*
+                  SLIDE 3: what goes out against what comes back.
+
+                  Two figures, the second of them nothing. The gap between them
+                  is the whole slide, so nothing else is put on it.
+                */}
+                {slide.id === 3 && (
+                  <div
+                    className="deck-tier mt-8 flex w-full max-w-[25rem] items-stretch gap-5"
+                    style={{ '--tier': 3 } as React.CSSProperties}
+                  >
+                    <div className="flex-1 py-1 text-center">
+                      <div
+                        className="text-[46px] leading-none text-neutral-900"
+                        style={{
+                          fontFamily: 'var(--font-inter)',
+                          fontVariationSettings: '"opsz" 32',
+                          fontWeight: 660,
+                          letterSpacing: '-0.04em',
+                        }}
+                      >
+                        30,000
+                      </div>
+                      <div className="deck-caption mt-2.5 text-[8.5px] text-neutral-400">
+                        Brochures sent
+                      </div>
+                    </div>
+
+                    <div className="w-px shrink-0 bg-gradient-to-b from-transparent via-neutral-200 to-transparent" />
+
+                    <div className="flex-1 py-1 text-center">
+                      <div
+                        className="text-[46px] leading-none text-[#3f74e0]"
+                        style={{
+                          fontFamily: 'var(--font-inter)',
+                          fontVariationSettings: '"opsz" 32',
+                          fontWeight: 660,
+                          letterSpacing: '-0.04em',
+                        }}
+                      >
+                        0
+                      </div>
+                      <div className="deck-caption mt-2.5 text-[8.5px] text-[#3f74e0]/70">
+                        Questions captured
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/*
+                  SLIDE 4: the name, then the one thing to press.
+
+                  This slide used to ask the room a yes/no question and answer
+                  it in a pill. The deck already argues the case over three
+                  slides, so the answer is simply stated and the button — the
+                  control the film is actually waiting on — is the only other
+                  object here.
                 */}
                 {slide.isInteractive && (
-                  <div className="w-full flex flex-col items-center pointer-events-auto mt-1 min-h-[128px] justify-center transition-all duration-500 ease-out">
-                    {quizState === 'prompt' ? (
-                      <div className="flex flex-col items-center gap-4 animate-hud-expand">
-                        <span
-                          className="text-sm md:text-base font-semibold text-neutral-800 tracking-tight"
-                          style={{ fontFamily: 'var(--font-inter)' }}
-                        >
-                          Think there&apos;s a solution?
-                        </span>
+                  <div className="w-full flex flex-col items-center pointer-events-auto mt-9 justify-center gap-16">
+                    <div
+                      className="deck-tier flex flex-col items-center gap-2"
+                      style={{ '--tier': 2 } as React.CSSProperties}
+                    >
+                      <p
+                        className="text-[2rem] leading-none text-[#3f74e0]"
+                        style={{
+                          fontFamily: 'var(--font-inter)',
+                          fontVariationSettings: '"opsz" 32',
+                          fontWeight: 660,
+                          letterSpacing: '-0.035em',
+                        }}
+                      >
+                        Rechitta
+                      </p>
+                      <p
+                        className="deck-body text-[15px] font-medium text-neutral-500"
+                        style={{ fontFamily: 'var(--font-inter)' }}
+                      >
+                        Super simple to implement.
+                      </p>
+                    </div>
 
-                        {/*
-                          Matched styling on purpose. The filled-dark "Yes"
-                          against an outlined "No" read as an answer already
-                          given, which is exactly what this slide must not do.
-                        */}
-                        <div className="relative flex items-center gap-3.5">
-                          <ClickPrompt
-                            label={nudgeQuiz ? 'Pick one to continue' : 'Choose one to continue'}
-                            visible
-                            placement="bottom"
-                            urgent={nudgeQuiz}
-                          />
-                          {(['yes', 'no'] as const).map((choice) => (
-                            <button
-                              key={choice}
-                              onClick={() => setQuizState(choice)}
-                              className={`min-w-[6.5rem] px-9 py-3 rounded-full border-2 text-base md:text-lg font-bold capitalize transition-all duration-200 cursor-pointer bg-white hover:scale-[1.05] active:scale-95 ${
-                                nudgeQuiz
-                                  ? 'border-[#568DFF] text-neutral-900 shadow-[0_0_0_4px_rgba(86,141,255,0.2)]'
-                                  : 'border-neutral-300 text-neutral-800 hover:border-neutral-900 hover:text-neutral-900 shadow-sm hover:shadow-md'
-                              }`}
-                              style={{ fontFamily: 'var(--font-inter)' }}
-                            >
-                              {choice}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    ) : (
-                      /* gap-12 rather than a tighter one: the click prompt
-                         needs a lane of its own between the line and the
-                         button, or it sits on the line's descenders. */
-                      <div className="w-full max-w-lg flex flex-col items-center gap-6 sm:gap-12 animate-slide-up-dock">
-                        {/* The whole branch, in one line. */}
-                        <p
-                          className="text-lg md:text-xl font-bold text-neutral-900 tracking-tight text-center"
-                          style={{ fontFamily: 'var(--font-inter)' }}
-                        >
-                          {quizState === 'yes' ? 'Exactly. ' : 'There is. '}
-                          <span className="text-[#3f74e0]">It&apos;s Rechitta.</span>
-                        </p>
+                    <div
+                      className="deck-tier relative"
+                      style={{ '--tier': 3 } as React.CSSProperties}
+                    >
+                      <ClickPrompt
+                        label={nudgeCta ? 'Press this to continue' : 'Click to send'}
+                        visible={!isUploading && !isSynced}
+                        placement="top"
+                        autoPlace
+                        urgent={nudgeCta}
+                      />
+                      <button
+                        onClick={handleUploadClick}
+                        disabled={isUploading || isSynced}
+                        className={`px-9 py-3.5 rounded-full bg-neutral-950 hover:bg-neutral-800 text-white text-base font-bold tracking-tight active:scale-[0.97] transition-all flex items-center gap-2.5 cursor-pointer relative overflow-hidden group disabled:cursor-default disabled:opacity-90 ${
+                          nudgeCta ? 'scale-[1.04]' : ''
+                        }`}
+                        style={{
+                          fontFamily: 'var(--font-inter)',
+                          boxShadow: nudgeCta
+                            ? '0 0 0 5px rgba(86,141,255,0.28), 0 18px 34px -12px rgba(0,0,0,0.55)'
+                            : '0 18px 34px -12px rgba(0,0,0,0.55), inset 0 1px 1px 0 rgba(255,255,255,0.14)',
+                        }}
+                      >
+                        {/* Shimmer on hover */}
+                        <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/18 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
 
-                        <div className="relative">
-                          <ClickPrompt
-                            label="Click to deploy"
-                            visible={!isUploading && !isSynced}
-                            placement="top"
-                            urgent
-                          />
-                          <button
-                            onClick={handleUploadClick}
-                            disabled={isUploading || isSynced}
-                            className="px-7 sm:px-9 py-3.5 rounded-full bg-neutral-950 hover:bg-neutral-800 text-white text-sm sm:text-base font-bold tracking-tight active:scale-[0.97] transition-all flex items-center gap-2.5 cursor-pointer relative overflow-hidden group disabled:cursor-default disabled:opacity-90"
-                            style={{
-                              fontFamily: 'var(--font-inter)',
-                              boxShadow:
-                                '0 18px 34px -12px rgba(0,0,0,0.55), inset 0 1px 1px 0 rgba(255,255,255,0.14)',
-                            }}
-                          >
-                            {/* Shimmer on hover */}
-                            <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/18 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
-
-                            {isSynced ? (
-                              <>
-                                <span className="w-2 h-2 rounded-full bg-[#568DFF]" />
-                                <span>Synced worldwide</span>
-                              </>
-                            ) : isUploading ? (
-                              <>
-                                <span className="w-4 h-4 border-2 border-neutral-600 border-t-white rounded-full animate-spin" />
-                                <span>Broadcasting...</span>
-                              </>
-                            ) : (
-                              <>
-                                <span className="relative flex h-2 w-2 shrink-0">
-                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#568DFF] opacity-75" />
-                                  <span className="relative inline-flex h-2 w-2 rounded-full bg-[#568DFF]" />
-                                </span>
-                                <span>Brief 40,000 brokers</span>
-                                <span className="text-[#8FB4FF] font-bold transition-transform group-hover:translate-x-0.5">
-                                  &rarr;
-                                </span>
-                              </>
-                            )}
-                          </button>
-                        </div>
-
-                        {!isUploading && !isSynced && (
-                          <button
-                            onClick={() => setQuizState('prompt')}
-                            className="-mt-8 text-[10px] font-medium text-neutral-500 underline underline-offset-2 decoration-neutral-300 hover:text-neutral-800 transition-colors cursor-pointer"
-                          >
-                            Ask me again
-                          </button>
+                        {isSynced ? (
+                          <>
+                            <span className="w-2 h-2 rounded-full bg-[#568DFF]" />
+                            <span>Sent to every broker</span>
+                          </>
+                        ) : isUploading ? (
+                          <>
+                            <span className="w-4 h-4 border-2 border-neutral-600 border-t-white rounded-full animate-spin" />
+                            <span>Uploading project...</span>
+                          </>
+                        ) : (
+                          <>
+                            <span className="relative flex h-2 w-2 shrink-0">
+                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#568DFF] opacity-75" />
+                              <span className="relative inline-flex h-2 w-2 rounded-full bg-[#568DFF]" />
+                            </span>
+                            <span>Upload a project, send it to our brokers</span>
+                            <span className="text-[#8FB4FF] font-bold transition-transform group-hover:translate-x-0.5">
+                              &rarr;
+                            </span>
+                          </>
                         )}
-                      </div>
-                    )}
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
@@ -870,17 +996,22 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
             border: '1px solid rgba(255, 255, 255, 0.14)',
           }}
         >
-          {/* Portrait keeps its arrows here: there is no wall to put them on. */}
-          {isPortrait && (
-            <button
-              onClick={() => slideBy(-1)}
-              className="flex h-7 w-7 items-center justify-center rounded-full text-[13px] leading-none transition-all duration-200 text-white/80 hover:bg-white/12 hover:text-white active:scale-90 cursor-pointer"
-              aria-label={activeSlide === 0 ? 'Return to Dawn' : 'Previous slide'}
-              title={activeSlide === 0 ? 'Return to Dawn' : 'Previous slide'}
-            >
-              ←
-            </button>
-          )}
+          {/*
+            The arrows live here now, either side of the dots.
+
+            They used to hang on the wall panels beside the display, which put
+            them level with the middle of the deck and a third of the frame
+            away from the control they belong with. One dock reads as one
+            control: back, where you are, forward.
+          */}
+          <button
+            onClick={() => slideBy(-1)}
+            className="flex h-8 w-8 items-center justify-center rounded-full text-[14px] leading-none transition-all duration-200 text-white/80 hover:bg-white/12 hover:text-white active:scale-90 cursor-pointer"
+            aria-label={activeSlide === 0 ? 'Return to Dawn' : 'Previous slide'}
+            title={activeSlide === 0 ? 'Return to Dawn' : 'Previous slide'}
+          >
+            ←
+          </button>
 
           <div className="flex items-center gap-1.5 px-2">
             {SLIDES.map((slide, i) => (
@@ -899,16 +1030,14 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
             ))}
           </div>
 
-          {isPortrait && (
-            <button
-              onClick={() => slideBy(1)}
-              className="flex h-7 w-7 items-center justify-center rounded-full text-[13px] leading-none transition-all duration-200 text-white/80 hover:bg-white/12 hover:text-white active:scale-90 cursor-pointer"
-              aria-label={activeSlide === SLIDES.length - 1 ? 'Enter Hallway' : 'Next slide'}
-              title={activeSlide === SLIDES.length - 1 ? 'Enter Hallway' : 'Next slide'}
-            >
-              →
-            </button>
-          )}
+          <button
+            onClick={() => slideBy(1)}
+            className="flex h-8 w-8 items-center justify-center rounded-full text-[14px] leading-none transition-all duration-200 text-white/80 hover:bg-white/12 hover:text-white active:scale-90 cursor-pointer"
+            aria-label={activeSlide === SLIDES.length - 1 ? 'Enter Hallway' : 'Next slide'}
+            title={activeSlide === SLIDES.length - 1 ? 'Enter Hallway' : 'Next slide'}
+          >
+            →
+          </button>
         </div>
 
         {isPortrait && (
@@ -917,55 +1046,6 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
           </div>
         )}
       </div>
-
-      {/*
-        The arrows, on the wall either side of the display.
-
-        They are placed against the screen's own painted box rather than laid
-        out in flow, for the same reason the dots are: the deck inside is a
-        fixed reference canvas scaled to fit, so it overflows this container
-        and nothing can simply follow it.
-      */}
-      {!isPortrait &&
-        ([
-          {
-            dir: -1 as const,
-            glyph: '←',
-            label: activeSlide === 0 ? 'Return to Dawn' : 'Previous slide',
-            at: -armOffset,
-          },
-          {
-            dir: 1 as const,
-            glyph: '→',
-            label: activeSlide === SLIDES.length - 1 ? 'Enter Hallway' : 'Next slide',
-            at: screenWidth + armOffset,
-          },
-        ]).map((arm) => (
-          <button
-            key={arm.dir}
-            onClick={() => slideBy(arm.dir)}
-            className="absolute flex items-center justify-center rounded-full transition-all duration-200 pointer-events-auto text-white/85 hover:text-white active:scale-90 cursor-pointer"
-            style={{
-              left: `${arm.at}px`,
-              top: '50%',
-              width: `${armSize}px`,
-              height: `${armSize}px`,
-              transform: 'translate(-50%, -50%)',
-              fontSize: `${Math.round(armSize * 0.42)}px`,
-              lineHeight: 1,
-              zIndex: 100,
-              background: 'rgba(12, 16, 24, 0.55)',
-              border: '1px solid rgba(255, 255, 255, 0.16)',
-              backdropFilter: 'blur(18px) saturate(160%)',
-              WebkitBackdropFilter: 'blur(18px) saturate(160%)',
-              boxShadow: '0 16px 40px -14px rgba(0,0,0,0.8)',
-            }}
-            aria-label={arm.label}
-            title={arm.label}
-          >
-            {arm.glyph}
-          </button>
-        ))}
 
     </div>
     </>

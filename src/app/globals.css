@@ -398,3 +398,84 @@ p {
   animation: marquee 24s linear infinite;
   will-change: transform;
 }
+
+/* ── THE BOARDROOM DECK ────────────────────────────────────────────────────
+ *
+ * The deck is projected onto a wall screen in the footage, so it is read at a
+ * distance and at a fraction of its authored size. It gets the display cut of
+ * Inter, a wider measure than body copy elsewhere, and tiers that arrive one
+ * after another rather than all at once — a slide that lands in one block
+ * reads as a screenshot, not as a presentation.
+ */
+.deck-eyebrow {
+  font-variation-settings: "opsz" 14;
+  font-weight: 600;
+  font-size: 0.625rem;
+  line-height: 1;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+}
+
+.deck-headline {
+  font-variation-settings: "opsz" 32;
+  font-weight: 660;
+  letter-spacing: -0.032em;
+  line-height: 1.06;
+  text-wrap: balance;
+}
+
+.deck-body {
+  font-variation-settings: "opsz" 18;
+  font-weight: 400;
+  letter-spacing: -0.006em;
+  line-height: 1.62;
+  text-wrap: pretty;
+}
+
+/* Small print inside a slide's diagram: sturdy at size, never letterspaced
+   so far that it stops reading as a word. */
+.deck-caption {
+  font-variation-settings: "opsz" 14;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+@keyframes deck-tier-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+    filter: blur(7px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+/*
+ * Each tier sets --tier to its place in the stack; the delay follows from it,
+ * so inserting a tier never means renumbering the ones below.
+ *
+ * The entrance is gated on the slide being the live one rather than on a React
+ * key. Re-keying to replay it remounted all four slides on every slide change
+ * — a few hundred nodes thrown away and rebuilt in the middle of the tween
+ * that moves the track, which is what made turning a slide stutter. Toggling
+ * the attribute changes `animation-name` from none to this and back, which is
+ * all a CSS animation needs to restart, and costs nothing.
+ */
+.deck-tier {
+  opacity: 1;
+}
+
+[data-deck-live='true'] .deck-tier {
+  animation: deck-tier-in 0.62s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: calc(var(--tier, 0) * 85ms);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-deck-live='true'] .deck-tier {
+    animation: none;
+  }
+}

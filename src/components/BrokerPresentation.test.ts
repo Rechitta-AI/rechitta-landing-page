@@ -16,28 +16,49 @@ describe('BrokerPresentation Configuration & Data', () => {
     expect(BROKER_PHONE_RADIUS).toBe(48);
   });
 
-  it('exports 3 concise problem statement items with verified solutions', () => {
-    expect(BROKER_PROBLEMS).toHaveLength(3);
+  it("exports the broker's four one-line objections with their answers", () => {
+    expect(BROKER_PROBLEMS).toHaveLength(4);
 
-    const [prob1, prob2, prob3] = BROKER_PROBLEMS;
+    const [prob1, prob2, prob3, prob4] = BROKER_PROBLEMS;
 
-    // Item 1: Network scale
+    // 1: a briefing missed
     expect(prob1.id).toBe(1);
-    expect(prob1.tabLabel).toBe('40k at Launch');
-    expect(prob1.category).toBe('NETWORK SCALE');
-    expect(prob1.solution).toContain('Autonomous multi-agent briefing across 12 languages');
+    expect(prob1.problem).toBe('Missed a briefing!');
+    expect(prob1.category).toBe('AVAILABLE 24/7');
+    expect(prob1.solution).toContain('presentation mode');
+    expect(prob1.solution).toContain('24/7');
 
-    // Item 2: Live Inventory
+    // 2: the presenter's accent
     expect(prob2.id).toBe(2);
-    expect(prob2.tabLabel).toBe('Live DLD Sync');
-    expect(prob2.category).toBe('LIVE INVENTORY');
-    expect(prob2.solution).toContain('Direct DLD & ERP sync');
+    expect(prob2.problem).toContain('accent');
+    expect(prob2.category).toBe('YOUR LANGUAGE');
+    expect(prob2.solution).toContain('Ask in your language');
 
-    // Item 3: Legal & SPV
+    // 3: technical depth
     expect(prob3.id).toBe(3);
-    expect(prob3.tabLabel).toBe('Cross-Border SPVs');
-    expect(prob3.category).toBe('LEGAL & COMPLIANCE');
-    expect(prob3.solution).toContain('Instant DLD compliance check');
+    expect(prob3.problem).toContain('technical questions');
+    expect(prob3.category).toBe('GO DEEPER');
+    expect(prob3.solution).toContain('chat mode');
+
+    // 4: the one that ends in a sign-up rather than a feature
+    expect(prob4.id).toBe(4);
+    expect(prob4.problem).toContain('client');
+    expect(prob4.category).toBe('YOUR OWN RECHITTA');
+    expect(prob4.solution).toContain('Rechitta of your own');
+    expect(prob4.isWaitlist).toBe(true);
+  });
+
+  it('marks only the last objection as the waitlist one', () => {
+    expect(BROKER_PROBLEMS.filter((p) => p.isWaitlist)).toHaveLength(1);
+    expect(BROKER_PROBLEMS[BROKER_PROBLEMS.length - 1].isWaitlist).toBe(true);
+  });
+
+  it('gives every objection a one-line statement and a sample query', () => {
+    BROKER_PROBLEMS.forEach((prob) => {
+      expect(prob.problem.length).toBeLessThanOrEqual(50);
+      expect(prob.query.length).toBeGreaterThan(0);
+      expect(prob.tabLabel.length).toBeGreaterThan(0);
+    });
   });
 
   it('aliases PROMPT_PILLS to BROKER_PROBLEMS for backwards compatibility', () => {

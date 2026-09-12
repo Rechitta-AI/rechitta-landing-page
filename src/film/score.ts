@@ -204,6 +204,13 @@ export const BEATS: Beat[] = [
     park: 16.9,
     enter: { from: 2.0, to: 16.9, rate: 3.6 },
     hold: 1,
+    /*
+     * The broker's four objections, walked the way the boardroom walks its
+     * slides: a scroll turns to the next one and changes the answer beside it.
+     * Only once the list runs out does the gate below start asking for the
+     * call to action.
+     */
+    steps: 4,
     gate: true,
   },
   /*

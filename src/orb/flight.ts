@@ -54,11 +54,19 @@ export function resolveAnchor(anchor: Anchor, timing: FilmTiming | null): number
  * The path in scroll order. Keyframes that cannot resolve are dropped rather
  * than guessed at — a beat in the wrong place is worse than a beat missing,
  * and the dev-time check reports them.
+ *
+ * `minScale` is the floor no beat may shrink past. The path was authored with
+ * depth in mind — the orb reads as far away by getting small — but past a
+ * point "far away" just reads as "gone", and beats out over the film were
+ * landing at a fifth of the hero's size. Clamping here rather than in the
+ * renderer means the interpolation between two beats cannot dip under the
+ * floor either: every value it lerps between is already at or above it.
  */
 export function resolvePath(
   path: Keyframe[],
   timing: FilmTiming | null,
   portrait = false,
+  minScale = 0,
 ): ResolvedKeyframe[] {
   const resolved: ResolvedKeyframe[] = [];
   for (const keyframe of path) {
@@ -68,7 +76,7 @@ export function resolvePath(
     // tracking the footage, so a beat that clears a mockup on a wide screen
     // can land straight on it. Those beats carry a second pose.
     const pose = portrait && keyframe.portrait ? { ...keyframe, ...keyframe.portrait } : keyframe;
-    resolved.push({ ...pose, progress });
+    resolved.push({ ...pose, progress, scale: Math.max(pose.scale, minScale) });
   }
   return resolved.sort((a, b) => a.progress - b.progress);
 }

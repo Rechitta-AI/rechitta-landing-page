@@ -6,7 +6,7 @@ import { coverRect, matrix3dFor } from '@/screens/warp';
 import { isPortraitFor } from '@/hooks/useDeviceMode';
 import { beatIndexById } from '@/film/score';
 import { useDemoModal } from '@/contexts/DemoModalContext';
-import BuilderCarousel, { BuilderMarquee } from './BuilderCarousel';
+import WallLogoReel, { BuilderMarquee, DEVELOPER_LOGOS } from './BuilderCarousel';
 import { MONITOR_CORNERS, DEFAULT_CALIBRATION, sanitizeCalibration, type CalibrationCoords } from './MonitorCalibrator';
 
 /**
@@ -432,7 +432,7 @@ export default function FinaleWorldMapPresentation({
           {/* Centring on its own element, so the fade's transform has nothing
               of ours to overwrite. */}
           <div style={{ transform: 'translateY(-50%)' }}>
-            <BuilderCarousel width={reelWidth} height={reelHeight} />
+            <WallLogoReel logos={DEVELOPER_LOGOS} width={reelWidth} height={reelHeight} />
           </div>
         </div>
       )}
