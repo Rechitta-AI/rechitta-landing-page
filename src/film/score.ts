@@ -263,6 +263,13 @@ export const BEATS: Beat[] = [
     clip: 'last',
     park: 1.0,
     portraitPark: 5.2,
+    /*
+     * The closing monitor is a deck too, the way the opening one is: the
+     * global map, then the numbers the briefing produced, then the questions
+     * the market actually asked. Three scrolls walk it before the camera
+     * pulls back to the horizon.
+     */
+    steps: 3,
     progress: 0.96,
     progressFrom: CITIES_SPAN.end,
   },

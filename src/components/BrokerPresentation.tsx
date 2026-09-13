@@ -59,7 +59,7 @@ export const BROKER_PROBLEMS: BrokerProblem[] = [
     tabLabel: 'Missed it',
     category: 'AVAILABLE 24/7',
     problem: 'Missed a briefing!',
-    query: 'Give me the full briefing for Marina Vista',
+    query: 'Give me the full briefing for DoubleTree by Hilton',
     solution:
       'Rechitta gives you a presentation mode - take the whole briefing whenever you want to. It\u2019s available 24/7.',
   },

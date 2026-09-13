@@ -28,11 +28,21 @@ export interface CalibrationCoords {
 }
 
 // 4-Corner 3D Calibrated Coordinates (% of video cover rect)
+/*
+ * The lit screen at the finale's park frame, measured rather than eyeballed.
+ *
+ * Taken off `last-scene` at t=1.0s: the monitor is the only bright thing in a
+ * night shot, so its edges were found by thresholding the frame, fitting a
+ * line to each of the four, and intersecting them. The hand-tuned numbers
+ * these replace were out by up to 0.6% of frame width — around 11px at 1080p,
+ * and most of it on one edge, which is what put a dark rim down the left of
+ * any slide that paints its own ground.
+ */
 export const MONITOR_CORNERS = {
-  tl: [20.05, 12.02] as CornerPoint,
-  tr: [81.54, 11.90] as CornerPoint,
-  br: [80.64, 75.21] as CornerPoint,
-  bl: [21.30, 75.05] as CornerPoint,
+  tl: [20.39, 11.92] as CornerPoint,
+  tr: [80.96, 12.30] as CornerPoint,
+  br: [80.35, 75.13] as CornerPoint,
+  bl: [20.73, 74.94] as CornerPoint,
 };
 
 export const DEFAULT_CALIBRATION: CalibrationCoords = {

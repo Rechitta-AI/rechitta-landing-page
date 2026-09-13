@@ -199,44 +199,45 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
   /*
    * The two wall panels the display is mounted between.
    *
-   * Everything here is a fraction of the *footage*, not of the viewport, so
-   * the reels stay on the wall whatever a viewport's aspect crops off the
-   * sides. Measured off the frame:
-   *
-   *   - the display's wooden surround occupies 26.3% to 73.9% across. The
-   *     earlier numbers were taken from the screen surface at 29% to 72%,
-   *     which is inside the woodwork — that is why the chips were landing on
-   *     the bezel.
-   *   - the beige wall either side of it runs out to about 14% and 87.5%
-   *     before the windows start.
-   *   - the credenza's top edge is at 74.5% down.
+   * Measured off the park frame rather than judged by eye: the wall is a flat
+   * painted surface and the glazing either side of it carries city lights, so
+   * scanning a column's variance down the frame separates them cleanly. The
+   * flat runs are 16.8%-27.2% on the left and 74.9%-83.8% on the right. The
+   * numbers these replace started at 14.5% and ran to 85.5%, both of which are
+   * out in the glass, which is why marks were drifting off the wall.
    */
+  const WALL_L = { from: 0.168, to: 0.272 };
+  const WALL_R = { from: 0.749, to: 0.838 };
+  /* How much of each panel stays bare either side of the strip. */
+  const WALL_INSET = 0.18;
+  const MAX_REEL_W = 126;
+
+  /* Clamped to what is actually on screen: a viewport narrower than 16:9 crops
+     the footage, and part of a wall can be off the edge of it. */
+  const wallRun = (w: { from: number; to: number }) => {
+    const x0 = Math.max(rect.x + w.from * rect.width, 8);
+    const x1 = Math.min(rect.x + w.to * rect.width, viewport.width - 8);
+    return { x0, width: Math.max(0, x1 - x0) };
+  };
+  const leftRun = wallRun(WALL_L);
+  const rightRun = wallRun(WALL_R);
+
   const WALL_TOP = 0.08;
   const WALL_BOTTOM = 0.745;
   const wallTop = rect.y + WALL_TOP * rect.height;
   const wallHeight = (WALL_BOTTOM - WALL_TOP) * rect.height;
 
-  const wallPanel = (from: number, to: number) => {
-    const x0 = rect.x + from * rect.width;
-    const span = (to - from) * rect.width;
-    const inset = span * 0.12;
-    return { left: x0 + inset, width: span - inset * 2 };
-  };
-  // Pulled out toward the windows, leaving roughly 2.5% of the frame between
-  // each strip and the surround.
-  const leftWall = wallPanel(0.145, 0.248);
-  const rightWall = wallPanel(0.752, 0.855);
+  /* One width for both, taken from the narrower panel so the two sides match
+     even though the camera does not see them equally. */
+  const reelWidth = Math.min(
+    MAX_REEL_W,
+    Math.min(leftRun.width, rightRun.width) * (1 - 2 * WALL_INSET),
+  );
+  const leftWall = { left: leftRun.x0 + (leftRun.width - reelWidth) / 2, width: reelWidth };
+  const rightWall = { left: rightRun.x0 + (rightRun.width - reelWidth) / 2, width: reelWidth };
 
-  /*
-   * A viewport far taller than 16:9 crops the footage hard from the sides, and
-   * the panels the reels want stop existing. Rather than let them slide under
-   * the bezel — or off the edge — they step out until there is room for both.
-   */
-  const wallsFit =
-    !isPortrait &&
-    leftWall.width >= 88 &&
-    leftWall.left >= 8 &&
-    rightWall.left + rightWall.width <= viewport.width - 8;
+  /* Too little wall left on screen to stand anything on. */
+  const wallsFit = !isPortrait && reelWidth >= 76;
 
   const isSolutionSlide = activeSlide === SLIDES.length - 1;
 

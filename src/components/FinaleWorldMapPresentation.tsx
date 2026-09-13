@@ -7,6 +7,7 @@ import { isPortraitFor } from '@/hooks/useDeviceMode';
 import { beatIndexById } from '@/film/score';
 import { useDemoModal } from '@/contexts/DemoModalContext';
 import WallLogoReel, { BuilderMarquee, DEVELOPER_LOGOS, PROJECT_LOGOS } from './BuilderCarousel';
+import { FinaleStatsSlide, FinaleQuestionsSlide } from './FinaleDeckSlides';
 import { MONITOR_CORNERS, DEFAULT_CALIBRATION, sanitizeCalibration, type CalibrationCoords } from './MonitorCalibrator';
 
 /**
@@ -14,10 +15,10 @@ import { MONITOR_CORNERS, DEFAULT_CALIBRATION, sanitizeCalibration, type Calibra
  * measured at t = 5.2s where the boardroom monitor is 100% fully in view with all 4 bezels.
  */
 export const MOBILE_MONITOR_CORNERS = {
-  tl: [38.54, 22.26] as [number, number],
-  tr: [59.22, 22.36] as [number, number],
-  br: [59.22, 43.23] as [number, number],
-  bl: [38.54, 42.95] as [number, number],
+  tl: [38.67, 22.57] as [number, number],
+  tr: [59.09, 22.66] as [number, number],
+  br: [59.00, 43.18] as [number, number],
+  bl: [38.67, 42.97] as [number, number],
 };
 
 /**
@@ -116,6 +117,62 @@ const GLOBAL_HUBS: GlobalHub[] = [
   },
 ];
 
+/** The deck's control dock. Same object as the opening boardroom's. */
+function FinaleDeckDock({
+  activeSlide,
+  onStep,
+  onPick,
+}: {
+  activeSlide: number;
+  onStep: (dir: -1 | 1) => void;
+  onPick: (index: number) => void;
+}) {
+  const arm = (dir: -1 | 1, glyph: string, label: string) => (
+    <button
+      onClick={() => onStep(dir)}
+      disabled={dir === -1 ? activeSlide === 0 : activeSlide === FINALE_SLIDES - 1}
+      className="flex h-8 w-8 items-center justify-center rounded-full text-[14px] leading-none text-white/80 transition-all duration-200 hover:bg-white/12 hover:text-white active:scale-90 cursor-pointer disabled:cursor-default disabled:opacity-25 disabled:hover:bg-transparent"
+      aria-label={label}
+      title={label}
+    >
+      {glyph}
+    </button>
+  );
+
+  return (
+    <div
+      className="flex items-center gap-1 rounded-full px-1.5 py-1.5 shadow-[0_12px_36px_-12px_rgba(0,0,0,0.7)]"
+      style={{
+        background: 'rgba(12, 16, 24, 0.55)',
+        backdropFilter: 'blur(18px) saturate(160%)',
+        WebkitBackdropFilter: 'blur(18px) saturate(160%)',
+        border: '1px solid rgba(255, 255, 255, 0.14)',
+      }}
+    >
+      {arm(-1, '\u2190', 'Previous slide')}
+
+      <div className="flex items-center gap-1.5 px-2">
+        {Array.from({ length: FINALE_SLIDES }, (_, i) => (
+          <button
+            key={i}
+            onClick={() => onPick(i)}
+            className="h-1.5 rounded-full transition-all duration-[400ms] ease-out cursor-pointer"
+            style={{
+              width: i === activeSlide ? '1.5rem' : '0.375rem',
+              backgroundColor: i === activeSlide ? '#8FB4FF' : '#ffffff',
+              opacity: i === activeSlide ? 1 : 0.3,
+            }}
+            aria-label={`Go to slide ${i + 1}`}
+            aria-current={i === activeSlide}
+          />
+        ))}
+      </div>
+
+      {arm(1, '\u2192', 'Next slide')}
+    </div>
+  );
+}
+
 /** Geodesic arc generator from hub to Dubai HQ */
 function makeArcPath(fromX: number, fromY: number, toX: number, toY: number): string {
   const midX = (fromX + toX) / 2;
@@ -130,6 +187,9 @@ const STREAM_ARCS = GLOBAL_HUBS.filter((h) => !h.isHQ).map((h) => ({
   path: makeArcPath(h.x, h.y, DUBAI_HQ.x, DUBAI_HQ.y),
   hub: h,
 }));
+
+/** The closing monitor's deck: the map, the numbers, the questions. */
+const FINALE_SLIDES = 3;
 
 interface FinaleWorldMapPresentationProps {
   chapter: string;
@@ -149,6 +209,10 @@ export default function FinaleWorldMapPresentation({
   const reelRef = useRef<HTMLDivElement>(null);
   const rightReelRef = useRef<HTMLDivElement>(null);
   const marqueeRef = useRef<HTMLDivElement>(null);
+  /* The closing deck: the map, the numbers, the questions. */
+  const slidesRef = useRef<HTMLDivElement>(null);
+  const dockRef = useRef<HTMLDivElement>(null);
+  const [activeSlide, setActiveSlide] = useState(0);
   const [viewport, setViewport] = useState({ width: 1920, height: 1080 });
   const [calibration, setCalibration] = useState<CalibrationCoords>(() => {
     if (typeof window !== 'undefined') {
@@ -223,8 +287,33 @@ export default function FinaleWorldMapPresentation({
     rect.y + (quadCoords.bl[1] / 100) * rect.height,
   ];
 
+  /*
+   * The quad the canvas is actually painted onto, grown a little past the
+   * calibrated one.
+   *
+   * The corners themselves are now measured off the footage rather than tuned
+   * by eye (see MONITOR_CORNERS), so this is no longer correcting anything —
+   * it is a hairline, 0.3% of the screen on each edge, roughly three pixels at
+   * 1080p. Enough that the perspective transform cannot leave a one-pixel seam
+   * of bare screen down an edge, small enough that the bezel around the
+   * monitor stays a bezel: it eats about a sixth of the black surround, which
+   * reads as screen light spilling onto it rather than as a slide that has
+   * outgrown the television.
+   */
+  const SCREEN_BLEED = 0.006;
+  const quadCx = (tlPx[0] + trPx[0] + brPx[0] + blPx[0]) / 4;
+  const quadCy = (tlPx[1] + trPx[1] + brPx[1] + blPx[1]) / 4;
+  const bleed = (p: [number, number]): [number, number] => [
+    quadCx + (p[0] - quadCx) * (1 + SCREEN_BLEED),
+    quadCy + (p[1] - quadCy) * (1 + SCREEN_BLEED),
+  ];
+  const bledTl = bleed(tlPx);
+  const bledTr = bleed(trPx);
+  const bledBr = bleed(brPx);
+  const bledBl = bleed(blPx);
+
   // Map onto the pristine 2000 x 1156 (1.73:1) uncompressed reference canvas
-  const quadTransform = matrix3dFor(2000, 1156, [tlPx, trPx, brPx, blPx]);
+  const quadTransform = matrix3dFor(2000, 1156, [bledTl, bledTr, bledBr, bledBl]);
 
   // Portrait phone fallback
   const availableW = viewport.width * 0.94;
@@ -236,22 +325,71 @@ export default function FinaleWorldMapPresentation({
   const portraitTop = (viewport.height - portraitHeight) / 2;
 
   /*
-   * The builders' reel, matched to the opening boardroom.
+   * The logo reels, on the walls either side of the presentation monitor.
    *
-   * Same fractions of the frame as BoardroomPresentation uses, so the panel
-   * lands in the same place on the wall when the film comes back to the room
-   * at the end — it reads as the same object, not a second one.
+   * The wall panels are measured off this scene's own park frame the same way
+   * the opening boardroom's are — the wall is flat and the glazing either side
+   * of it carries city lights, so a column's variance separates them. The flat
+   * runs are 4.9%-18.2% on the left and 82.9%-96.2% on the right. Placing the
+   * strips by symmetry about the viewport instead, as they were, walked them
+   * off the wall and into the glass.
+   *
+   * Both strips run the monitor's full height and a little beyond it at each
+   * end, so they read as running up the wall rather than as two floating
+   * cards.
    */
-  const reelWidth = Math.min(230, Math.max(150, rect.width * 0.125));
-  const reelLeft = Math.max(16, rect.x + rect.width * 0.022);
-  const reelCentreY = rect.y + rect.height * 0.42;
-  const reelHeight = Math.min(rect.height * 0.34, 280);
-  /* The monitor's left edge, in the calibrated quad. A viewport far taller
-     than 16:9 crops the frame until there is nothing outboard of it to sit
-     in; the reel steps out rather than climbing onto the screen. */
-  const reelFits = !flat && tlPx[0] - (reelLeft + reelWidth) >= 16;
-  const rightReelLeft = Math.min(viewport.width - reelWidth - 16, rect.x + rect.width * 0.978 - reelWidth);
-  const rightReelFits = !flat && rightReelLeft - trPx[0] >= 16;
+  const WALL_L = { from: 0.049, to: 0.182 };
+  const WALL_R = { from: 0.829, to: 0.962 };
+  const WALL_INSET = 0.18;
+  const MAX_REEL_W = 126;
+
+  const monitorL = Math.min(bledTl[0], bledBl[0]);
+  const monitorR = Math.max(bledTr[0], bledBr[0]);
+  const monitorT = Math.min(bledTl[1], bledTr[1]);
+  const monitorB = Math.max(bledBl[1], bledBr[1]);
+
+  const wallRun = (w: { from: number; to: number }) => {
+    const x0 = Math.max(rect.x + w.from * rect.width, 8);
+    const x1 = Math.min(rect.x + w.to * rect.width, viewport.width - 8);
+    return { x0, width: Math.max(0, x1 - x0) };
+  };
+  const leftRun = wallRun(WALL_L);
+  const rightRun = wallRun(WALL_R);
+
+  const reelWidth = Math.min(
+    MAX_REEL_W,
+    Math.min(leftRun.width, rightRun.width) * (1 - 2 * WALL_INSET),
+  );
+  const reelLeft = leftRun.x0 + (leftRun.width - reelWidth) / 2;
+  const rightReelLeft = rightRun.x0 + (rightRun.width - reelWidth) / 2;
+
+  const reelTop = Math.max(8, monitorT - rect.height * 0.04);
+  const reelHeight = monitorB - monitorT + rect.height * 0.08;
+
+  const reelFits = !flat && reelWidth >= 76 && reelHeight > 120;
+  const rightReelFits = reelFits;
+
+  /*
+   * The deck's controls, in the gap under the monitor.
+   *
+   * The screen's bottom edge is at about 75% of the frame and the orb parks at
+   * 86% for this beat, so there is roughly a fourteenth of the frame between
+   * them. These go at the top of that, clear of both.
+   */
+  const dockTop = Math.max(bledBl[1], bledBr[1]) + rect.height * 0.022;
+  const dockLeft = (bledBl[0] + bledBr[0]) / 2;
+
+  /*
+   * How small the monitor is actually painting.
+   *
+   * The slides are authored on a 2000-unit canvas. On a wide screen the
+   * monitor takes 880 to 1280 of those points, so a unit paints at roughly a
+   * half and the deck reads as a deck. On a portrait phone the same canvas
+   * lands on a 260-point screen in the shot — a sixth — and the chrome would
+   * be two pixels tall. Below a third, the slides drop to a compact layout.
+   */
+  const deckScale = (monitorR - monitorL) / 2000;
+  const deckCompact = deckScale < 0.34;
 
   /*
    * On screen while the film is parked on the presentation, and held through
@@ -300,6 +438,39 @@ export default function FinaleWorldMapPresentation({
     return () => window.removeEventListener('rechitta:ignite-world-map', onIgnite);
   }, []);
 
+  /*
+   * The track moves as one piece, on the GPU, the way the opening deck's does.
+   * Three panels, so a step is a third of the track's own width.
+   */
+  useEffect(() => {
+    window.dispatchEvent(
+      new CustomEvent('rechitta:beat-sync', { detail: { beat: 'finale-screen', step: activeSlide } }),
+    );
+    if (!slidesRef.current) return;
+    gsap.to(slidesRef.current, {
+      xPercent: (-activeSlide * 100) / FINALE_SLIDES,
+      duration: 0.78,
+      ease: 'power2.inOut',
+      overwrite: 'auto',
+      force3D: true,
+    });
+  }, [activeSlide]);
+
+  /** Scroll steps walk the deck before the film leaves for the horizon. */
+  useEffect(() => {
+    const onStep = (e: Event) => {
+      const detail = (e as CustomEvent<{ beat?: string; step?: number }>).detail;
+      if (detail?.beat !== 'finale-screen' || typeof detail.step !== 'number') return;
+      setActiveSlide(Math.max(0, Math.min(FINALE_SLIDES - 1, detail.step)));
+    };
+    window.addEventListener('rechitta:beat-step', onStep);
+    return () => window.removeEventListener('rechitta:beat-step', onStep);
+  }, []);
+
+  const slideBy = (direction: -1 | 1) => {
+    setActiveSlide((prev) => Math.max(0, Math.min(FINALE_SLIDES - 1, prev + direction)));
+  };
+
   // Keep the physical boardroom monitor centered horizontally on mobile portrait
   useEffect(() => {
     const applyVideoPosition = () => {
@@ -337,11 +508,32 @@ export default function FinaleWorldMapPresentation({
     const el = containerRef.current;
     if (!el) return;
     // The map, the reel beside it, and the mobile marquee are lit and dimmed as one.
-    const panels = [el, reelRef.current, rightReelRef.current, marqueeRef.current].filter(Boolean);
+    const panels = [
+      el,
+      reelRef.current,
+      rightReelRef.current,
+      marqueeRef.current,
+      dockRef.current,
+    ].filter(Boolean);
 
     if (isVisible) {
       gsap.killTweensOf(panels);
       gsap.set(panels, { display: 'block' });
+
+      /*
+       * Open on the map, and say so.
+       *
+       * The exit fade resets the deck to slide 0, but the film's own step
+       * counter does not follow it: arriving backwards from the horizon lands
+       * that counter on the last slide. The sync goes out unconditionally
+       * because there is no state change to ride on — the deck is already on
+       * slide 0 — and the track is set rather than tweened so a fast
+       * re-entry cannot catch it mid-travel.
+       */
+      if (slidesRef.current) gsap.set(slidesRef.current, { xPercent: 0 });
+      window.dispatchEvent(
+        new CustomEvent('rechitta:beat-sync', { detail: { beat: 'finale-screen', step: 0 } }),
+      );
       gsap.fromTo(
         el,
         { opacity: 0 },
@@ -456,6 +648,8 @@ export default function FinaleWorldMapPresentation({
         ease: 'power2.out',
         onComplete: () => {
           gsap.set(panels, { display: 'none' });
+          // Back to the map, so the beat always opens where it opened before.
+          setActiveSlide(0);
         },
       });
     }
@@ -474,15 +668,11 @@ export default function FinaleWorldMapPresentation({
           style={{
             display: 'none',
             left: `${reelLeft}px`,
-            top: `${reelCentreY}px`,
+            top: `${reelTop}px`,
             zIndex: 49,
           }}
         >
-          {/* Centring on its own element, so the fade's transform has nothing
-              of ours to overwrite. */}
-          <div style={{ transform: 'translateY(-50%)' }}>
-            <WallLogoReel logos={DEVELOPER_LOGOS} width={reelWidth} height={reelHeight} duration={34} />
-          </div>
+          <WallLogoReel logos={DEVELOPER_LOGOS} width={reelWidth} height={reelHeight} duration={34} />
         </div>
       )}
 
@@ -493,13 +683,33 @@ export default function FinaleWorldMapPresentation({
           style={{
             display: 'none',
             left: `${rightReelLeft}px`,
-            top: `${reelCentreY}px`,
+            top: `${reelTop}px`,
             zIndex: 49,
           }}
         >
-          <div style={{ transform: 'translateY(-50%)' }}>
-            <WallLogoReel logos={PROJECT_LOGOS} width={reelWidth} height={reelHeight} duration={41} />
-          </div>
+          <WallLogoReel logos={PROJECT_LOGOS} width={reelWidth} height={reelHeight} duration={41} />
+        </div>
+      )}
+
+      {/*
+        The deck's controls, matching the opening boardroom's dock exactly:
+        back, where you are, forward, in one object. Landscape hangs it in the
+        gap under the monitor; portrait has no such gap, so it rides at the top
+        of the table block below instead.
+      */}
+      {!flat && (
+        <div
+          ref={dockRef}
+          className="fixed pointer-events-auto select-none"
+          style={{
+            display: 'none',
+            left: `${dockLeft}px`,
+            top: `${dockTop}px`,
+            transform: 'translateX(-50%)',
+            zIndex: 100,
+          }}
+        >
+          <FinaleDeckDock activeSlide={activeSlide} onStep={slideBy} onPick={setActiveSlide} />
         </div>
       )}
 
@@ -515,6 +725,10 @@ export default function FinaleWorldMapPresentation({
           }}
         >
           <div className="max-w-sm mx-auto w-full flex flex-col gap-2 sm:gap-2.5">
+            <div className="finale-stagger-item finale-marquee-wrap flex justify-center">
+              <FinaleDeckDock activeSlide={activeSlide} onStep={slideBy} onPick={setActiveSlide} />
+            </div>
+
             {/* 1. Developer Partner Marquee */}
             <div className="w-full finale-stagger-item finale-marquee-wrap">
               <BuilderMarquee />
@@ -611,8 +825,23 @@ export default function FinaleWorldMapPresentation({
         transform: quadTransform !== 'none' ? quadTransform : undefined,
         zIndex: 48,
         background: 'transparent',
+        overflow: 'hidden',
       }}
     >
+      {/*
+        The deck's track, three panels wide.
+
+        The whole thing is warped onto the monitor's quad by the transform
+        above, so the slides travel inside the screen rather than across the
+        room. The map keeps its transparent ground and lets the lit monitor
+        through; the two analytics panels paint their own.
+      */}
+      <div
+        ref={slidesRef}
+        className="absolute inset-0 flex"
+        style={{ width: `${FINALE_SLIDES * 100}%`, height: '100%', willChange: 'transform' }}
+      >
+      <div style={{ width: '2000px', height: '1156px', flexShrink: 0 }}>
       {/* 2000 x 1156 SVG canvas: matches screen aspect ratio 1.73:1 exactly */}
       <svg
         viewBox="0 0 2000 1156"
@@ -912,7 +1141,7 @@ export default function FinaleWorldMapPresentation({
           </text>
         </g>
 
-        <g transform="translate(1940, 1090)">
+        <g transform="translate(1830, 1090)">
           <text
             x="0"
             y="2"
@@ -924,10 +1153,43 @@ export default function FinaleWorldMapPresentation({
             fontWeight="600"
             letterSpacing="0.16em"
           >
-            LATENCY: 12ms · 100% CONCURRENCY · GLOBAL ENGINE
+            LATENCY: 12ms · 100% CONCURRENCY
+          </text>
+        </g>
+
+        {/*
+          The counter, in the same corner the other two slides put theirs.
+          This slide carries its own chrome rather than the deck shell's, so
+          without this the map was the one panel in the deck that did not say
+          where in it you were. The telemetry beside it gave up its last clause
+          to make the room.
+        */}
+        <g transform="translate(1940, 1090)">
+          <text
+            x="0"
+            y="2"
+            textAnchor="end"
+            dominantBaseline="central"
+            fill="#404040"
+            fontSize="13.5"
+            fontFamily="var(--font-inter), monospace"
+            fontWeight="700"
+            letterSpacing="0.16em"
+          >
+            01 / 03
           </text>
         </g>
       </svg>
+      </div>
+
+      <div style={{ width: '2000px', height: '1156px', flexShrink: 0 }}>
+        <FinaleStatsSlide live={activeSlide === 1} compact={deckCompact} />
+      </div>
+
+      <div style={{ width: '2000px', height: '1156px', flexShrink: 0 }}>
+        <FinaleQuestionsSlide live={activeSlide === 2} compact={deckCompact} />
+      </div>
+      </div>
 
       {/* Animation Styles */}
       <style jsx>{`
