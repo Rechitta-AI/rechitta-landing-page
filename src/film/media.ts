@@ -122,6 +122,8 @@ function create(key: string): HTMLVideoElement {
   v.dataset.clip = key;
   if (key === 'scene1-3') {
     v.poster = '/film/frames/scene1-3/f_120.webp';
+  } else if (key === 'mobile-seq1-2') {
+    v.poster = '/film/frames/mobile-seq1-2/poster.webp';
   }
   Object.assign(v.style, {
     position: 'absolute',

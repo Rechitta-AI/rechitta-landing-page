@@ -202,17 +202,19 @@ export default function WallLogoReel({
  */
 export function BuilderMarquee({ className = '' }: { className?: string }) {
   const items = [...DEVELOPER_LOGOS, ...PROJECT_LOGOS];
+  // Repeat items twice so keyframes translate3d(-50%, 0, 0) loops seamlessly forever
+  const repeatedItems = [...items, ...items];
   return (
-    <div className={`overflow-hidden select-none ${className}`} aria-hidden="true">
+    <div className={`w-full overflow-hidden select-none ${className}`} aria-hidden="true">
       <div
-        className="relative flex items-center overflow-hidden rounded-xl border border-white/10 bg-black/30 py-1.5 shadow-inner backdrop-blur-md"
+        className="relative flex w-full items-center overflow-hidden rounded-xl border border-white/10 bg-black/35 py-2 shadow-inner backdrop-blur-md"
         style={{
-          maskImage: 'linear-gradient(to right, transparent, black 8%, black 92%, transparent)',
-          WebkitMaskImage: 'linear-gradient(to right, transparent, black 8%, black 92%, transparent)',
+          maskImage: 'linear-gradient(to right, transparent 0%, black 6%, black 94%, transparent 100%)',
+          WebkitMaskImage: 'linear-gradient(to right, transparent 0%, black 6%, black 94%, transparent 100%)',
         }}
       >
         <div className="animate-marquee flex shrink-0 items-center gap-7 whitespace-nowrap px-4">
-          {items.map((logo, idx) => (
+          {repeatedItems.map((logo, idx) => (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               key={idx}
@@ -234,3 +236,4 @@ export function BuilderMarquee({ className = '' }: { className?: string }) {
     </div>
   );
 }
+

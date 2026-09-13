@@ -92,6 +92,8 @@ export type Beat = {
 
   /** The video key this beat parks on. Absent for poster-only beats. */
   clip?: string;
+  /** Responsive video key on portrait/mobile screens. */
+  portraitClip?: string;
   /** The source second the film rests at. */
   park: number;
   /** Responsive resting second on portrait/mobile screens. */
@@ -142,10 +144,17 @@ export type Beat = {
    */
   progress?: number;
   progressFrom?: number;
+  /** Responsive explicit progress on portrait/mobile screens. */
+  portraitProgress?: number;
+  portraitProgressFrom?: number;
 
   /** Disables mid-transition skipping so cinematic sequences play uninterrupted. */
   noSkip?: boolean;
 };
+
+export function getBeatClip(beat: Beat, isPortrait = false): string | undefined {
+  return isPortrait && beat.portraitClip !== undefined ? beat.portraitClip : beat.clip;
+}
 
 export function getBeatPark(beat: Beat, isPortrait = false): number {
   return isPortrait && beat.portraitPark !== undefined ? beat.portraitPark : beat.park;
@@ -156,6 +165,16 @@ export function getBeatEnter(
   isPortrait = false,
 ): { from: number; to: number; rate: number } | undefined {
   return isPortrait && beat.portraitEnter !== undefined ? beat.portraitEnter : beat.enter;
+}
+
+export function getBeatProgress(beat: Beat, isPortrait = false): number | undefined {
+  return isPortrait && beat.portraitProgress !== undefined ? beat.portraitProgress : beat.progress;
+}
+
+export function getBeatProgressFrom(beat: Beat, isPortrait = false): number | undefined {
+  return isPortrait && beat.portraitProgressFrom !== undefined
+    ? beat.portraitProgressFrom
+    : beat.progressFrom;
 }
 
 /**
@@ -183,18 +202,26 @@ export const BEATS: Beat[] = [
     chapter: 'intro',
     label: 'I · Dawn',
     clip: 'scene1-3',
+    portraitClip: 'mobile-seq1-2',
     park: 2.0,
+    portraitPark: 0.0,
+    portraitProgress: 0.0,
   },
   {
     id: 'boardroom',
     chapter: 'intro',
     label: 'II · The boardroom',
     clip: 'scene1-3',
+    portraitClip: 'mobile-seq1-2',
     park: 11.0,
+    portraitPark: 5.0,
     enter: { from: 2.0, to: 11.0, rate: 2.4 },
+    portraitEnter: { from: 0.0, to: 5.0, rate: 2.0 },
     hold: 0,
     steps: 4,
     release: 'rechitta:boardroom-upload',
+    portraitProgress: 0.12,
+    portraitProgressFrom: 0.0,
   },
   {
     id: 'broker',
@@ -212,6 +239,8 @@ export const BEATS: Beat[] = [
      */
     steps: 4,
     gate: true,
+    portraitProgress: 0.42,
+    portraitProgressFrom: 0.12,
   },
   /*
    * The buyer's phone, retired.
@@ -297,12 +326,22 @@ export const beatIndexById = (id: string) => BEATS.findIndex((b) => b.id === id)
  */
 export const EAGER_CLIPS = [{ key: 'scene1-3', from: 2, to: 11 }];
 
+/** Eager clips for portrait/mobile screens. */
+export const MOBILE_EAGER_CLIPS = [{ key: 'mobile-seq1-2', from: 0, to: 5.0 }];
+
 /** Fetched in this order once the loader is gone. */
 export const LAZY_CLIPS = [
   { key: 'transit-b', from: 2, to: 17 },
   /* The buyer's two shots. Nothing plays them while that scene is retired.
    * { key: 'transit-c', from: 0, to: 6.8 },
    * { key: 'transit-d', from: 0, to: 6.0 }, */
+  { key: 'transit-e', from: 1.0, to: CLOUD_OUT },
+  { key: 'last', from: 1.0, to: 11.0 },
+];
+
+/** Lazy clips for portrait/mobile screens. */
+export const MOBILE_LAZY_CLIPS = [
+  { key: 'transit-b', from: 2.0, to: 16.9 },
   { key: 'transit-e', from: 1.0, to: CLOUD_OUT },
   { key: 'last', from: 1.0, to: 11.0 },
 ];

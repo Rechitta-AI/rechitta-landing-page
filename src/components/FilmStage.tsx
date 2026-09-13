@@ -5,8 +5,13 @@ import {
   BEATS,
   EAGER_CLIPS,
   LAZY_CLIPS,
+  MOBILE_EAGER_CLIPS,
+  MOBILE_LAZY_CLIPS,
   getBeatPark,
   getBeatEnter,
+  getBeatClip,
+  getBeatProgress,
+  getBeatProgressFrom,
   type Beat,
   type Chapter,
 } from '@/film/score';
@@ -168,9 +173,11 @@ export default function FilmStage({
     // the decoder's own clock so the orb cannot drift off the frame.
 
     const beatProgress = (beat: Beat): number => {
-      if (beat.progress !== undefined) return beat.progress;
-      if (beat.clip) {
-        const p = progressForClipTime(timing, beat.clip, beat.park);
+      const explicit = getBeatProgress(beat, isPortrait());
+      if (explicit !== undefined) return explicit;
+      const clip = getBeatClip(beat, isPortrait());
+      if (clip) {
+        const p = progressForClipTime(timing, clip, getBeatPark(beat, isPortrait()));
         if (p !== null) return p;
       }
       return 0;
@@ -234,23 +241,25 @@ export default function FilmStage({
 
       // Keep the neighbours' decoders alive and drop everything else.
       const neighbours = [BEATS[index - 1], beat, BEATS[index + 1], BEATS[0]]
-        .map((b) => b?.clip)
+        .map((b) => (b ? getBeatClip(b, isPortrait()) : undefined))
         .filter((k): k is string => Boolean(k));
       keepOnly(neighbours);
 
-      if (beat.clip) {
-        const v = acquire(beat.clip);
+      const clip = getBeatClip(beat, isPortrait());
+      if (clip) {
+        const v = acquire(clip);
         await park(v, getBeatPark(beat, isPortrait()));
         if (!disposed) {
           show(v, FADE_MS);
-          if (playheadRef) playheadRef.current = { clip: beat.clip, t: getBeatPark(beat, isPortrait()) };
+          if (playheadRef) playheadRef.current = { clip, t: getBeatPark(beat, isPortrait()) };
         }
       } else if (beat.id === 'city-paris' || beat.id === 'city-riyadh') {
         // Pre-park the finale presentation clip ('last') in the background
         // so the hardware decoder is already primed before the clouds appear.
         const nextBeat = BEATS.find((b) => b.id === 'finale-screen');
-        if (nextBeat?.clip) {
-          const v = acquire(nextBeat.clip);
+        const nextClip = nextBeat ? getBeatClip(nextBeat, isPortrait()) : undefined;
+        if (nextBeat && nextClip) {
+          const v = acquire(nextClip);
           park(v, getBeatPark(nextBeat, isPortrait()));
         }
       }
@@ -266,16 +275,18 @@ export default function FilmStage({
      * against twenty-four frames of source.
      */
     const playForward = async (beat: Beat, moveFrom = 0, moveTo = 0) => {
-      const enterConf = getBeatEnter(beat, isPortraitFor(window.innerWidth, window.innerHeight));
-      if (!beat.clip || !enterConf) return;
+      const portrait = isPortrait();
+      const enterConf = getBeatEnter(beat, portrait);
+      const clip = getBeatClip(beat, portrait);
+      if (!clip || !enterConf) return;
       const { from, to, rate } = enterConf;
 
-      const v = acquire(beat.clip);
+      const v = acquire(clip);
       // Enough of the clip to start without stalling. Short, because the
       // background preloader has usually seen to it already, and because the
       // shot's own deadline covers a decoder that turns out to be struggling.
       await preloadSpan(
-        { key: beat.clip, from, to },
+        { key: clip, from, to },
         { timeoutMs: 3000, parkAt: from, readyIsEnough: true },
       );
       if (disposed) return;
@@ -285,7 +296,7 @@ export default function FilmStage({
         if (disposed) return;
         show(v, 0);
         publish(beatProgress(beat));
-        if (playheadRef) playheadRef.current = { clip: beat.clip, t: to };
+        if (playheadRef) playheadRef.current = { clip, t: to };
         return;
       }
 
@@ -301,11 +312,11 @@ export default function FilmStage({
       }
 
       const startProgress =
-        beat.progressFrom ??
-        (beat.clip ? progressForClipTime(timing, beat.clip, from) : null) ??
+        getBeatProgressFrom(beat, portrait) ??
+        (clip ? progressForClipTime(timing, clip, from) : null) ??
         0;
       const endProgress = beatProgress(beat);
-      const inTiming = progressForClipTime(timing, beat.clip, from) !== null;
+      const inTiming = progressForClipTime(timing, clip, from) !== null;
 
       const startedAt = performance.now();
       const naturalMs = ((to - from) / rate) * 1000;
@@ -340,7 +351,7 @@ export default function FilmStage({
 
           const t = v.currentTime;
 
-          if (playheadRef) playheadRef.current = { clip: beat.clip!, t };
+          if (playheadRef) playheadRef.current = { clip, t };
           if (beatPositionRef) {
             const ratio = Math.max(0, Math.min(1, (t - from) / (to - from || 1)));
             beatPositionRef.current = moveFrom + (moveTo - moveFrom) * ratio;
@@ -349,7 +360,7 @@ export default function FilmStage({
           // Clips inside the measured cut resolve through the same table the
           // orb's keyframes do, so its path stays welded to the footage.
           if (inTiming) {
-            const p = progressForClipTime(timing, beat.clip!, t);
+            const p = progressForClipTime(timing, clip, t);
             if (p !== null) publish(p);
           } else {
             const ratio = Math.max(0, Math.min(1, (t - from) / (to - from || 1)));
@@ -378,7 +389,7 @@ export default function FilmStage({
         await park(v, to);
         if (disposed) return;
         publish(endProgress);
-        if (playheadRef) playheadRef.current = { clip: beat.clip, t: to };
+        if (playheadRef) playheadRef.current = { clip, t: to };
         v.style.opacity = '1';
         await sleep(200);
       }
@@ -386,13 +397,15 @@ export default function FilmStage({
 
     /** Backwards, and between cities: a parked frame dissolving into another. */
     const dissolveTo = async (beat: Beat, fromProgress: number, moveFrom = 0, moveTo = 0) => {
+      const portrait = isPortrait();
       const toProgress = beatProgress(beat);
       const started = performance.now();
+      const clip = getBeatClip(beat, portrait);
 
       if (reduceMotion) {
-        if (beat.clip) {
-          const v = acquire(beat.clip);
-          await park(v, getBeatPark(beat, isPortrait()));
+        if (clip) {
+          const v = acquire(clip);
+          await park(v, getBeatPark(beat, portrait));
           if (disposed) return;
           show(v, 0);
         }
@@ -400,9 +413,9 @@ export default function FilmStage({
         return;
       }
 
-      if (beat.clip) {
-        const v = acquire(beat.clip);
-        await park(v, getBeatPark(beat, isPortrait()));
+      if (clip) {
+        const v = acquire(clip);
+        await park(v, getBeatPark(beat, portrait));
         if (disposed) return;
         show(v, FADE_MS);
       }
@@ -775,12 +788,14 @@ export default function FilmStage({
 
     (async () => {
       const isMobile = typeof window !== 'undefined' && window.innerWidth < 810;
-      const spans = EAGER_CLIPS;
+      const spans = isMobile || isPortrait() ? MOBILE_EAGER_CLIPS : EAGER_CLIPS;
       const fractions = new Array(spans.length).fill(0);
+      const first = BEATS[0];
+      const initialPark = getBeatPark(first, isPortrait());
       await Promise.all(
         spans.map((span, i) =>
           preloadSpan(span, {
-            parkAt: BEATS[0].park,
+            parkAt: initialPark,
             timeoutMs: isMobile ? 1200 : 12000,
             readyIsEnough: true,
             onProgress: (f) => {
@@ -796,10 +811,10 @@ export default function FilmStage({
       setLoadProgress(1, 'film');
       if (disposed) return;
 
-      const first = BEATS[0];
-      if (first.clip) {
-        const v = acquire(first.clip);
-        const target = first.park;
+      const firstClip = getBeatClip(first, isPortrait());
+      if (firstClip) {
+        const v = acquire(firstClip);
+        const target = initialPark;
         const reveal = () => {
           if (!disposed) show(v, 400);
         };
@@ -836,7 +851,10 @@ export default function FilmStage({
 
       // Idle time is when the rest of the film arrives.
       const start = () => {
-        if (!disposed) stopBackground = preloadInBackground(LAZY_CLIPS);
+        if (!disposed) {
+          const lazy = isMobile || isPortrait() ? MOBILE_LAZY_CLIPS : LAZY_CLIPS;
+          stopBackground = preloadInBackground(lazy);
+        }
       };
       if ('requestIdleCallback' in window) {
         (window as unknown as { requestIdleCallback: (cb: () => void) => void })

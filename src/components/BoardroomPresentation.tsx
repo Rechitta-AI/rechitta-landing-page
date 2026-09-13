@@ -140,78 +140,61 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
    */
   const LANDSCAPE_BASE = { w: 826, h: 462 };
   /*
-   * Wider and shorter than it was (520x680).
-   *
-   * The portrait canvas is contain-fitted into the television's visible face,
-   * and on a phone that face is about square — the footage is cropped to the
-   * viewport's width, so it measures roughly 390x410. A 0.76 canvas fitted
-   * into a 0.95 box is limited by height and wastes a fifth of the width,
-   * which is what pushed the deck taller than the screen it sits on.
+   * The whiteboard in the portrait 9:16 mobile footage measures 1066px by 663px
+   * (74.0% width, 25.9% height, aspect ratio ~1.608). Authoring the canvas at
+   * 820x510 matches this geometry precisely so the slide covers 100% of the board.
    */
-  const PORTRAIT_BASE = { w: 520, h: 500 };
+  const PORTRAIT_BASE = { w: 820, h: 510 };
   const isPortrait = isPortraitFor(viewport.width, viewport.height);
   const BASE_W = isPortrait ? PORTRAIT_BASE.w : LANDSCAPE_BASE.w;
   const BASE_H = isPortrait ? PORTRAIT_BASE.h : LANDSCAPE_BASE.h;
 
-  // Where the 16:9 footage actually lands in the viewport. Everything placed
-  // against the room — the screen, the wall reels — is measured off this
-  // rather than off the viewport.
-  const rect = coverRect(viewport.width, viewport.height);
+  // Calibrated values for mobile 9:16 video (upscaled-video_first-mobile)
+  // Inner whiteboard face at Frame 120 (5.0s):
+  // Leaves all 4 outer TV bezels (top: 31.33%, bottom: 58.52%, left: 11.67%, right: 88.61%) 100% exposed.
+  const PORTRAIT_TOP = 32.65;
+  const PORTRAIT_LEFT = 13.35;
+  const PORTRAIT_WIDTH = 73.5;
+  const PORTRAIT_HEIGHT = 25.65;
+
+  const curTop = isPortrait ? PORTRAIT_TOP : TOP;
+  const curLeft = isPortrait ? PORTRAIT_LEFT : LEFT;
+  const curWidth = isPortrait ? PORTRAIT_WIDTH : WIDTH;
+  const curHeight = isPortrait ? PORTRAIT_HEIGHT : HEIGHT;
+
+  // Where the footage actually lands in the viewport.
+  // In portrait, the mobile unified footage is 9:16; in landscape, desktop footage is 16:9.
+  const rect = isPortrait
+    ? coverRect(viewport.width, viewport.height, 9 / 16)
+    : coverRect(viewport.width, viewport.height);
+
+  // Guarantee that on ANY portrait screen (including ultra-narrow phones),
+  // the TV display always has at least 14px of side margin from the glass edges.
+  const containScale = isPortrait
+    ? Math.min(1.0, (viewport.width - 28) / (rect.width * 0.77))
+    : 1.0;
 
   /*
-   * The television's face, as it actually lands on the viewport.
-   *
-   * Both orientations now measure off the footage; portrait simply has to
-   * accept that the set is cropped left and right, so its visible width is the
-   * viewport rather than the 43% of frame the set really spans.
+   * The television's / whiteboard's face, as it actually lands on the viewport.
    */
-  const tvLeft = Math.max(rect.x + (LEFT / 100) * rect.width, 0);
-  const tvRight = Math.min(rect.x + ((LEFT + WIDTH) / 100) * rect.width, viewport.width);
-  const tvTop = rect.y + (TOP / 100) * rect.height;
-  const tvHeight = (HEIGHT / 100) * rect.height;
-
-  /*
-   * Painted size.
-   *
-   * Portrait contain-fits the design canvas into that face, with a margin so
-   * the deck never touches the bezel. It used to be sized off the viewport and
-   * then centred in it, which is why it floated with a gap above and spilled
-   * its content out over the credenza below: nothing in the sum knew where the
-   * screen actually was.
-   */
-  const PORTRAIT_MARGIN_X = 14;
-  const PORTRAIT_MARGIN_Y = 12;
-  const portraitFit = Math.min(
-    (tvRight - tvLeft - PORTRAIT_MARGIN_X * 2) / PORTRAIT_BASE.w,
-    (tvHeight - PORTRAIT_MARGIN_Y * 2) / PORTRAIT_BASE.h,
-  );
-
   const screenWidth = isPortrait
-    ? PORTRAIT_BASE.w * portraitFit
+    ? (PORTRAIT_WIDTH / 100) * rect.width * containScale
     : (WIDTH / 100) * rect.width;
   const screenHeight = isPortrait
-    ? PORTRAIT_BASE.h * portraitFit
+    ? (PORTRAIT_HEIGHT / 100) * rect.height * containScale
     : (HEIGHT / 100) * rect.height;
   const screenLeft = isPortrait
-    ? tvLeft + (tvRight - tvLeft - screenWidth) / 2
+    ? (viewport.width - screenWidth) / 2
     : rect.x + (LEFT / 100) * rect.width;
   const screenTop = isPortrait
-    ? tvTop + (tvHeight - screenHeight) / 2
+    ? rect.y + (PORTRAIT_TOP / 100) * rect.height + ((PORTRAIT_HEIGHT / 100) * rect.height * (1 - containScale)) / 2
     : rect.y + (TOP / 100) * rect.height;
 
   /*
    * Where the slide controls sit, measured from the top of the screen area.
-   *
-   * The display in the footage runs from 17% to 65.6% down the frame, its
-   * casing ends around 69%, and the credenza starts around 76%. That gap is
-   * where these go — clear of the picture, clear of the furniture.
-   *
-   * They sit at the top of it rather than the middle: the orb parks on the
-   * credenza through the whole deck, and the scale floor made it large enough
-   * to reach up into the space these used to occupy.
    */
   const controlsTop = isPortrait
-    ? tvTop + tvHeight + 18 - screenTop
+    ? screenHeight + 22
     : screenHeight + rect.height * 0.035;
 
   /*
@@ -284,6 +267,15 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
       setTimeout(() => {
         // Immediately dissolve the boardroom slides so the hallway flight is 100% unobstructed
         const leaving = [containerRef.current, reelRef.current].filter(Boolean);
+        const stageHost = document.getElementById('film-stage-host');
+        if (stageHost && isPortrait) {
+          gsap.to(stageHost, {
+            scale: 1,
+            transformOrigin: 'center 45%',
+            duration: 0.45,
+            ease: 'power2.inOut',
+          });
+        }
         if (leaving.length) {
           isVisibleRef.current = false;
           gsap.killTweensOf(leaving);
@@ -479,11 +471,31 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
           { opacity: 0, scale: 0.96 },
           { opacity: 1, scale: 1, duration: 0.8, ease: 'power3.out' }
         );
+
+        const stageHost = document.getElementById('film-stage-host');
+        if (stageHost && isPortrait && containScale < 0.999) {
+          gsap.to(stageHost, {
+            scale: containScale,
+            transformOrigin: 'center 45%',
+            duration: 0.8,
+            ease: 'power3.out',
+          });
+        }
       }
       // Detect Exit
       else if (!isNowVisible && isVisibleRef.current) {
         isVisibleRef.current = false;
         gsap.killTweensOf(panels);
+
+        const stageHost = document.getElementById('film-stage-host');
+        if (stageHost && isPortrait) {
+          gsap.to(stageHost, {
+            scale: 1,
+            transformOrigin: 'center 45%',
+            duration: 0.45,
+            ease: 'power2.inOut',
+          });
+        }
 
         // Smooth Fade Out
         gsap.to(panels, {
@@ -564,7 +576,7 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
         zIndex: 50,
       }}
     >
-      {/* The 3D Skewed Presentation Canvas (Proportionally Scaled Reference Canvas) */}
+      {/* The Presentation Canvas (Proportionally Scaled Reference Canvas) */}
       <div
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
@@ -572,12 +584,12 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
         style={{
           width: `${BASE_W}px`,
           height: `${BASE_H}px`,
-          position: isPortrait ? 'absolute' : 'relative',
-          left: isPortrait ? '50%' : undefined,
+          position: 'relative',
+          left: 0,
           top: 0,
-          transformOrigin: isPortrait ? 'center top' : 'top left',
+          transformOrigin: 'top left',
           transform: isPortrait
-            ? `translateX(-50%) scale(${scaleRatio}) rotateX(${ROTATE_X}deg) scale(${SCALE})`
+            ? `scale(${scaleRatio})`
             : `scale(${scaleRatio}) ${tilt}`.trim(),
           transformStyle: 'preserve-3d',
         }}
@@ -613,11 +625,7 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
 
         {/* Top Header Chrome */}
         <div
-          className={`absolute top-3.5 z-20 flex items-center justify-between gap-3 border-b border-neutral-900/10 pb-1.5 pointer-events-none text-[11px] font-mono tracking-widest text-neutral-400 uppercase ${
-            isPortrait
-              ? 'left-1/2 -translate-x-1/2 w-[82%] max-w-[400px]'
-              : 'left-8 right-8'
-          }`}
+          className="absolute top-3.5 z-20 flex items-center justify-between gap-3 border-b border-neutral-900/10 pb-1.5 pointer-events-none text-[11px] font-mono tracking-widest text-neutral-400 uppercase left-8 right-8"
         >
           {/*
             One label, carried across the whole deck: this is the internal
@@ -642,11 +650,7 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
 
         {/* Bottom Footer Chrome */}
         <div
-          className={`absolute bottom-3 z-20 flex items-center justify-between gap-3 border-t border-neutral-900/10 pt-1.5 pointer-events-none text-[10px] font-mono tracking-widest text-neutral-400 uppercase ${
-            isPortrait
-              ? 'left-1/2 -translate-x-1/2 w-[82%] max-w-[400px]'
-              : 'left-8 right-8'
-          }`}
+          className="absolute bottom-3 z-20 flex items-center justify-between gap-3 border-t border-neutral-900/10 pt-1.5 pointer-events-none text-[10px] font-mono tracking-widest text-neutral-400 uppercase left-8 right-8"
         >
           <span className="truncate">{isPortrait ? 'CONFIDENTIAL' : 'CONFIDENTIAL DEVELOPER DOSSIER'}</span>
           <span className="shrink-0 font-bold text-neutral-700">0{activeSlide + 1} / 04</span>
@@ -679,9 +683,7 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
                 copy, it marks the slide without competing with it.
               */}
               <div
-                className={`pointer-events-none absolute select-none text-[132px] leading-none font-semibold ${
-                  isPortrait ? 'bottom-6 right-1/2 translate-x-1/2' : 'bottom-5 right-7'
-                }`}
+                className="pointer-events-none absolute select-none text-[132px] leading-none font-semibold bottom-5 right-7"
                 style={{
                   fontFamily: 'var(--font-inter)',
                   fontVariationSettings: '"opsz" 32',
@@ -697,12 +699,12 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
                 /* The live slide's tiers replay their entrance; the ones
                    sliding out of frame hold their finished state. */
                 data-deck-live={SLIDES[activeSlide]?.id === slide.id}
-                className="w-full max-w-[34rem] flex flex-col items-center justify-center relative z-10"
+                className="w-full max-w-[40rem] flex flex-col items-center justify-center relative z-10"
               >
                 {/* Section eyebrow, on the shared editorial tier. */}
-                <div className="deck-tier mb-5 flex flex-col items-center gap-2" style={{ '--tier': 0 } as React.CSSProperties}>
+                <div className="deck-tier mb-4 flex flex-col items-center gap-2" style={{ '--tier': 0 } as React.CSSProperties}>
                   <span
-                    className={`deck-eyebrow ${isSolutionSlide && slide.isInteractive ? 'text-[#3f74e0]' : 'text-neutral-400'}`}
+                    className={`deck-eyebrow ${isSolutionSlide && slide.isInteractive ? 'text-[#3f74e0]' : 'text-neutral-400'} text-[12px] tracking-[0.24em]`}
                     style={{ fontFamily: 'var(--font-inter)' }}
                   >
                     {slide.tag}
@@ -712,7 +714,7 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
 
                 {/* The headline, in Inter's display cut. */}
                 <h2
-                  className="deck-tier deck-headline text-[2.6rem] text-neutral-900"
+                  className="deck-tier deck-headline text-[3.1rem] leading-[1.08] text-neutral-900"
                   style={{ fontFamily: 'var(--font-inter)', '--tier': 1 } as React.CSSProperties}
                 >
                   {slide.headline}
@@ -721,7 +723,7 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
                 {/* Body copy, on a measure wide enough to read at a distance. */}
                 {slide.body && (
                   <p
-                    className="deck-tier deck-body mt-3.5 max-w-[42ch] text-[16.5px] text-neutral-500"
+                    className="deck-tier deck-body mt-3 max-w-[44ch] text-[18.5px] leading-relaxed text-neutral-500"
                     style={{ fontFamily: 'var(--font-inter)', '--tier': 2 } as React.CSSProperties}
                   >
                     {slide.body}
@@ -737,27 +739,27 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
                 */}
                 {slide.id === 1 && (
                   <div
-                    className="deck-tier mt-7 w-full max-w-[26rem] flex flex-col items-center"
+                    className="deck-tier mt-6 w-full max-w-[31rem] flex flex-col items-center"
                     style={{ '--tier': 3 } as React.CSSProperties}
                   >
-                    <div className="w-full rounded-2xl border border-neutral-200/80 bg-white px-3.5 pt-3 pb-3.5 shadow-[0_2px_10px_-4px_rgba(23,23,23,0.12)]">
+                    <div className="w-full rounded-2xl border border-neutral-200/80 bg-white px-4 pt-3.5 pb-4 shadow-[0_2px_10px_-4px_rgba(23,23,23,0.12)]">
                       <div className="mb-2.5 flex items-center justify-between px-0.5">
-                        <span className="deck-caption text-[8.5px] text-neutral-400">
+                        <span className="deck-caption text-[11px] font-semibold text-neutral-400">
                           Briefing calendar
                         </span>
-                        <span className="deck-caption text-[8.5px] text-neutral-400">
+                        <span className="deck-caption text-[11px] font-semibold text-neutral-400">
                           Weeks 1-5 of 26
                         </span>
                       </div>
 
-                      <div className="grid grid-cols-5 gap-1.5">
+                      <div className="grid grid-cols-5 gap-2">
                         {[1, 2, 3, 4, 5].map((day) => (
                           <div key={day} className="flex flex-col gap-1.5">
-                            <span className="deck-caption text-center text-[8px] text-neutral-300">
+                            <span className="deck-caption text-center text-[10.5px] font-bold text-neutral-400">
                               {['Mon', 'Tue', 'Wed', 'Thu', 'Fri'][day - 1]}
                             </span>
                             {/* Four slots a day. Most of them taken. */}
-                            <div className="flex h-[74px] flex-col gap-[4px] rounded-lg bg-neutral-50 p-[4px] ring-1 ring-inset ring-neutral-200/70">
+                            <div className="flex h-[82px] flex-col gap-[4px] rounded-lg bg-neutral-50 p-[4px] ring-1 ring-inset ring-neutral-200/70">
                               {[0, 1, 2, 3].map((slot) => {
                                 const booking = CALENDAR_AGENCIES.find(
                                   (a) => a.day === day && a.slot === slot,
@@ -785,7 +787,7 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
                                       transform: `rotate(${((booking.slot % 2 ? 1 : -1) * (0.7 + (booking.day % 3) * 0.3)).toFixed(2)}deg)`,
                                     }}
                                   >
-                                    <span className="truncate text-[7.5px] font-semibold leading-none tracking-tight">
+                                    <span className="truncate text-[9.5px] font-bold leading-none tracking-tight">
                                       {booking.name}
                                     </span>
                                   </div>
@@ -797,10 +799,10 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
                       </div>
                     </div>
 
-                    <div className="mt-4 flex items-center gap-2.5 text-[11px] font-medium text-neutral-500">
-                      <span className="text-neutral-900 font-semibold">9 agencies booked</span>
-                      <span className="h-3 w-px bg-neutral-200" />
-                      <span className="text-[#3f74e0] font-semibold">1,191 still waiting</span>
+                    <div className="mt-4 flex items-center gap-3 text-[13px] font-medium text-neutral-500">
+                      <span className="text-neutral-900 font-bold">9 agencies booked</span>
+                      <span className="h-3.5 w-px bg-neutral-200" />
+                      <span className="text-[#3f74e0] font-bold">1,191 still waiting</span>
                     </div>
                   </div>
                 )}
@@ -814,18 +816,18 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
                 */}
                 {slide.id === 2 && (
                   <div
-                    className="deck-tier mt-8 w-full max-w-[27rem]"
+                    className="deck-tier mt-7 w-full max-w-[32rem]"
                     style={{ '--tier': 3 } as React.CSSProperties}
                   >
-                    <div className="flex items-start justify-between gap-1">
+                    <div className="flex items-start justify-between gap-1.5">
                       {LANGUAGE_RELAY.map((stage, i) => (
                         <React.Fragment key={stage.label}>
                           {i > 0 && (
-                            <div className="flex flex-1 items-center justify-center gap-[5px] pt-[34px]">
+                            <div className="flex flex-1 items-center justify-center gap-[6px] pt-[38px]">
                               {[0, 1, 2, 3].map((n) => (
                                 <span
                                   key={n}
-                                  className="text-[11px] font-semibold leading-none text-neutral-400"
+                                  className="text-[14px] font-bold leading-none text-neutral-400"
                                   style={{ opacity: 0.7 - i * 0.18 - n * 0.11 }}
                                 >
                                   &rsaquo;
@@ -836,15 +838,15 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
 
                           <div className="flex shrink-0 flex-col items-center gap-2.5">
                             <div
-                              className="flex h-[76px] w-[76px] items-center justify-center rounded-full px-1.5 text-center"
+                              className="flex h-[86px] w-[86px] items-center justify-center rounded-full px-2 text-center"
                               style={{
                                 border: stage.solid
-                                  ? '1.5px solid #3f74e0'
+                                  ? '2px solid #3f74e0'
                                   : `1.5px dashed rgba(115, 115, 115, ${0.7 - i * 0.2})`,
                               }}
                             >
                               <span
-                                className="text-[11px] font-semibold leading-tight tracking-tight"
+                                className="text-[13.5px] font-bold leading-tight tracking-tight"
                                 style={{
                                   color: stage.solid ? '#3f74e0' : '#404040',
                                   opacity: stage.solid ? 1 : 0.85 - i * 0.18,
@@ -854,7 +856,7 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
                               </span>
                             </div>
                             <span
-                              className="deck-caption text-[8px]"
+                              className="deck-caption text-[10px] font-medium tracking-wide"
                               style={{
                                 color: stage.solid ? '#3f74e0' : '#737373',
                                 opacity: stage.solid ? 1 : 0.9 - i * 0.2,
@@ -877,22 +879,22 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
                 */}
                 {slide.id === 3 && (
                   <div
-                    className="deck-tier mt-8 flex w-full max-w-[25rem] items-stretch gap-5"
+                    className="deck-tier mt-7 flex w-full max-w-[28rem] items-stretch gap-6"
                     style={{ '--tier': 3 } as React.CSSProperties}
                   >
                     <div className="flex-1 py-1 text-center">
                       <div
-                        className="text-[46px] leading-none text-neutral-900"
+                        className="text-[58px] leading-none text-neutral-900"
                         style={{
                           fontFamily: 'var(--font-inter)',
                           fontVariationSettings: '"opsz" 32',
-                          fontWeight: 660,
+                          fontWeight: 700,
                           letterSpacing: '-0.04em',
                         }}
                       >
                         30,000
                       </div>
-                      <div className="deck-caption mt-2.5 text-[8.5px] text-neutral-400">
+                      <div className="deck-caption mt-3 text-[11px] font-semibold tracking-wider text-neutral-400">
                         Brochures sent
                       </div>
                     </div>
@@ -901,17 +903,17 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
 
                     <div className="flex-1 py-1 text-center">
                       <div
-                        className="text-[46px] leading-none text-[#3f74e0]"
+                        className="text-[58px] leading-none text-[#3f74e0]"
                         style={{
                           fontFamily: 'var(--font-inter)',
                           fontVariationSettings: '"opsz" 32',
-                          fontWeight: 660,
+                          fontWeight: 700,
                           letterSpacing: '-0.04em',
                         }}
                       >
                         0
                       </div>
-                      <div className="deck-caption mt-2.5 text-[8.5px] text-[#3f74e0]/70">
+                      <div className="deck-caption mt-3 text-[11px] font-semibold tracking-wider text-[#3f74e0]/80">
                         Questions captured
                       </div>
                     </div>
@@ -928,24 +930,23 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
                   object here.
                 */}
                 {slide.isInteractive && (
-                  <div className="w-full flex flex-col items-center pointer-events-auto mt-9 justify-center gap-16">
+                  <div className="w-full flex flex-col items-center pointer-events-auto mt-7 justify-center gap-9">
                     <div
                       className="deck-tier flex flex-col items-center gap-2"
                       style={{ '--tier': 2 } as React.CSSProperties}
                     >
                       <p
-                        className="text-[2rem] leading-none text-[#3f74e0]"
+                        className="text-[2.5rem] font-bold leading-none text-[#3f74e0]"
                         style={{
                           fontFamily: 'var(--font-inter)',
                           fontVariationSettings: '"opsz" 32',
-                          fontWeight: 660,
                           letterSpacing: '-0.035em',
                         }}
                       >
                         Rechitta
                       </p>
                       <p
-                        className="deck-body text-[15px] font-medium text-neutral-500"
+                        className="deck-body text-[17.5px] font-medium text-neutral-500"
                         style={{ fontFamily: 'var(--font-inter)' }}
                       >
                         Super simple to implement.
@@ -966,7 +967,7 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
                       <button
                         onClick={handleUploadClick}
                         disabled={isUploading || isSynced}
-                        className={`px-9 py-3.5 rounded-full bg-neutral-950 hover:bg-neutral-800 text-white text-base font-bold tracking-tight active:scale-[0.97] transition-all flex items-center gap-2.5 cursor-pointer relative overflow-hidden group disabled:cursor-default disabled:opacity-90 ${
+                        className={`px-10 py-4 rounded-full bg-neutral-950 hover:bg-neutral-800 text-white text-[17px] font-bold tracking-tight active:scale-[0.97] transition-all flex items-center gap-3 cursor-pointer relative overflow-hidden group disabled:cursor-default disabled:opacity-90 ${
                           nudgeCta ? 'scale-[1.04]' : ''
                         }`}
                         style={{
@@ -1016,8 +1017,13 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
         placed against the screen's painted height instead.
       */}
       <div
-        className="absolute left-0 right-0 flex flex-col items-center gap-3.5 pointer-events-auto"
-        style={{ top: `${controlsTop}px`, zIndex: 100 }}
+        className="absolute flex flex-col items-center gap-3.5 pointer-events-auto"
+        style={{
+          top: `${controlsTop}px`,
+          left: isPortrait ? `${-screenLeft}px` : '0',
+          width: isPortrait ? `${viewport.width}px` : '100%',
+          zIndex: 100,
+        }}
       >
         <DeckDock
           count={SLIDES.length}
@@ -1029,7 +1035,7 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
         />
 
         {isPortrait && (
-          <div className="w-full max-w-sm px-4">
+          <div className="w-full px-2 sm:px-4">
             <BuilderMarquee />
           </div>
         )}

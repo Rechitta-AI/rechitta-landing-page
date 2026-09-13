@@ -44,3 +44,46 @@ describe('finale responsive beats', () => {
   });
 });
 
+describe('intro responsive sequence 1 & 2', () => {
+  it('keeps desktop sequence 1 and 2 completely untouched', async () => {
+    const { BEATS, getBeatClip, getBeatPark, getBeatEnter, EAGER_CLIPS } = await import('./score');
+    expect(EAGER_CLIPS).toEqual([{ key: 'scene1-3', from: 2, to: 11 }]);
+
+    const hero = BEATS.find((b) => b.id === 'hero')!;
+    expect(getBeatClip(hero, false)).toBe('scene1-3');
+    expect(getBeatPark(hero, false)).toBe(2.0);
+
+    const boardroom = BEATS.find((b) => b.id === 'boardroom')!;
+    expect(getBeatClip(boardroom, false)).toBe('scene1-3');
+    expect(getBeatPark(boardroom, false)).toBe(11.0);
+    expect(getBeatEnter(boardroom, false)).toEqual({ from: 2.0, to: 11.0, rate: 2.4 });
+
+    const broker = BEATS.find((b) => b.id === 'broker')!;
+    expect(getBeatClip(broker, false)).toBe('transit-b');
+    expect(getBeatPark(broker, false)).toBe(16.9);
+    expect(getBeatEnter(broker, false)).toEqual({ from: 2.0, to: 16.9, rate: 3.6 });
+  });
+
+  it('uses mobile-seq1-2 for Sequence 1 and transit-b for Sequence 2 in portrait mode', async () => {
+    const { BEATS, getBeatClip, getBeatPark, getBeatEnter, MOBILE_EAGER_CLIPS, MOBILE_LAZY_CLIPS } =
+      await import('./score');
+    expect(MOBILE_EAGER_CLIPS).toEqual([{ key: 'mobile-seq1-2', from: 0, to: 5.0 }]);
+    expect(MOBILE_LAZY_CLIPS[0]).toEqual({ key: 'transit-b', from: 2.0, to: 16.9 });
+
+    const hero = BEATS.find((b) => b.id === 'hero')!;
+    expect(getBeatClip(hero, true)).toBe('mobile-seq1-2');
+    expect(getBeatPark(hero, true)).toBe(0.0);
+
+    const boardroom = BEATS.find((b) => b.id === 'boardroom')!;
+    expect(getBeatClip(boardroom, true)).toBe('mobile-seq1-2');
+    expect(getBeatPark(boardroom, true)).toBe(5.0);
+    expect(getBeatEnter(boardroom, true)).toEqual({ from: 0.0, to: 5.0, rate: 2.0 });
+
+    const broker = BEATS.find((b) => b.id === 'broker')!;
+    expect(getBeatClip(broker, true)).toBe('transit-b');
+    expect(getBeatPark(broker, true)).toBe(16.9);
+    expect(getBeatEnter(broker, true)).toEqual({ from: 2.0, to: 16.9, rate: 3.6 });
+  });
+});
+
+
