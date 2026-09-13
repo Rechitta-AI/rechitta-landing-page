@@ -6,6 +6,7 @@ import { coverRect } from '@/screens/warp';
 import { isPortraitFor } from '@/hooks/useDeviceMode';
 import { setHold } from '@/film/holds';
 import ClickPrompt from './ClickPrompt';
+import DeckDock from './DeckDock';
 import WallLogoReel, {
   BuilderMarquee,
   DEVELOPER_LOGOS,
@@ -208,9 +209,11 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
    */
   const WALL_L = { from: 0.168, to: 0.272 };
   const WALL_R = { from: 0.749, to: 0.838 };
-  /* How much of each panel stays bare either side of the strip. */
-  const WALL_INSET = 0.18;
-  const MAX_REEL_W = 126;
+  /* How much of each panel stays clear either side of the strip. Tighter than
+     the finale's, because these marks stand on the wall with no tile under
+     them and want the room. */
+  const WALL_INSET = 0.08;
+  const MAX_REEL_W = 168;
 
   /* Clamped to what is actually on screen: a viewport narrower than 16:9 crops
      the footage, and part of a wall can be off the edge of it. */
@@ -504,7 +507,13 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
             className="absolute"
             style={{ left: `${leftWall.left}px`, top: `${wallTop}px` }}
           >
-            <WallLogoReel logos={DEVELOPER_LOGOS} width={leftWall.width} height={wallHeight} duration={34} />
+            <WallLogoReel
+              logos={DEVELOPER_LOGOS}
+              width={leftWall.width}
+              height={wallHeight}
+              duration={34}
+              bare
+            />
           </div>
 
           {/* The project set, standing in as the developer list until project
@@ -513,7 +522,13 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
             className="absolute"
             style={{ left: `${rightWall.left}px`, top: `${wallTop}px` }}
           >
-            <WallLogoReel logos={PROJECT_LOGOS} width={rightWall.width} height={wallHeight} duration={41} />
+            <WallLogoReel
+              logos={PROJECT_LOGOS}
+              width={rightWall.width}
+              height={wallHeight}
+              duration={41}
+              bare
+            />
           </div>
         </div>
       )}
@@ -988,58 +1003,14 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
         className="absolute left-0 right-0 flex flex-col items-center gap-3.5 pointer-events-auto"
         style={{ top: `${controlsTop}px`, zIndex: 100 }}
       >
-        <div
-          className="flex items-center gap-1 rounded-full px-1.5 py-1.5 shadow-[0_12px_36px_-12px_rgba(0,0,0,0.7)]"
-          style={{
-            background: 'rgba(12, 16, 24, 0.55)',
-            backdropFilter: 'blur(18px) saturate(160%)',
-            WebkitBackdropFilter: 'blur(18px) saturate(160%)',
-            border: '1px solid rgba(255, 255, 255, 0.14)',
-          }}
-        >
-          {/*
-            The arrows live here now, either side of the dots.
-
-            They used to hang on the wall panels beside the display, which put
-            them level with the middle of the deck and a third of the frame
-            away from the control they belong with. One dock reads as one
-            control: back, where you are, forward.
-          */}
-          <button
-            onClick={() => slideBy(-1)}
-            className="flex h-8 w-8 items-center justify-center rounded-full text-[14px] leading-none transition-all duration-200 text-white/80 hover:bg-white/12 hover:text-white active:scale-90 cursor-pointer"
-            aria-label={activeSlide === 0 ? 'Return to Dawn' : 'Previous slide'}
-            title={activeSlide === 0 ? 'Return to Dawn' : 'Previous slide'}
-          >
-            ←
-          </button>
-
-          <div className="flex items-center gap-1.5 px-2">
-            {SLIDES.map((slide, i) => (
-              <button
-                key={slide.id}
-                onClick={() => setActiveSlide(i)}
-                className="h-1.5 rounded-full transition-all duration-[400ms] ease-out cursor-pointer"
-                style={{
-                  width: i === activeSlide ? '1.5rem' : '0.375rem',
-                  backgroundColor: i === activeSlide ? '#8FB4FF' : '#ffffff',
-                  opacity: i === activeSlide ? 1 : 0.3,
-                }}
-                aria-label={`Go to slide ${i + 1}`}
-                aria-current={i === activeSlide}
-              />
-            ))}
-          </div>
-
-          <button
-            onClick={() => slideBy(1)}
-            className="flex h-8 w-8 items-center justify-center rounded-full text-[14px] leading-none transition-all duration-200 text-white/80 hover:bg-white/12 hover:text-white active:scale-90 cursor-pointer"
-            aria-label={activeSlide === SLIDES.length - 1 ? 'Enter Hallway' : 'Next slide'}
-            title={activeSlide === SLIDES.length - 1 ? 'Enter Hallway' : 'Next slide'}
-          >
-            →
-          </button>
-        </div>
+        <DeckDock
+          count={SLIDES.length}
+          active={activeSlide}
+          onStep={slideBy}
+          onPick={setActiveSlide}
+          backLabel={activeSlide === 0 ? 'Return to Dawn' : 'Previous slide'}
+          forwardLabel={activeSlide === SLIDES.length - 1 ? 'Enter Hallway' : 'Next slide'}
+        />
 
         {isPortrait && (
           <div className="w-full max-w-sm px-4">

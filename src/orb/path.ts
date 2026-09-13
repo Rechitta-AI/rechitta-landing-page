@@ -210,7 +210,14 @@ export const ORB_PATH: Keyframe[] = [
     anchor: { progress: 0.96 },
     finaleDock: true,
     portrait: { x: 50, y: 90, scale: 0.52 },
-    x: 50, y: 86, scale: 0.60, opacity: 0.95, blur: 0,
+    /*
+     * On the screen rather than under it. At 86 the orb sat across the deck's
+     * own control dock, which is the one thing on this beat that has to be
+     * readable. 70 puts it on the lower third of the lit panel — inside the
+     * picture at every aspect the frame crops to, with at least 3% of the
+     * viewport between its underside and the bezel.
+     */
+    x: 50, y: 70, scale: 0.60, opacity: 0.95, blur: 0,
     ease: 'out',
     pulse: true,
     note: 'K15 — docks smoothly at the bottom below all content in the presentation scene.',

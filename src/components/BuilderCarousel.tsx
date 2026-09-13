@@ -82,6 +82,17 @@ export type WallLogoReelProps = {
   height: number;
   /** Seconds for one full pass of the list. */
   duration?: number;
+  /**
+   * Drop the chip and stand the marks straight on the wall.
+   *
+   * The chip exists to guarantee contrast: every logo is normalised to white,
+   * and a dark tile under it means that holds against whatever the wall is
+   * doing behind. Bare is the other reading — the marks look printed on the
+   * wall rather than hung on it — and it needs the wall behind to be dark
+   * enough on its own. The shadow below is what buys the margin on a light
+   * one.
+   */
+  bare?: boolean;
 };
 
 /**
@@ -97,27 +108,40 @@ export type WallLogoReelProps = {
  * Nothing here is interactive — it is set dressing beside the screen, and it
  * must never take a click the film is waiting on.
  */
-export default function WallLogoReel({ logos, width, height, duration = 34 }: WallLogoReelProps) {
+export default function WallLogoReel({
+  logos,
+  width,
+  height,
+  duration = 34,
+  bare = false,
+}: WallLogoReelProps) {
   if (logos.length === 0) return null;
 
-  const gap = Math.round(width * 0.3);
-  const chipHeight = Math.round(width * 0.46);
+  /* Bare rows sit further apart and give the mark the whole strip: with no
+     tile edge to separate two marks, the space between them is the only thing
+     that does, and with no padding to respect the artwork can run full width. */
+  const gap = Math.round(width * (bare ? 0.44 : 0.3));
+  const rowHeight = Math.round(width * (bare ? 0.48 : 0.46));
 
   const strip = (
     <div className="flex flex-col" style={{ gap: `${gap}px`, paddingBottom: `${gap}px` }}>
       {logos.map((logo) => (
         <div
           key={logo.src}
-          className="flex shrink-0 items-center justify-center rounded-2xl"
-          style={{
-            height: `${chipHeight}px`,
-            padding: `0 ${Math.round(width * 0.07)}px`,
-            background: 'rgba(10, 14, 24, 0.42)',
-            border: '1px solid rgba(255,255,255,0.14)',
-            backdropFilter: 'blur(14px) saturate(150%)',
-            WebkitBackdropFilter: 'blur(14px) saturate(150%)',
-            boxShadow: '0 18px 44px -22px rgba(0,0,0,0.9)',
-          }}
+          className={`flex shrink-0 items-center justify-center ${bare ? '' : 'rounded-2xl'}`}
+          style={
+            bare
+              ? { height: `${rowHeight}px` }
+              : {
+                  height: `${rowHeight}px`,
+                  padding: `0 ${Math.round(width * 0.07)}px`,
+                  background: 'rgba(10, 14, 24, 0.42)',
+                  border: '1px solid rgba(255,255,255,0.14)',
+                  backdropFilter: 'blur(14px) saturate(150%)',
+                  WebkitBackdropFilter: 'blur(14px) saturate(150%)',
+                  boxShadow: '0 18px 44px -22px rgba(0,0,0,0.9)',
+                }
+          }
         >
           {/*
             A plain <img>: these are fixed decorative marks of a handful of
@@ -132,12 +156,17 @@ export default function WallLogoReel({ logos, width, height, duration = 34 }: Wa
             draggable={false}
             style={{
               maxWidth: '100%',
-              maxHeight: `${Math.round(chipHeight * 0.74)}px`,
+              maxHeight: `${Math.round(rowHeight * (bare ? 0.88 : 0.74))}px`,
               width: 'auto',
               height: 'auto',
               objectFit: 'contain',
-              filter: LOGO_FILTER,
-              opacity: 0.9,
+              /* A white mark standing straight on a lit wall has nothing
+                 holding its edge. The shadow is what separates it from the
+                 plaster; on a chip the tile already does that. */
+              filter: bare
+                ? `${LOGO_FILTER} drop-shadow(0 2px 10px rgba(0,0,0,0.55))`
+                : LOGO_FILTER,
+              opacity: bare ? 0.96 : 0.9,
             }}
           />
         </div>

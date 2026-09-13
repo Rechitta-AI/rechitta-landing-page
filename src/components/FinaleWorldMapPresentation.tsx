@@ -8,6 +8,7 @@ import { beatIndexById } from '@/film/score';
 import { useDemoModal } from '@/contexts/DemoModalContext';
 import WallLogoReel, { BuilderMarquee, DEVELOPER_LOGOS, PROJECT_LOGOS } from './BuilderCarousel';
 import { FinaleStatsSlide, FinaleQuestionsSlide } from './FinaleDeckSlides';
+import DeckDock from './DeckDock';
 import { MONITOR_CORNERS, DEFAULT_CALIBRATION, sanitizeCalibration, type CalibrationCoords } from './MonitorCalibrator';
 
 /**
@@ -116,62 +117,6 @@ const GLOBAL_HUBS: GlobalHub[] = [
     labelOffset: { x: 0, y: -34 },
   },
 ];
-
-/** The deck's control dock. Same object as the opening boardroom's. */
-function FinaleDeckDock({
-  activeSlide,
-  onStep,
-  onPick,
-}: {
-  activeSlide: number;
-  onStep: (dir: -1 | 1) => void;
-  onPick: (index: number) => void;
-}) {
-  const arm = (dir: -1 | 1, glyph: string, label: string) => (
-    <button
-      onClick={() => onStep(dir)}
-      disabled={dir === -1 ? activeSlide === 0 : activeSlide === FINALE_SLIDES - 1}
-      className="flex h-8 w-8 items-center justify-center rounded-full text-[14px] leading-none text-white/80 transition-all duration-200 hover:bg-white/12 hover:text-white active:scale-90 cursor-pointer disabled:cursor-default disabled:opacity-25 disabled:hover:bg-transparent"
-      aria-label={label}
-      title={label}
-    >
-      {glyph}
-    </button>
-  );
-
-  return (
-    <div
-      className="flex items-center gap-1 rounded-full px-1.5 py-1.5 shadow-[0_12px_36px_-12px_rgba(0,0,0,0.7)]"
-      style={{
-        background: 'rgba(12, 16, 24, 0.55)',
-        backdropFilter: 'blur(18px) saturate(160%)',
-        WebkitBackdropFilter: 'blur(18px) saturate(160%)',
-        border: '1px solid rgba(255, 255, 255, 0.14)',
-      }}
-    >
-      {arm(-1, '\u2190', 'Previous slide')}
-
-      <div className="flex items-center gap-1.5 px-2">
-        {Array.from({ length: FINALE_SLIDES }, (_, i) => (
-          <button
-            key={i}
-            onClick={() => onPick(i)}
-            className="h-1.5 rounded-full transition-all duration-[400ms] ease-out cursor-pointer"
-            style={{
-              width: i === activeSlide ? '1.5rem' : '0.375rem',
-              backgroundColor: i === activeSlide ? '#8FB4FF' : '#ffffff',
-              opacity: i === activeSlide ? 1 : 0.3,
-            }}
-            aria-label={`Go to slide ${i + 1}`}
-            aria-current={i === activeSlide}
-          />
-        ))}
-      </div>
-
-      {arm(1, '\u2192', 'Next slide')}
-    </div>
-  );
-}
 
 /** Geodesic arc generator from hub to Dubai HQ */
 function makeArcPath(fromX: number, fromY: number, toX: number, toY: number): string {
@@ -340,13 +285,21 @@ export default function FinaleWorldMapPresentation({
    */
   const WALL_L = { from: 0.049, to: 0.182 };
   const WALL_R = { from: 0.829, to: 0.962 };
-  const WALL_INSET = 0.18;
-  const MAX_REEL_W = 126;
+  /*
+   * Sized so a bare mark paints at the size the chipped one did.
+   *
+   * Dropping the tile hands the logo the chip's own padding and lifts the cap
+   * ratio, so the same strip width renders it around a quarter larger; the
+   * strip gives that back. 0.525 of the panel against the 0.64 it used to
+   * take, and 103 against 126, is the 0.82 that lands a height-limited mark
+   * within 2% of where it was.
+   */
+  const WALL_INSET = 0.31;
+  const MAX_REEL_W = 75;
 
   const monitorL = Math.min(bledTl[0], bledBl[0]);
   const monitorR = Math.max(bledTr[0], bledBr[0]);
-  const monitorT = Math.min(bledTl[1], bledTr[1]);
-  const monitorB = Math.max(bledBl[1], bledBr[1]);
+
 
   const wallRun = (w: { from: number; to: number }) => {
     const x0 = Math.max(rect.x + w.from * rect.width, 8);
@@ -363,10 +316,21 @@ export default function FinaleWorldMapPresentation({
   const reelLeft = leftRun.x0 + (leftRun.width - reelWidth) / 2;
   const rightReelLeft = rightRun.x0 + (rightRun.width - reelWidth) / 2;
 
-  const reelTop = Math.max(8, monitorT - rect.height * 0.04);
-  const reelHeight = monitorB - monitorT + rect.height * 0.08;
+  /*
+   * The full height of the page, not of the screen.
+   *
+   * Bounding these to the monitor's own span made them read as two columns
+   * standing beside it. Running edge to edge, with the mask taking both ends
+   * to nothing, a mark rises in off the bottom of the frame and leaves through
+   * the top — the wall carries on past the shot in both directions, which is
+   * what the room actually looks like.
+   */
+  const reelTop = 0;
+  const reelHeight = viewport.height;
 
-  const reelFits = !flat && reelWidth >= 76 && reelHeight > 120;
+  /* The floor follows the cap down: at 75 a strip is still a legible mark, and
+     gating at the old 76 would have switched these off altogether. */
+  const reelFits = !flat && reelWidth >= 52 && reelHeight > 120;
   const rightReelFits = reelFits;
 
   /*
@@ -376,7 +340,32 @@ export default function FinaleWorldMapPresentation({
    * 86% for this beat, so there is roughly a fourteenth of the frame between
    * them. These go at the top of that, clear of both.
    */
-  const dockTop = Math.max(bledBl[1], bledBr[1]) + rect.height * 0.022;
+  /*
+   * The dock, in the gap between the television and the chapter rail.
+   *
+   * It used to hang off the lit panel's own bottom edge, which is 4.5% of the
+   * frame above where the set actually ends — so it sat on the bezel. Scanning
+   * down the park frame, the screen fades out at 75.5% and the black surround
+   * runs to 80.5% before the wall picks up again, so that is the real bottom
+   * of the object.
+   *
+   * Centred in what is left between there and the band the rail reserves,
+   * rather than hung under the set: at 16:9 that gap is over 150px and hugging
+   * the bezel left the dock stranded well above the rail.
+   */
+  const TV_BOTTOM = 0.805;
+  /* What the chapter rail actually occupies: its 1.25rem bottom padding, the
+     track, and the chapter names under it. Measured rather than rounded up,
+     because on a wide short viewport the television leaves barely 40px of
+     wall between itself and the rail and every pixel of it is needed. */
+  const RAIL_BAND = 64;
+  const DOCK_H = 30;
+  const bezelBottom = rect.y + TV_BOTTOM * rect.height;
+  const railTop = viewport.height - RAIL_BAND;
+  const dockTop = Math.min(
+    Math.max(bezelBottom + (railTop - bezelBottom - DOCK_H) / 2, bezelBottom + 8),
+    railTop - DOCK_H,
+  );
   const dockLeft = (bledBl[0] + bledBr[0]) / 2;
 
   /*
@@ -672,7 +661,13 @@ export default function FinaleWorldMapPresentation({
             zIndex: 49,
           }}
         >
-          <WallLogoReel logos={DEVELOPER_LOGOS} width={reelWidth} height={reelHeight} duration={34} />
+          <WallLogoReel
+            logos={DEVELOPER_LOGOS}
+            width={reelWidth}
+            height={reelHeight}
+            duration={34}
+            bare
+          />
         </div>
       )}
 
@@ -687,7 +682,13 @@ export default function FinaleWorldMapPresentation({
             zIndex: 49,
           }}
         >
-          <WallLogoReel logos={PROJECT_LOGOS} width={reelWidth} height={reelHeight} duration={41} />
+          <WallLogoReel
+            logos={PROJECT_LOGOS}
+            width={reelWidth}
+            height={reelHeight}
+            duration={41}
+            bare
+          />
         </div>
       )}
 
@@ -709,7 +710,15 @@ export default function FinaleWorldMapPresentation({
             zIndex: 100,
           }}
         >
-          <FinaleDeckDock activeSlide={activeSlide} onStep={slideBy} onPick={setActiveSlide} />
+          <DeckDock
+            count={FINALE_SLIDES}
+            active={activeSlide}
+            onStep={slideBy}
+            onPick={setActiveSlide}
+            backLabel="Previous slide"
+            forwardLabel="Next slide"
+            clampAtEnds
+          />
         </div>
       )}
 
@@ -726,7 +735,15 @@ export default function FinaleWorldMapPresentation({
         >
           <div className="max-w-sm mx-auto w-full flex flex-col gap-2 sm:gap-2.5">
             <div className="finale-stagger-item finale-marquee-wrap flex justify-center">
-              <FinaleDeckDock activeSlide={activeSlide} onStep={slideBy} onPick={setActiveSlide} />
+              <DeckDock
+            count={FINALE_SLIDES}
+            active={activeSlide}
+            onStep={slideBy}
+            onPick={setActiveSlide}
+            backLabel="Previous slide"
+            forwardLabel="Next slide"
+            clampAtEnds
+          />
             </div>
 
             {/* 1. Developer Partner Marquee */}
