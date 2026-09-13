@@ -266,8 +266,15 @@ export default function MacroFocusPullTransition() {
       >
         <div className="px-4 py-1.5 rounded-full bg-[#070A10]/95 border border-[#568DFF]/40 shadow-[0_0_25px_rgba(86,141,255,0.4)] backdrop-blur-md flex items-center gap-2 text-[10px] font-mono tracking-[0.2em] text-white">
           <span className="w-1.5 h-1.5 rounded-full bg-[#568DFF] animate-ping" />
-          <span className="font-semibold uppercase text-[#8FB4FF]">
-            SYNCING GLOBAL HUBS // DUBAI HQ
+          {/*
+            Broken where it means something. Left to wrap on its own the line
+            split mid-phrase on a narrow screen — "SYNCING GLOBAL / HUBS //
+            DUBAI HQ" — so the two halves of the statement did not line up
+            with the two lines carrying them.
+          */}
+          <span className="flex flex-col font-semibold uppercase leading-[1.35] text-[#8FB4FF]">
+            <span className="whitespace-nowrap">SYNCING GLOBAL HUBS //</span>
+            <span className="whitespace-nowrap">DUBAI HQ</span>
           </span>
         </div>
       </div>

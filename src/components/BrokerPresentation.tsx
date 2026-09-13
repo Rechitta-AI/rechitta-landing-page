@@ -139,8 +139,26 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
   const desktopMatrix = matrix3dFor(PHONE_WIDTH, PHONE_HEIGHT, desktopViewportCorners);
 
   // 2. Responsive Stage & Viewport Projection (Smart Content-Aware Split)
+  /*
+   * The handset gets the frame; the panel underneath gets what is left.
+   *
+   * The reserve below was 235px, sized for a panel that set its question at
+   * 16px and its answer at 13px with a 4-unit pad. Tightened a step (see the
+   * `stacked` sizes further down), the same content sits in 196 — and every
+   * point that frees goes to the phone, which is the one thing in this scene
+   * anybody is meant to be looking at.
+   */
+  const PHONE_FOOT = 0.89882;   // the calibrated quad's lowest corner
+  const RAIL_RESERVE = 78;      // the chapter rail, safe area included
+  const PANEL_MIN = 172;        // what the compressed panel needs to not clip
   const responsiveStageHeight = Math.round(
-    Math.min(viewport.height * 0.67, viewport.height - 235)
+    Math.min(
+      viewport.height * 0.73,
+      // The panel hangs off the handset's foot, not off the stage's bottom
+      // edge, so the budget is measured from there. A flat reserve looked fine
+      // at 844 and clipped the call to action at 667.
+      (viewport.height - RAIL_RESERVE - PANEL_MIN - 8) / PHONE_FOOT,
+    ),
   );
   const responsiveRect = coverRect(viewport.width, responsiveStageHeight);
   const responsiveViewportCorners: Quad = toViewport(BROKER_PHONE_CORNERS, responsiveRect);
@@ -248,7 +266,7 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'space-between',
-          gap: '0.45rem',
+          gap: '0.3rem',
           paddingTop: '0px',
           paddingBottom: '0px',
           overflow: 'hidden',
@@ -959,7 +977,7 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
           onTouchStart={stacked ? handleCardTouchStart : undefined}
           onTouchEnd={stacked ? handleCardTouchEnd : undefined}
           className={`prompt-pill-reveal flex flex-col rounded-2xl border border-white/15 bg-neutral-900/80 backdrop-blur-xl shadow-[0_14px_40px_rgba(0,0,0,0.5)] ${
-            stacked ? 'p-4 flex-1 justify-between' : 'p-5'
+            stacked ? 'p-3 flex-1 justify-between' : 'p-5'
           }`}
         >
           {/* Card Header: Category + Persistent Waitlist Pill + < 01 / 04 > Indicator */}
@@ -1024,9 +1042,9 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
             key={activeProblem.id}
             className={`${stacked ? 'animate-story-slide flex-1 flex flex-col justify-between' : 'animate-fade-in flex flex-col'}`}
           >
-            <div className={`${stacked ? 'my-auto py-1 flex flex-col gap-1.5' : ''}`}>
+            <div className={`${stacked ? 'my-auto flex flex-col gap-1' : ''}`}>
               {stacked && (
-                <h4 className="text-white text-[16px] sm:text-[17px] font-bold tracking-tight leading-snug">
+                <h4 className="text-white text-[14px] sm:text-[15px] font-bold tracking-tight leading-snug">
                   &ldquo;{activeProblem.problem}&rdquo;
                 </h4>
               )}
@@ -1034,7 +1052,7 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
               <p
                 className={`font-medium ${
                   stacked
-                    ? 'text-[13px] sm:text-[13.5px] leading-[1.62] text-neutral-200'
+                    ? 'text-[11.5px] sm:text-[12px] leading-[1.5] text-neutral-200'
                     : 'mt-3.5 text-[15px] leading-[1.55] text-neutral-100'
                 }`}
                 style={{ fontFamily: 'var(--font-inter)' }}
@@ -1049,7 +1067,7 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
                 target="_blank"
                 rel="noopener noreferrer"
                 className={`block w-full rounded-xl bg-white text-center font-bold tracking-tight text-neutral-950 transition-all duration-200 hover:bg-neutral-200 active:scale-[0.98] cursor-pointer ${
-                  stacked ? 'mt-auto py-2.5 px-4 text-[12px]' : 'mt-4 px-4 py-2.5 text-[13px]'
+                  stacked ? 'mt-auto py-2 px-3.5 text-[11.5px]' : 'mt-4 px-4 py-2.5 text-[13px]'
                 }`}
                 style={{ fontFamily: 'var(--font-inter)' }}
               >
@@ -1062,7 +1080,7 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
                 rel="noopener noreferrer"
                 className={`flex items-center justify-between gap-2 text-left font-mono text-neutral-300 transition-colors cursor-pointer group ${
                   stacked
-                    ? 'mt-auto py-2.5 px-3 text-[10px] border border-white/12 rounded-xl bg-white/[0.06] hover:bg-white/10'
+                    ? 'mt-auto py-1.5 px-3 text-[10px] border border-white/12 rounded-xl bg-white/[0.06] hover:bg-white/10'
                     : 'mt-4 pt-3 text-[10px] border-t border-white/10'
                 }`}
               >
@@ -1095,7 +1113,7 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
           <button
             onClick={handleFlyOn}
             className={`w-full rounded-xl text-white font-bold tracking-tight transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer group border ${
-              stacked ? 'py-2.5 px-3.5 text-[12.5px]' : 'py-3.5 px-5 text-sm'
+              stacked ? 'py-2 px-3 text-[12px]' : 'py-3.5 px-5 text-sm'
             } ${
               showScrollPrompt
                 ? 'bg-[#568DFF] border-[#8FB4FF] shadow-[0_0_32px_rgba(86,141,255,0.7)] scale-[1.02]'
