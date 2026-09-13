@@ -965,7 +965,7 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
           {/* Card Header: Category + Persistent Waitlist Pill + < 01 / 04 > Indicator */}
           <div className="flex items-center justify-between gap-1.5">
             <span
-              className={`self-start rounded-full border border-[#568DFF]/30 bg-[#568DFF]/15 px-2.5 py-0.5 font-mono uppercase tracking-wider text-[#8FB4FF] ${
+              className={`self-start rounded-full border border-[#568DFF]/30 bg-[#568DFF]/15 px-2.5 py-0.5 eyebrow-chip text-[#8FB4FF] ${
                 stacked ? 'text-[8.5px]' : 'text-[8.5px]'
               }`}
             >
@@ -983,7 +983,7 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
                     title="Jump to Waitlist"
                     aria-label="Jump to Waitlist"
                   >
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#568DFF] animate-pulse" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#568DFF]" />
                     <span>Waitlist</span>
                     <span className="text-[#8FB4FF] font-bold group-hover:translate-x-0.5 transition-transform text-[8.5px]">
                       &rarr;
@@ -1106,7 +1106,7 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
             style={{ fontFamily: 'var(--font-inter)' }}
             aria-label="Take the briefing global"
           >
-            <span className="h-1.5 w-1.5 rounded-full bg-white shadow-[0_0_8px_#ffffff] animate-pulse" />
+            <span className="h-1.5 w-1.5 rounded-full bg-white shadow-[0_0_8px_#ffffff]" />
             <span className="whitespace-nowrap">
               {stacked && showScrollPrompt
                 ? 'Tap here to continue'

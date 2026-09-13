@@ -494,3 +494,26 @@ p {
     animation: none;
   }
 }
+
+/* ── THE TWO VOICES ────────────────────────────────────────────────────────
+ *
+ * The overlays had drifted into using Inter's `.eyebrow` and a letterspaced
+ * `font-mono` interchangeably for the same tier of label — in one case both on
+ * the same element — so it read as inconsistency rather than as a distinction.
+ * The rule, from here:
+ *
+ *   `.eyebrow`  — anything a person wrote. Section labels, claims, taglines,
+ *                 the tier above a headline.
+ *   `font-mono` — anything a machine produced. Hub times, counters, sample
+ *                 queries, telemetry, the deck's dossier chrome.
+ *
+ * `.eyebrow-chip` is that first voice at the size the overlays need it, for
+ * the pills and category marks that were reaching for mono to get small.
+ */
+.eyebrow-chip {
+  font-family: var(--font-inter), system-ui, sans-serif;
+  font-variation-settings: "opsz" 14;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}

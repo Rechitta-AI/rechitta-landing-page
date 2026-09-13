@@ -134,8 +134,15 @@ export default function AppHeader() {
                 style={{ fontFamily: 'var(--font-inter)' }}
               >
                 <span>{link.label}</span>
+                {/*
+                  One arrow for every row. Splitting internal and external into
+                  → and ↗ gave the column two different marks at two different
+                  optical weights, which read as an inconsistency rather than
+                  as a distinction — and the distinction is already carried by
+                  the link opening in a new tab.
+                */}
                 <span className="text-[#568DFF] opacity-75 transition-all duration-200 group-hover:translate-x-0.5 group-hover:opacity-100">
-                  {link.newTab ? '↗' : '→'}
+                  →
                 </span>
               </a>
             ))}

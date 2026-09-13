@@ -144,7 +144,6 @@ export default function ClickPrompt({
         <span
           className={`relative flex h-1.5 w-1.5 shrink-0 ${urgent ? 'text-white' : 'text-[#568DFF]'}`}
         >
-          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-current opacity-70" />
           <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-current" />
         </span>
         <span>{label}</span>

@@ -139,7 +139,16 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
    * stands on its own as a centred card, and a card wants a portrait shape.
    */
   const LANDSCAPE_BASE = { w: 826, h: 462 };
-  const PORTRAIT_BASE = { w: 520, h: 680 };
+  /*
+   * Wider and shorter than it was (520x680).
+   *
+   * The portrait canvas is contain-fitted into the television's visible face,
+   * and on a phone that face is about square — the footage is cropped to the
+   * viewport's width, so it measures roughly 390x410. A 0.76 canvas fitted
+   * into a 0.95 box is limited by height and wastes a fifth of the width,
+   * which is what pushed the deck taller than the screen it sits on.
+   */
+  const PORTRAIT_BASE = { w: 520, h: 500 };
   const isPortrait = isPortraitFor(viewport.width, viewport.height);
   const BASE_W = isPortrait ? PORTRAIT_BASE.w : LANDSCAPE_BASE.w;
   const BASE_H = isPortrait ? PORTRAIT_BASE.h : LANDSCAPE_BASE.h;
@@ -150,38 +159,44 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
   const rect = coverRect(viewport.width, viewport.height);
 
   /*
+   * The television's face, as it actually lands on the viewport.
+   *
+   * Both orientations now measure off the footage; portrait simply has to
+   * accept that the set is cropped left and right, so its visible width is the
+   * viewport rather than the 43% of frame the set really spans.
+   */
+  const tvLeft = Math.max(rect.x + (LEFT / 100) * rect.width, 0);
+  const tvRight = Math.min(rect.x + ((LEFT + WIDTH) / 100) * rect.width, viewport.width);
+  const tvTop = rect.y + (TOP / 100) * rect.height;
+  const tvHeight = (HEIGHT / 100) * rect.height;
+
+  /*
    * Painted size.
    *
-   * Landscape takes it from the footage, because it is tracking a real object
-   * in the shot. Portrait takes it from the viewport, because it is not: it
-   * used to take 43% of the *footage* width there too, and a portrait
-   * viewport's covering rect is its own height times 16/9, so on a 390pt
-   * phone the deck came out 645pt wide and ran off both edges.
+   * Portrait contain-fits the design canvas into that face, with a margin so
+   * the deck never touches the bezel. It used to be sized off the viewport and
+   * then centred in it, which is why it floated with a gap above and spilled
+   * its content out over the credenza below: nothing in the sum knew where the
+   * screen actually was.
    */
+  const PORTRAIT_MARGIN_X = 14;
+  const PORTRAIT_MARGIN_Y = 12;
+  const portraitFit = Math.min(
+    (tvRight - tvLeft - PORTRAIT_MARGIN_X * 2) / PORTRAIT_BASE.w,
+    (tvHeight - PORTRAIT_MARGIN_Y * 2) / PORTRAIT_BASE.h,
+  );
+
   const screenWidth = isPortrait
-    ? Math.min(
-        viewport.width - 28,
-        PORTRAIT_BASE.w,
-        // And short viewports are capped by height, not width: an iPhone SE
-        // has the width for a 454pt card and nowhere to put the controls and
-        // the marquee underneath it. 230 is that furniture plus the rail.
-        ((viewport.height - 230) * PORTRAIT_BASE.w) / PORTRAIT_BASE.h,
-      )
+    ? PORTRAIT_BASE.w * portraitFit
     : (WIDTH / 100) * rect.width;
   const screenHeight = isPortrait
-    ? screenWidth * (BASE_H / BASE_W)
+    ? PORTRAIT_BASE.h * portraitFit
     : (HEIGHT / 100) * rect.height;
   const screenLeft = isPortrait
-    ? (viewport.width - screenWidth) / 2
+    ? tvLeft + (tvRight - tvLeft - screenWidth) / 2
     : rect.x + (LEFT / 100) * rect.width;
-  /*
-   * Portrait centres the whole stack — the card, the controls under it and the
-   * marquee under those — rather than starting it 17% down as if it were still
-   * tracking the display.
-   */
-  const portraitStackHeight = screenHeight + 120;
   const screenTop = isPortrait
-    ? Math.max(viewport.height * 0.08, (viewport.height - portraitStackHeight) / 2)
+    ? tvTop + (tvHeight - screenHeight) / 2
     : rect.y + (TOP / 100) * rect.height;
 
   /*
@@ -195,7 +210,9 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
    * credenza through the whole deck, and the scale floor made it large enough
    * to reach up into the space these used to occupy.
    */
-  const controlsTop = isPortrait ? screenHeight + 14 : screenHeight + rect.height * 0.035;
+  const controlsTop = isPortrait
+    ? tvTop + tvHeight + 18 - screenTop
+    : screenHeight + rect.height * 0.035;
 
   /*
    * The two wall panels the display is mounted between.
@@ -212,8 +229,10 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
   /* How much of each panel stays clear either side of the strip. Tighter than
      the finale's, because these marks stand on the wall with no tile under
      them and want the room. */
-  const WALL_INSET = 0.08;
-  const MAX_REEL_W = 168;
+  /* Dialled back to about three quarters: at 0.08 the marks were pulling the
+     eye off the deck, which is the thing in the shot that has to be read. */
+  const WALL_INSET = 0.185;
+  const MAX_REEL_W = 126;
 
   /* Clamped to what is actually on screen: a viewport narrower than 16:9 crops
      the footage, and part of a wall can be off the edge of it. */
@@ -240,7 +259,7 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
   const rightWall = { left: rightRun.x0 + (rightRun.width - reelWidth) / 2, width: reelWidth };
 
   /* Too little wall left on screen to stand anything on. */
-  const wallsFit = !isPortrait && reelWidth >= 76;
+  const wallsFit = !isPortrait && reelWidth >= 60;
 
   const isSolutionSlide = activeSlide === SLIDES.length - 1;
 
@@ -972,10 +991,7 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
                           </>
                         ) : (
                           <>
-                            <span className="relative flex h-2 w-2 shrink-0">
-                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#568DFF] opacity-75" />
-                              <span className="relative inline-flex h-2 w-2 rounded-full bg-[#568DFF]" />
-                            </span>
+                            <span className="h-2 w-2 shrink-0 rounded-full bg-[#568DFF]" />
                             <span>Upload a project, send it to our brokers</span>
                             <span className="text-[#8FB4FF] font-bold transition-transform group-hover:translate-x-0.5">
                               &rarr;

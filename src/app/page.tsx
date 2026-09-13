@@ -279,11 +279,22 @@ export default function ExperiencePage() {
                   >
                     {CITIES[cityIndex]?.briefing}
                   </p>
-                  <div className="mt-[2.2vh] flex items-center justify-center font-mono text-white/55 text-[clamp(0.55rem,1.1vh,0.72rem)] tracking-[0.25em]">
-                    <span className="h-1.5 w-1.5 rounded-full bg-[#568DFF] shadow-[0_0_8px_rgba(86,141,255,0.9)] mr-2 shrink-0" />
-                    <span>{CITIES[cityIndex]?.language}</span>
-                    <span className="text-white/30 mx-2">·</span>
-                    <span className="-mr-[0.25em]">LIVE DATA</span>
+                  {/*
+                    Two lines, not one row.
+
+                    Set side by side, a long language ran the row wider than
+                    the handset and wrapped — so RIYADH read on one line and
+                    SHANGHAI on two, and the block changed shape city to city.
+                    Stacked, every city gets the same three centred lines.
+                  */}
+                  <div className="mt-[2.2vh] flex flex-col items-center gap-[0.6vh] font-mono text-white/55 text-[clamp(0.55rem,1.1vh,0.72rem)] tracking-[0.25em]">
+                    <span className="-mr-[0.25em] whitespace-nowrap">
+                      {CITIES[cityIndex]?.language}
+                    </span>
+                    <span className="flex items-center whitespace-nowrap">
+                      <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#568DFF] shadow-[0_0_8px_rgba(86,141,255,0.9)] mr-2" />
+                      <span className="-mr-[0.25em]">LIVE DATA</span>
+                    </span>
                   </div>
                 </div>
               </div>

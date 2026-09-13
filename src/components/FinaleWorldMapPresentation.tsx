@@ -754,7 +754,7 @@ export default function FinaleWorldMapPresentation({
             {/* 2. Executive Typography & CTA directly on the boardroom table surface */}
             <div className="flex flex-col items-center text-center gap-1.5 sm:gap-2">
               {/* Eyebrow matching Hero Page */}
-              <p className="eyebrow finale-stagger-item finale-eyebrow text-white/50 text-[8.5px] sm:text-[9.5px] tracking-[0.24em] uppercase font-mono font-medium drop-shadow-sm">
+              <p className="eyebrow finale-stagger-item finale-eyebrow text-white/50 text-[8.5px] sm:text-[9.5px] tracking-[0.24em] drop-shadow-sm">
                 Global Real Estate Distribution
               </p>
 
@@ -792,15 +792,15 @@ export default function FinaleWorldMapPresentation({
 
               {/* Trust Pills: Solid obsidian backing to ensure dots and typography are crystal sharp */}
               <div className="flex items-center justify-center gap-1.5 sm:gap-2 flex-wrap pt-0.5">
-                <span className="finale-stagger-item finale-trust-pill inline-flex items-center gap-1.5 px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full bg-[#0a0e18]/85 border border-white/15 text-[8.5px] sm:text-[9.5px] font-mono tracking-wider text-white/85 shadow-sm">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="finale-stagger-item finale-trust-pill inline-flex items-center gap-1.5 px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full bg-[#0a0e18]/85 border border-white/15 eyebrow-chip text-[8.5px] sm:text-[9.5px] text-white/85 shadow-sm">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
                   Zero Translation Lag
                 </span>
-                <span className="finale-stagger-item finale-trust-pill inline-flex items-center gap-1.5 px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full bg-[#0a0e18]/85 border border-white/15 text-[8.5px] sm:text-[9.5px] font-mono tracking-wider text-white/85 shadow-sm">
+                <span className="finale-stagger-item finale-trust-pill inline-flex items-center gap-1.5 px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full bg-[#0a0e18]/85 border border-white/15 eyebrow-chip text-[8.5px] sm:text-[9.5px] text-white/85 shadow-sm">
                   <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
                   140+ Markets
                 </span>
-                <span className="finale-stagger-item finale-trust-pill inline-flex items-center gap-1.5 px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full bg-[#0a0e18]/85 border border-white/15 text-[8.5px] sm:text-[9.5px] font-mono tracking-wider text-white/85 shadow-sm">
+                <span className="finale-stagger-item finale-trust-pill inline-flex items-center gap-1.5 px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full bg-[#0a0e18]/85 border border-white/15 eyebrow-chip text-[8.5px] sm:text-[9.5px] text-white/85 shadow-sm">
                   <span className="w-1.5 h-1.5 rounded-full bg-[#568DFF]" />
                   DLD Integrated
                 </span>
@@ -814,7 +814,7 @@ export default function FinaleWorldMapPresentation({
 
                 {/* Sleek dock cradle ring with live status glow */}
                 <div className="relative w-7 h-7 rounded-full border border-white/20 bg-black/40 shadow-[0_0_15px_rgba(86,141,255,0.25)] flex items-center justify-center">
-                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-400/90 shadow-[0_0_8px_#34d399] animate-pulse" />
+                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-400/90 shadow-[0_0_8px_#34d399]" />
                 </div>
 
                 {/* Exact dock anchor for the orb at the bottom below all content */}
@@ -901,10 +901,7 @@ export default function FinaleWorldMapPresentation({
         {/* 1. Top Header (y = 68) with generous margin above northern landmasses */}
         <g transform="translate(60, 68)">
           <circle cx="0" cy="0" r="4.5" fill="#568DFF" />
-          <circle cx="0" cy="0" r="9" fill="none" stroke="#568DFF" strokeWidth="1.2" opacity="0.6">
-            <animate attributeName="r" from="4.5" to="18" dur="2s" repeatCount="indefinite" />
-            <animate attributeName="opacity" from="0.7" to="0" dur="2s" repeatCount="indefinite" />
-          </circle>
+          <circle cx="0" cy="0" r="9" fill="none" stroke="#568DFF" strokeWidth="1.2" opacity="0.35" />
 
           <text
             x="22"
@@ -933,9 +930,7 @@ export default function FinaleWorldMapPresentation({
             strokeWidth="1"
             filter="url(#pillShadow2k)"
           />
-          <circle cx="-346" cy="0" r="4" fill="#10B981">
-            <animate attributeName="opacity" values="1;0.4;1" dur="2s" repeatCount="indefinite" />
-          </circle>
+          <circle cx="-346" cy="0" r="4" fill="#10B981" />
           <text
             x="-330"
             y="2"

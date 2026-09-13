@@ -18,6 +18,16 @@ const TRAIL_MIN_SPEED = 0.06;
 const TRAIL_MAX_SPEED = 1.1;
 
 /** How long a hand-off flare lasts, ms. */
+/*
+ * The orb's visible core, in pixels at scale 1. The element around it is
+ * `clamp(260px, 32vw, 420px)` because the bloom needs the room, so its box is
+ * no use for working out where the sphere actually ends.
+ */
+const ORB_CORE_PX = 68;
+
+/** What the chapter rail reserves along the bottom, badge included. */
+const RAIL_BAND_PX = 78;
+
 const PULSE_MS = 520;
 
 /** The orb's idle breathing while it is parked. */
@@ -354,9 +364,24 @@ export default function OrbStage({
 
       const vw = window.innerWidth;
       const vh = window.innerHeight;
-      const px = vw * (pose.x / 100 - 0.5);
-      const py = vh * (pose.y / 100 - 0.5);
       const scale = pose.scale * (1 + breath + flare * 0.22);
+
+      /*
+       * The floor: the orb never sits on the chapter rail.
+       *
+       * Several beats park it low in the frame, and on a phone the rail also
+       * carries the chapter badge above its track — so a pose that cleared the
+       * rail on a desktop landed straight on "02 // BOARDROOM". Rather than
+       * re-author every low keyframe per viewport, the path is clamped here
+       * against the band the rail reserves, which is the one place that knows
+       * both the pose and the viewport.
+       */
+      const coreRadius = (ORB_CORE_PX / 2) * scale;
+      const yCeiling = ((vh - RAIL_BAND_PX - coreRadius) / vh) * 100;
+      const poseY = Math.min(pose.y, yCeiling);
+
+      const px = vw * (pose.x / 100 - 0.5);
+      const py = vh * (poseY / 100 - 0.5);
 
       if (holderRef.current) {
         holderRef.current.style.transform = `translate(${px}px, ${py}px) scale(${scale})`;
@@ -368,10 +393,10 @@ export default function OrbStage({
       // ── The trail ──────────────────────────────────────────────────
       const previousSample = history[0];
       const speed = previousSample
-        ? Math.hypot(pose.x - previousSample.x, pose.y - previousSample.y)
+        ? Math.hypot(pose.x - previousSample.x, poseY - previousSample.y)
         : 0;
 
-      history.unshift({ x: pose.x, y: pose.y, scale });
+      history.unshift({ x: pose.x, y: poseY, scale });
       if (history.length > TRAIL_LENGTH + 1) history.pop();
 
       const intensity = reduceMotion
