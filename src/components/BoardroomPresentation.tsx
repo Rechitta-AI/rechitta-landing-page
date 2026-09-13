@@ -297,7 +297,7 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
   };
 
   const handleUploadClickRef = useRef(handleUploadClick);
-  handleUploadClickRef.current = handleUploadClick;
+  useEffect(() => { handleUploadClickRef.current = handleUploadClick; });
 
   const slideBy = (direction: -1 | 1) => {
     if (direction === -1 && activeSlide === 0) {
@@ -314,7 +314,7 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
   };
 
   const slideByRef = useRef(slideBy);
-  slideByRef.current = slideBy;
+  useEffect(() => { slideByRef.current = slideBy; });
 
   // Touch swipe support for changing slides on mobile & tablet
   const touchStartX = useRef<number | null>(null);

@@ -64,7 +64,7 @@ export default function ExperiencePage() {
   const playhead = useRef<Playhead | null>(null);
 
   const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  useEffect(() => { requestAnimationFrame(() => setMounted(true)); }, []);
 
   // The page itself never scrolls. All navigation is the film's.
   useEffect(() => {

@@ -29,7 +29,7 @@ export default function TestBoardroomPage() {
   // Handle the text reveal phase (just skip straight to done for the test page)
   useEffect(() => {
     if (introPhase === 'revealing') {
-      setIntroPhase('done');
+      requestAnimationFrame(() => setIntroPhase('done'));
     }
   }, [introPhase]);
 
