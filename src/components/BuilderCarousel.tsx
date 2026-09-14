@@ -197,23 +197,81 @@ export default function WallLogoReel({
 }
 
 /**
+ * The portrait boardrooms' logo block: developers in one strip, their projects
+ * in the other, each under its own title and running opposite ways so they
+ * read as two lists. Shared by the opening and the closing boardroom so the
+ * two stay identical.
+ */
+export function LogoCarousels({
+  itemClassName = '',
+  compact = false,
+}: {
+  itemClassName?: string;
+  /** Shorter strips and tighter gaps, for phones where the orb docks close below. */
+  compact?: boolean;
+}) {
+  const groups = [
+    { title: 'Developers on Rechitta', logos: DEVELOPER_LOGOS, reverse: false },
+    { title: 'Projects being briefed', logos: PROJECT_LOGOS, reverse: true },
+  ];
+  return (
+    <div className={`w-full flex flex-col ${compact ? 'gap-2' : 'gap-3'}`}>
+      {groups.map((g) => (
+        <div
+          key={g.title}
+          className={`w-full flex flex-col ${compact ? 'gap-1' : 'gap-1.5'} ${itemClassName}`}
+        >
+          <p
+            className={`text-center font-semibold text-white/60 tracking-[0.02em] ${
+              compact ? 'text-[10.5px]' : 'text-[11px]'
+            }`}
+            style={{ fontFamily: 'var(--font-inter)' }}
+          >
+            {g.title}
+          </p>
+          <BuilderMarquee logos={g.logos} reverse={g.reverse} compact={compact} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/**
  * A horizontal continuous marquee of the same marks, for the portrait dock,
  * where the deck comes off the wall and there are no panels to run them up.
  */
-export function BuilderMarquee({ className = '' }: { className?: string }) {
-  const items = [...DEVELOPER_LOGOS, ...PROJECT_LOGOS];
+export function BuilderMarquee({
+  className = '',
+  logos,
+  reverse = false,
+  compact = false,
+}: {
+  className?: string;
+  /** A thinner strip with smaller marks. */
+  compact?: boolean;
+  /** Defaults to every developer and project mark in one strip. */
+  logos?: LogoAsset[];
+  /** Runs the strip the other way, so two stacked strips don't move as one. */
+  reverse?: boolean;
+}) {
+  const items = logos ?? [...DEVELOPER_LOGOS, ...PROJECT_LOGOS];
   // Repeat items twice so keyframes translate3d(-50%, 0, 0) loops seamlessly forever
   const repeatedItems = [...items, ...items];
   return (
     <div className={`w-full overflow-hidden select-none ${className}`} aria-hidden="true">
       <div
-        className="relative flex w-full items-center overflow-hidden rounded-xl border border-white/10 bg-black/35 py-2 shadow-inner backdrop-blur-md"
+        className={`relative flex w-full items-center overflow-hidden rounded-xl border border-white/10 bg-black/35 shadow-inner backdrop-blur-md ${
+          compact ? 'py-1' : 'py-2'
+        }`}
         style={{
           maskImage: 'linear-gradient(to right, transparent 0%, black 6%, black 94%, transparent 100%)',
           WebkitMaskImage: 'linear-gradient(to right, transparent 0%, black 6%, black 94%, transparent 100%)',
         }}
       >
-        <div className="animate-marquee flex shrink-0 items-center gap-7 whitespace-nowrap px-4">
+        <div
+          className="animate-marquee flex shrink-0 items-center gap-7 whitespace-nowrap px-4"
+          style={reverse ? { animationDirection: 'reverse' } : undefined}
+        >
           {repeatedItems.map((logo, idx) => (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -223,7 +281,7 @@ export function BuilderMarquee({ className = '' }: { className?: string }) {
               aria-hidden="true"
               draggable={false}
               style={{
-                height: '18px',
+                height: compact ? '15px' : '18px',
                 width: 'auto',
                 objectFit: 'contain',
                 filter: LOGO_FILTER,

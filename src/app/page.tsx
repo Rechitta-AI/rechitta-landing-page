@@ -23,6 +23,7 @@ const FinaleWorldMapPresentation = dynamic(
 import type { FilmTiming } from '@/orb/types';
 import type { Playhead } from '@/screens/types';
 import { CITIES, type Beat, type Chapter } from '@/film/score';
+import { BoardroomCta } from '@/components/CityNav';
 
 /**
  * The experience is a fixed stage, not a tall page.
@@ -299,6 +300,18 @@ export default function ExperiencePage() {
                 </div>
               </div>
             </div>
+
+            {/*
+              The chapter's call to action on a phone, pinned above the rail
+              the way the broker's is. Wide screens carry it under the city's
+              clock instead (CityBackdrop), where it cannot land on the phone.
+            */}
+            <div
+              className="md:hidden absolute left-1/2 -translate-x-1/2 z-[60] w-[min(94vw,420px)]"
+              style={{ bottom: 'calc(max(1rem, env(safe-area-inset-bottom)) + 3.85rem)' }}
+            >
+              <BoardroomCta isMoving={isMoving} className="w-full py-2 px-3 text-[12px]" />
+            </div>
           </div>
 
           {/* The film itself, plus the overlays that ride specific frames. */}
@@ -363,7 +376,7 @@ export default function ExperiencePage() {
                     headline left the film's first frame reading flatter than
                     every frame after it.
                   */}
-                  <p className="hero-word eyebrow text-center text-white/45 mb-2 sm:mb-3 md:mb-4 text-[10px] sm:text-xs md:text-sm">
+                  <p className="hero-word eyebrow text-center text-white/45 mb-2 sm:mb-3 md:mb-4 text-[10px] sm:text-xs md:text-sm max-sm:tracking-[0.04em]! max-sm:leading-[1.5]!">
                     Real estate communication reimagined
                   </p>
 

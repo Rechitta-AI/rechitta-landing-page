@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import { CITIES, cityTime } from '@/film/score';
-import CityNav from './CityNav';
+import CityNav, { BoardroomCta } from './CityNav';
 
 /**
  * The multilingual chapter's backdrop.
@@ -179,6 +179,11 @@ export default function CityBackdrop({
           <span className="font-mono text-[13px] tracking-[0.3em] text-white/45 [text-shadow:0_1px_12px_rgba(7,10,16,0.85)]">
             THE SAME MOMENT
           </span>
+        </div>
+
+        {/* Desktop: the call to action closes the block, clear of the phone. */}
+        <div className="hidden md:flex mt-8 justify-end">
+          <BoardroomCta isMoving={isMoving} className="py-3.5 px-8 text-sm" />
         </div>
       </div>
 

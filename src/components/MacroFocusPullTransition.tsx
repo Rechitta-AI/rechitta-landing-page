@@ -272,7 +272,7 @@ export default function MacroFocusPullTransition() {
             DUBAI HQ" — so the two halves of the statement did not line up
             with the two lines carrying them.
           */}
-          <span className="flex flex-col font-semibold uppercase leading-[1.35] text-[#8FB4FF]">
+          <span className="flex flex-col items-center text-center font-semibold uppercase leading-[1.35] text-[#8FB4FF]">
             <span className="whitespace-nowrap">SYNCING GLOBAL HUBS //</span>
             <span className="whitespace-nowrap">DUBAI HQ</span>
           </span>

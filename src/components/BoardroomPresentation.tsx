@@ -8,7 +8,7 @@ import { setHold } from '@/film/holds';
 import ClickPrompt from './ClickPrompt';
 import DeckDock from './DeckDock';
 import WallLogoReel, {
-  BuilderMarquee,
+  LogoCarousels,
   DEVELOPER_LOGOS,
   PROJECT_LOGOS,
 } from './BuilderCarousel';
@@ -193,8 +193,14 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
   /*
    * Where the slide controls sit, measured from the top of the screen area.
    */
+  /*
+   * On shorter phones the logo block has to clear the orb, which rests at a
+   * fixed 90% down the screen, so everything under the display packs tighter.
+   */
+  const compactDock = isPortrait && viewport.height < 760;
+
   const controlsTop = isPortrait
-    ? screenHeight + 22
+    ? screenHeight + (compactDock ? 12 : 22)
     : screenHeight + rect.height * 0.035;
 
   /*
@@ -1017,7 +1023,7 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
         placed against the screen's painted height instead.
       */}
       <div
-        className="absolute flex flex-col items-center gap-3.5 pointer-events-auto"
+        className={`absolute flex flex-col items-center pointer-events-auto ${compactDock ? 'gap-2' : 'gap-3.5'}`}
         style={{
           top: `${controlsTop}px`,
           left: isPortrait ? `${-screenLeft}px` : '0',
@@ -1035,8 +1041,8 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
         />
 
         {isPortrait && (
-          <div className="w-full px-2 sm:px-4">
-            <BuilderMarquee />
+          <div className={`w-full px-2 sm:px-4 ${compactDock ? '' : 'mt-2'}`}>
+            <LogoCarousels compact={compactDock} />
           </div>
         )}
       </div>

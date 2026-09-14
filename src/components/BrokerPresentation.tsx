@@ -118,9 +118,13 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
   const ctaHintTimerRef = useRef<NodeJS.Timeout | null>(null);
   const iframeSettleTimerRef = useRef<NodeJS.Timeout | null>(null);
   const isExitingRef = useRef(false);
+  /** Set when the CTA hands off on mobile: the next shot, not the exit, resizes the stage. */
+  const flyingOutRef = useRef(false);
+  const expandFallbackRef = useRef<NodeJS.Timeout | null>(null);
   useEffect(() => () => {
     if (ctaHintTimerRef.current) clearTimeout(ctaHintTimerRef.current);
     if (iframeSettleTimerRef.current) clearTimeout(iframeSettleTimerRef.current);
+    if (expandFallbackRef.current) clearTimeout(expandFallbackRef.current);
   }, []);
 
   // Responsive viewport tracking for homography mapping & leader line positioning
@@ -150,7 +154,7 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
    */
   const PHONE_FOOT = 0.89882;   // the calibrated quad's lowest corner
   const RAIL_RESERVE = 78;      // the chapter rail, safe area included
-  const PANEL_MIN = 172;        // what the compressed panel needs to not clip
+  const PANEL_MIN = 216;        // dashes + card + CTA, measured at 390px wide, with a little slack
   const responsiveStageHeight = Math.round(
     Math.min(
       viewport.height * 0.73,
@@ -163,6 +167,57 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
   const responsiveRect = coverRect(viewport.width, responsiveStageHeight);
   const responsiveViewportCorners: Quad = toViewport(BROKER_PHONE_CORNERS, responsiveRect);
   const responsiveMatrix = matrix3dFor(PHONE_WIDTH, PHONE_HEIGHT, responsiveViewportCorners);
+
+  /*
+    On stacked screens the stage reshapes with the camera rather than after it.
+
+    The shot into the broker shrinks the stage over its own length, so the
+    handset lands exactly where the layout keeps it — there is no full-frame
+    phone to jump from. The cloud shot out of the scene opens the stage back
+    up the same way, starting from wherever the handset was left.
+  */
+  const stageHeightRef = useRef(responsiveStageHeight);
+  useEffect(() => {
+    stageHeightRef.current = responsiveStageHeight;
+  }, [responsiveStageHeight]);
+
+  useEffect(() => {
+    if (!stacked) return;
+    const STAGE_MASK =
+      'linear-gradient(to bottom, #000 0%, #000 calc(100% - 60px), transparent 100%)';
+
+    const onShotStart = (e: Event) => {
+      const detail = (e as CustomEvent<{ beat?: string; ms?: number }>).detail;
+      const filmHost = document.getElementById('film-stage-host');
+      if (!detail || !filmHost) return;
+      const ms = Math.max(400, detail.ms ?? 600);
+
+      if (detail.beat === 'broker') {
+        flyingOutRef.current = false;
+        filmHost.style.transition = `height ${ms}ms cubic-bezier(0.45, 0, 0.2, 1)`;
+        filmHost.style.bottom = 'auto';
+        filmHost.style.height = `${stageHeightRef.current}px`;
+        filmHost.style.webkitMaskImage = STAGE_MASK;
+        filmHost.style.maskImage = STAGE_MASK;
+        return;
+      }
+
+      if (flyingOutRef.current) {
+        flyingOutRef.current = false;
+        if (expandFallbackRef.current) clearTimeout(expandFallbackRef.current);
+        filmHost.style.transition = `height ${ms}ms cubic-bezier(0.4, 0, 0.2, 1)`;
+        filmHost.style.height = '100%';
+        filmHost.style.bottom = '0px';
+        expandFallbackRef.current = setTimeout(() => {
+          filmHost.style.webkitMaskImage = 'none';
+          filmHost.style.maskImage = 'none';
+        }, ms);
+      }
+    };
+
+    window.addEventListener('rechitta:shot-start', onShotStart);
+    return () => window.removeEventListener('rechitta:shot-start', onShotStart);
+  }, [stacked]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -265,7 +320,7 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
           transformOrigin: 'top center',
           display: 'flex',
           flexDirection: 'column',
-          justifyContent: 'space-between',
+          justifyContent: 'flex-start',
           gap: '0.3rem',
           paddingTop: '0px',
           paddingBottom: '0px',
@@ -428,16 +483,12 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
             // Step 2: Only after the iframe has completely faded out, continue with movement!
             setIframeActive(false);
 
-            // Reset film stage host height back to 100%
-            const filmHost = document.getElementById('film-stage-host');
-            if (filmHost) {
-              filmHost.style.transition = 'height 0.6s cubic-bezier(0.16, 1, 0.3, 1)';
-              filmHost.style.height = '100%';
-              filmHost.style.bottom = '0px';
-              filmHost.style.transform = 'none';
-              filmHost.style.webkitMaskImage = 'none';
-              filmHost.style.maskImage = 'none';
-            }
+            /*
+              The stage stays where the handset left it. Snapping it back to
+              full height here showed the whole shot again for a beat before
+              the clouds; the cloud shot opens it up instead, as it plays.
+            */
+            flyingOutRef.current = true;
 
             // Dissolve the rest of the Broker HUD UI
             if (containerRef.current) {
@@ -507,7 +558,7 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
           if (filmHost) {
             filmHost.style.transition = 'height 0.6s cubic-bezier(0.16, 1, 0.3, 1)';
             filmHost.style.bottom = 'auto';
-            filmHost.style.height = `${responsiveStageHeight}px`;
+            filmHost.style.height = `${stageHeightRef.current}px`;
             filmHost.style.transform = 'none';
             filmHost.style.webkitMaskImage =
               'linear-gradient(to bottom, #000 0%, #000 calc(100% - 60px), transparent 100%)';
@@ -637,7 +688,21 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
         if (stacked) setIframeActive(false);
 
         const filmHost = document.getElementById('film-stage-host');
-        if (filmHost) {
+        if (filmHost && stacked && flyingOutRef.current) {
+          // The cloud shot opens the stage as it plays. This only covers the
+          // case where no shot follows (reduced motion) and the stage would
+          // otherwise stay cropped.
+          if (expandFallbackRef.current) clearTimeout(expandFallbackRef.current);
+          expandFallbackRef.current = setTimeout(() => {
+            if (!flyingOutRef.current) return;
+            flyingOutRef.current = false;
+            filmHost.style.transition = 'none';
+            filmHost.style.height = '100%';
+            filmHost.style.bottom = '0px';
+            filmHost.style.webkitMaskImage = 'none';
+            filmHost.style.maskImage = 'none';
+          }, 5000);
+        } else if (filmHost) {
           filmHost.style.transition = 'height 0.6s cubic-bezier(0.16, 1, 0.3, 1)';
           filmHost.style.height = '100%';
           filmHost.style.bottom = '0px';
@@ -977,7 +1042,7 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
           onTouchStart={stacked ? handleCardTouchStart : undefined}
           onTouchEnd={stacked ? handleCardTouchEnd : undefined}
           className={`prompt-pill-reveal flex flex-col rounded-2xl border border-white/15 bg-neutral-900/80 backdrop-blur-xl shadow-[0_14px_40px_rgba(0,0,0,0.5)] ${
-            stacked ? 'p-3 flex-1 justify-between' : 'p-5'
+            stacked ? 'p-3 shrink-0' : 'p-5'
           }`}
         >
           {/* Card Header: Category + Persistent Waitlist Pill + < 01 / 04 > Indicator */}
@@ -990,59 +1055,14 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
               {activeProblem.category}
             </span>
 
-            {stacked && (
-              <div className="flex items-center gap-1.5">
-                {/* Jump to Waitlist Pill (Slides 1-3) */}
-                {!activeProblem.isWaitlist && (
-                  <button
-                    type="button"
-                    onClick={() => handleProblemSelect(BROKER_PROBLEMS[3])}
-                    className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-white/10 hover:bg-white/20 active:scale-95 border border-white/20 text-white text-[9.5px] font-semibold tracking-tight transition-all cursor-pointer group shadow-sm select-none"
-                    title="Jump to Waitlist"
-                    aria-label="Jump to Waitlist"
-                  >
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#568DFF]" />
-                    <span>Waitlist</span>
-                    <span className="text-[#8FB4FF] font-bold group-hover:translate-x-0.5 transition-transform text-[8.5px]">
-                      &rarr;
-                    </span>
-                  </button>
-                )}
-
-                {/* Stepper Navigation */}
-                <div className="flex items-center gap-1 text-[10.5px] font-mono text-white/50 bg-white/5 border border-white/10 rounded-full px-2 py-0.5 select-none">
-                  <button
-                    type="button"
-                    onClick={() => navigateProblem(-1)}
-                    disabled={activeProblem.id === 1}
-                    className="px-1 text-white/70 hover:text-white disabled:opacity-20 disabled:cursor-default active:scale-90 transition-all cursor-pointer"
-                    aria-label="Previous objection"
-                  >
-                    &lt;
-                  </button>
-                  <span className="font-semibold text-white/90 px-0.5 tracking-wider">
-                    0{activeProblem.id} / 0{BROKER_PROBLEMS.length}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => navigateProblem(1)}
-                    disabled={activeProblem.id === BROKER_PROBLEMS.length}
-                    className="px-1 text-white/70 hover:text-white disabled:opacity-20 disabled:cursor-default active:scale-90 transition-all cursor-pointer"
-                    aria-label="Next objection"
-                  >
-                    &gt;
-                  </button>
-                </div>
-              </div>
-            )}
           </div>
 
           {/* Animated Card Content */}
           <div
             key={activeProblem.id}
-            className={`${stacked ? 'animate-story-slide flex-1 flex flex-col justify-between' : 'animate-fade-in flex flex-col'}`}
+            className={`${stacked ? 'animate-story-slide flex flex-col' : 'animate-fade-in flex flex-col'}`}
           >
-            <div className={`${stacked ? 'my-auto flex flex-col gap-1' : ''}`}>
+            <div className={`${stacked ? 'mt-1.5 flex flex-col gap-1' : ''}`}>
               {stacked && (
                 <h4 className="text-white text-[14px] sm:text-[15px] font-bold tracking-tight leading-snug">
                   &ldquo;{activeProblem.problem}&rdquo;
@@ -1067,7 +1087,7 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
                 target="_blank"
                 rel="noopener noreferrer"
                 className={`block w-full rounded-xl bg-white text-center font-bold tracking-tight text-neutral-950 transition-all duration-200 hover:bg-neutral-200 active:scale-[0.98] cursor-pointer ${
-                  stacked ? 'mt-auto py-2 px-3.5 text-[11.5px]' : 'mt-4 px-4 py-2.5 text-[13px]'
+                  stacked ? 'mt-2 py-1.5 px-3.5 text-[11.5px]' : 'mt-4 px-4 py-2.5 text-[13px]'
                 }`}
                 style={{ fontFamily: 'var(--font-inter)' }}
               >
@@ -1080,7 +1100,7 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
                 rel="noopener noreferrer"
                 className={`flex items-center justify-between gap-2 text-left font-mono text-neutral-300 transition-colors cursor-pointer group ${
                   stacked
-                    ? 'mt-auto py-1.5 px-3 text-[10px] border border-white/12 rounded-xl bg-white/[0.06] hover:bg-white/10'
+                    ? 'mt-2 pt-2 text-[10px] border-t border-white/10'
                     : 'mt-4 pt-3 text-[10px] border-t border-white/10'
                 }`}
               >

@@ -320,6 +320,12 @@ export default function FilmStage({
 
       const startedAt = performance.now();
       const naturalMs = ((to - from) / rate) * 1000;
+
+      // Overlays that reshape the stage (the broker's stacked layout) time
+      // their own change to the shot, so it lands with the camera, not after.
+      window.dispatchEvent(
+        new CustomEvent('rechitta:shot-start', { detail: { beat: beat.id, ms: naturalMs } }),
+      );
       const deadline =
         startedAt + Math.min(naturalMs * OVERRUN_FACTOR + OVERRUN_GRACE_MS, MAX_SHOT_MS);
       let rateChecked = false;
