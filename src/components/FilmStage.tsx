@@ -713,15 +713,28 @@ export default function FilmStage({
       feed(e.deltaY * scale);
     };
 
+    const isInteractiveTarget = (target: EventTarget | null): boolean => {
+      if (!target || !(target instanceof HTMLElement)) return false;
+      return Boolean(
+        target.tagName === 'IFRAME' ||
+        target.closest('#broker-phone-interactive') ||
+        target.closest('[data-interactive="true"]')
+      );
+    };
+
     let touchY: number | null = null;
     const onTouchStart = (e: TouchEvent) => {
+      if (isInteractiveTarget(e.target)) {
+        touchY = null;
+        return;
+      }
       touchY = e.touches[0]?.clientY ?? null;
     };
     const onTouchMove = (e: TouchEvent) => {
-      if (modalOpen()) return;
+      if (modalOpen() || touchY === null || isInteractiveTarget(e.target)) return;
       e.preventDefault();
       const y = e.touches[0]?.clientY;
-      if (y === undefined || touchY === null) return;
+      if (y === undefined) return;
       // Dragging a finger up means going forward, the same way a page scrolls.
       feed((touchY - y) * 2.0);
       touchY = y;
@@ -886,6 +899,7 @@ export default function FilmStage({
         ref={hostRef}
         id="film-stage-host"
         className="absolute inset-0 z-10 w-full h-full overflow-hidden pointer-events-none"
+        style={{ isolation: 'isolate', contain: 'paint' }}
       />
       <div
         ref={flashRef}

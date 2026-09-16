@@ -691,118 +691,150 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
       {/* ===================================================================
           1. THE CALIBRATED PHONE SCREEN
           Desktop: precision 3D homography matrix3d.
-          Mobile Portrait: affine 2D transform (center, scale, rotation)
-          guaranteeing 100% click/touch interactivity into the cross-origin assistant.
+          Mobile Portrait: precision 3D homography matrix3d matched to video handset.
          =================================================================== */}
-      <div
-        ref={phoneRef}
-        onTouchStart={(e) => e.stopPropagation()}
-        onTouchMove={(e) => e.stopPropagation()}
-        onTouchEnd={(e) => e.stopPropagation()}
-        className="absolute pointer-events-none overflow-visible"
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          width: '100%',
-          height: stacked ? `${responsiveStageHeight}px` : '100%',
-          zIndex: 50,
-          pointerEvents: 'none',
-          touchAction: 'manipulation',
-          isolation: 'isolate',
-        }}
-      >
-        <div
-          onTouchStart={(e) => e.stopPropagation()}
-          onTouchMove={(e) => e.stopPropagation()}
-          onTouchEnd={(e) => e.stopPropagation()}
-          style={
-            composited
-              ? {
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  width: PHONE_WIDTH,
-                  height: PHONE_HEIGHT,
-                  transformOrigin: '0 0',
-                  transform: desktopMatrix,
-                  pointerEvents: 'auto',
-                  touchAction: 'auto',
-                  cursor: 'pointer',
-                  WebkitBackfaceVisibility: 'hidden',
-                  backfaceVisibility: 'hidden',
-                  transformStyle: 'flat',
-                  willChange: 'transform',
-                }
-              : stacked
-                ? {
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    width: PHONE_WIDTH,
-                    height: PHONE_HEIGHT,
-                    transformOrigin: '0 0',
-                    transform: responsiveMatrix,
-                    pointerEvents: 'auto',
-                    touchAction: 'manipulation',
-                    cursor: 'pointer',
-                    WebkitBackfaceVisibility: 'hidden',
-                    backfaceVisibility: 'hidden',
-                    transformStyle: 'flat',
-                    willChange: 'transform',
-                  }
-                : {
-                    position: 'absolute',
-                    width: `${flatPhoneWidth}px`,
-                    height: `${flatPhoneHeight}px`,
-                    left: '6%',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    pointerEvents: 'auto',
-                    touchAction: 'manipulation',
-                    cursor: 'pointer',
-                  }
-          }
-        >
-          {/* Inner chassis wrapper separating clipping/shadow from the 3D transform */}
+      {(() => {
+        const phoneRadius =
+          composited || stacked
+            ? `${BROKER_PHONE_RADIUS}px`
+            : `${Math.round(flatPhoneHeight * 0.055)}px`;
+
+        return (
           <div
+            ref={phoneRef}
+            id="broker-phone-interactive"
+            onTouchStart={(e) => e.stopPropagation()}
+            onTouchMove={(e) => e.stopPropagation()}
+            onTouchEnd={(e) => e.stopPropagation()}
+            className="absolute pointer-events-none overflow-visible"
             style={{
-              position: 'relative',
+              position: 'absolute',
+              top: 0,
+              left: 0,
               width: '100%',
-              height: '100%',
-              backgroundColor: '#0B0F19',
-              borderRadius:
-                composited || stacked
-                  ? `${BROKER_PHONE_RADIUS}px`
-                  : `${Math.round(flatPhoneHeight * 0.055)}px`,
-              overflow: 'hidden',
-              boxShadow:
-                '0 30px 70px -10px rgba(0, 0, 0, 0.95), 0 0 35px rgba(6, 182, 212, 0.12), inset 0 0 0 1.5px rgba(255, 255, 255, 0.18)',
-              WebkitTransform: 'translate3d(0, 0, 0)',
-              transform: 'translate3d(0, 0, 0)',
-              WebkitOverflowScrolling: 'touch',
+              height: stacked ? `${responsiveStageHeight}px` : '100%',
+              zIndex: 50,
+              pointerEvents: 'none',
+              touchAction: 'manipulation',
+              isolation: 'isolate',
             }}
           >
-            {iframeActive && (
-              <iframe
-                src={BROKER_APP_URL}
-                className="w-full h-full border-none relative z-10 pointer-events-auto cursor-pointer"
+            <div
+              onTouchStart={(e) => e.stopPropagation()}
+              onTouchMove={(e) => e.stopPropagation()}
+              onTouchEnd={(e) => e.stopPropagation()}
+              style={
+                composited
+                  ? {
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      width: PHONE_WIDTH,
+                      height: PHONE_HEIGHT,
+                      transformOrigin: '0 0',
+                      transform: desktopMatrix,
+                      borderRadius: phoneRadius,
+                      overflow: 'hidden',
+                      clipPath: `inset(0 round ${phoneRadius})`,
+                      WebkitClipPath: `inset(0 round ${phoneRadius})`,
+                      WebkitMaskImage: '-webkit-radial-gradient(white, black)',
+                      maskImage: 'radial-gradient(white, black)',
+                      pointerEvents: 'auto',
+                      touchAction: 'auto',
+                      cursor: 'pointer',
+                      WebkitBackfaceVisibility: 'hidden',
+                      backfaceVisibility: 'hidden',
+                      transformStyle: 'flat',
+                      willChange: 'transform',
+                    }
+                  : stacked
+                    ? {
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        width: PHONE_WIDTH,
+                        height: PHONE_HEIGHT,
+                        transformOrigin: '0 0',
+                        transform: responsiveMatrix,
+                        borderRadius: phoneRadius,
+                        overflow: 'hidden',
+                        clipPath: `inset(0 round ${phoneRadius})`,
+                        WebkitClipPath: `inset(0 round ${phoneRadius})`,
+                        WebkitMaskImage: '-webkit-radial-gradient(white, black)',
+                        maskImage: 'radial-gradient(white, black)',
+                        pointerEvents: 'auto',
+                        touchAction: 'manipulation',
+                        cursor: 'pointer',
+                        WebkitBackfaceVisibility: 'hidden',
+                        backfaceVisibility: 'hidden',
+                        transformStyle: 'flat',
+                      }
+                    : {
+                        position: 'absolute',
+                        width: `${flatPhoneWidth}px`,
+                        height: `${flatPhoneHeight}px`,
+                        left: '6%',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        borderRadius: phoneRadius,
+                        overflow: 'hidden',
+                        clipPath: `inset(0 round ${phoneRadius})`,
+                        WebkitClipPath: `inset(0 round ${phoneRadius})`,
+                        WebkitMaskImage: '-webkit-radial-gradient(white, black)',
+                        maskImage: 'radial-gradient(white, black)',
+                        pointerEvents: 'auto',
+                        touchAction: 'manipulation',
+                        cursor: 'pointer',
+                      }
+              }
+            >
+              {/* Inner chassis wrapper separating clipping/shadow from the 3D transform */}
+              <div
                 style={{
-                  pointerEvents: 'auto',
-                  touchAction: 'manipulation',
+                  position: 'relative',
                   width: '100%',
                   height: '100%',
                   backgroundColor: '#0B0F19',
-                  WebkitBackfaceVisibility: 'hidden',
-                  backfaceVisibility: 'hidden',
+                  borderRadius: phoneRadius,
+                  overflow: 'hidden',
+                  clipPath: `inset(0 round ${phoneRadius})`,
+                  WebkitClipPath: `inset(0 round ${phoneRadius})`,
+                  WebkitMaskImage: '-webkit-radial-gradient(white, black)',
+                  maskImage: 'radial-gradient(white, black)',
+                  boxShadow:
+                    '0 30px 70px -10px rgba(0, 0, 0, 0.95), 0 0 35px rgba(6, 182, 212, 0.12), inset 0 0 0 1.5px rgba(255, 255, 255, 0.18)',
+                  WebkitTransform: 'translate3d(0, 0, 0)',
+                  transform: 'translate3d(0, 0, 0)',
+                  WebkitOverflowScrolling: 'touch',
+                  isolation: 'isolate',
                 }}
-                title="Rechitta Live Broker Assistant"
-                allow="autoplay; fullscreen; microphone"
-              />
-            )}
+              >
+                {iframeActive && (
+                  <iframe
+                    src={BROKER_APP_URL}
+                    className="w-full h-full border-none relative z-10 pointer-events-auto cursor-pointer"
+                    style={{
+                      pointerEvents: 'auto',
+                      touchAction: 'manipulation',
+                      width: '100%',
+                      height: '100%',
+                      backgroundColor: '#0B0F19',
+                      borderRadius: phoneRadius,
+                      clipPath: `inset(0 round ${phoneRadius})`,
+                      WebkitClipPath: `inset(0 round ${phoneRadius})`,
+                      overflow: 'hidden',
+                      WebkitBackfaceVisibility: 'hidden',
+                      backfaceVisibility: 'hidden',
+                    }}
+                    title="Rechitta Live Broker Assistant"
+                    allow="autoplay; fullscreen; microphone"
+                  />
+                )}
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
+        );
+      })()}
 
       {/*
         Mobile Portrait: Seamless cinematic gradient scrim feathering the footage
@@ -822,11 +854,11 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
 
           {/* Soft ambient brand glow bridging the physical phone chin and the segmented dashes */}
           <div
-            className="fixed left-1/2 -translate-x-1/2 pointer-events-none z-20 w-[300px] h-[70px] rounded-full blur-2xl opacity-20"
+            className="fixed left-1/2 -translate-x-1/2 pointer-events-none z-20 w-[300px] h-[70px] rounded-full opacity-20"
             style={{
               top: `${phoneBottomY - 25}px`,
               background:
-                'radial-gradient(ellipse at center, rgba(86, 141, 255, 0.7) 0%, rgba(86, 141, 255, 0.25) 50%, transparent 80%)',
+                'radial-gradient(ellipse at center, rgba(86, 141, 255, 0.7) 0%, rgba(86, 141, 255, 0.3) 35%, rgba(86, 141, 255, 0.08) 65%, transparent 100%)',
             }}
             aria-hidden="true"
           />
