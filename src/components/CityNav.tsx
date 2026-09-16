@@ -3,6 +3,42 @@
 import { BEATS, CITIES, beatIndexById } from '@/film/score';
 
 const FIRST_CITY = beatIndexById('city-mumbai');
+const FINALE_BEAT = beatIndexById('finale-screen');
+
+/**
+ * The chapter's call to action. Scrolling already turns the cities; this skips
+ * the rest of them and goes straight on to the closing boardroom, through the
+ * same jump the rail uses, so the focus-pull transition plays as it would on a
+ * scroll. Where it sits is the caller's business: pinned above the rail on a
+ * phone, under the city's clock on a wide screen.
+ */
+export function BoardroomCta({
+  isMoving = false,
+  className = '',
+}: {
+  isMoving?: boolean;
+  className?: string;
+}) {
+  return (
+    <button
+      type="button"
+      disabled={isMoving}
+      onClick={() =>
+        window.dispatchEvent(
+          new CustomEvent('rechitta:jump-to-beat', { detail: { index: FINALE_BEAT } }),
+        )
+      }
+      className={`rounded-xl text-white font-bold tracking-tight flex items-center justify-center gap-2 cursor-pointer group border bg-[#568DFF]/90 hover:bg-[#568DFF] border-[#568DFF]/60 hover:border-[#8FB4FF] shadow-[0_0_20px_rgba(86,141,255,0.4)] hover:shadow-[0_0_28px_rgba(86,141,255,0.6)] transition-all duration-300 active:scale-[0.98] disabled:opacity-70 disabled:cursor-default touch-manipulation ${className}`}
+      style={{ fontFamily: 'var(--font-inter)' }}
+    >
+      <span className="h-1.5 w-1.5 rounded-full bg-white shadow-[0_0_8px_#ffffff]" />
+      <span className="whitespace-nowrap">Into the boardroom</span>
+      <span className="text-white/90 font-bold transition-transform group-hover:translate-x-1">
+        &rarr;
+      </span>
+    </button>
+  );
+}
 
 /**
  * Where each arrow goes, named, so the control can say so out loud.

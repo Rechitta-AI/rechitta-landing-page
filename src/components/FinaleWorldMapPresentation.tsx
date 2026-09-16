@@ -5,8 +5,7 @@ import gsap from 'gsap';
 import { coverRect, matrix3dFor } from '@/screens/warp';
 import { isPortraitFor } from '@/hooks/useDeviceMode';
 import { beatIndexById } from '@/film/score';
-import { useDemoModal } from '@/contexts/DemoModalContext';
-import WallLogoReel, { BuilderMarquee, DEVELOPER_LOGOS, PROJECT_LOGOS } from './BuilderCarousel';
+import WallLogoReel, { LogoCarousels, DEVELOPER_LOGOS, PROJECT_LOGOS } from './BuilderCarousel';
 import { FinaleStatsSlide, FinaleQuestionsSlide } from './FinaleDeckSlides';
 import DeckDock from './DeckDock';
 import { MONITOR_CORNERS, DEFAULT_CALIBRATION, sanitizeCalibration, type CalibrationCoords } from './MonitorCalibrator';
@@ -147,7 +146,6 @@ export default function FinaleWorldMapPresentation({
   beatIndex,
   isMoving = false,
 }: FinaleWorldMapPresentationProps) {
-  const { openModal } = useDemoModal();
   const containerRef = useRef<HTMLDivElement>(null);
   /* The builders' reel sits beside the monitor, not on it: the map container
      is warped onto the screen's quad and everything inside it warps with it. */
@@ -568,52 +566,6 @@ export default function FinaleWorldMapPresentation({
           { opacity: 1, y: 0, duration: 0.42, ease: 'power3.out' },
           0
         );
-
-        // 2. Eyebrow & Headline rise with spatial momentum
-        tl.fromTo(
-          marqueeEl.querySelectorAll('.finale-eyebrow'),
-          { opacity: 0, y: 10, letterSpacing: '0.32em' },
-          { opacity: 1, y: 0, letterSpacing: '0.24em', duration: 0.40, ease: 'power3.out' },
-          0.04
-        );
-        tl.fromTo(
-          marqueeEl.querySelectorAll('.finale-headline'),
-          { opacity: 0, y: 14 },
-          { opacity: 1, y: 0, duration: 0.48, ease: 'power3.out' },
-          0.08
-        );
-
-        // 3. Subtitle slides in 60ms later
-        tl.fromTo(
-          marqueeEl.querySelectorAll('.finale-subtitle'),
-          { opacity: 0, y: 10 },
-          { opacity: 1, y: 0, duration: 0.44, ease: 'power3.out' },
-          0.14
-        );
-
-        // 4. CTA button pops in with crisp scale
-        tl.fromTo(
-          marqueeEl.querySelectorAll('.finale-cta-wrap'),
-          { opacity: 0, scale: 0.94, y: 8 },
-          { opacity: 1, scale: 1, y: 0, duration: 0.42, ease: 'back.out(1.3)' },
-          0.20
-        );
-
-        // 5. Trust micro-pills cascade in from left to right like telemetry modules coming online
-        tl.fromTo(
-          marqueeEl.querySelectorAll('.finale-trust-pill'),
-          { opacity: 0, scale: 0.90, y: 6 },
-          { opacity: 1, scale: 1, y: 0, duration: 0.35, stagger: 0.05, ease: 'power2.out' },
-          0.26
-        );
-
-        // 6. Dock cradle expands below all content
-        tl.fromTo(
-          marqueeEl.querySelectorAll('.finale-dock-cradle'),
-          { opacity: 0, scale: 0.88 },
-          { opacity: 1, scale: 1, duration: 0.45, ease: 'power2.out' },
-          0.32
-        );
       }
 
       triggerIgnition();
@@ -752,83 +704,21 @@ export default function FinaleWorldMapPresentation({
           />
             </div>
 
-            {/* 1. Developer Partner Marquee */}
-            <div className="w-full finale-stagger-item finale-marquee-wrap">
-              <BuilderMarquee />
+            {/*
+              The empty table carries the logos, the way the wall's two reels do
+              on desktop: developers in one strip, their projects in the other,
+              running opposite ways so they read as two lists.
+            */}
+            <div className="w-full mt-4">
+              <LogoCarousels itemClassName="finale-stagger-item finale-marquee-wrap" />
             </div>
 
-            {/* 2. Executive Typography & CTA directly on the boardroom table surface */}
-            <div className="flex flex-col items-center text-center gap-1.5 sm:gap-2">
-              {/* Eyebrow matching Hero Page */}
-              <p className="eyebrow finale-stagger-item finale-eyebrow text-white/50 text-[8.5px] sm:text-[9.5px] tracking-[0.24em] drop-shadow-sm">
-                Global Real Estate Distribution
-              </p>
-
-              {/* Headline matching Hero Page ("One source of truth." aesthetic) */}
-              <h2
-                className="finale-stagger-item finale-headline text-[1.125rem] sm:text-[1.325rem] font-bold text-white tracking-tight leading-snug drop-shadow-md max-w-[320px] mx-auto"
-                style={{ fontFamily: 'var(--font-inter)' }}
-              >
-                Take your portfolio global.
-              </h2>
-
-              {/* Subtitle matching Hero Page ("Live developer inventory..." aesthetic) */}
-              <p
-                className="finale-stagger-item finale-subtitle text-[10.5px] sm:text-[11.5px] text-white/65 leading-relaxed max-w-[280px] sm:max-w-xs mx-auto drop-shadow-sm"
-                style={{ fontFamily: 'var(--font-inter)' }}
-              >
-                Live developer inventory delivered in 6 languages across 140+ international markets.
-              </p>
-
-              {/* Action Button: Crisp obsidian glass styling with high contrast and zero blur smudging */}
-              <div className="pt-0.5 finale-stagger-item finale-cta-wrap">
-                <button
-                  onClick={openModal}
-                  type="button"
-                  className="group relative px-5 py-2 sm:px-6 sm:py-2.5 bg-[#0b0f19]/90 hover:bg-[#121927] active:scale-95 border border-white/20 rounded-full text-white text-xs tracking-wide font-semibold transition-all duration-300 shadow-[0_0_20px_rgba(86,141,255,0.22)] hover:shadow-[0_0_30px_rgba(86,141,255,0.38)] overflow-hidden cursor-pointer touch-manipulation"
-                  style={{ fontFamily: 'var(--font-inter)' }}
-                >
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-[150%] group-hover:animate-[shimmer_1.5s_infinite] pointer-events-none" />
-                  <span className="relative z-10 flex items-center justify-center gap-2">
-                    <span>Try the Platform</span>
-                    <span className="text-[11px] text-[#568DFF] group-hover:translate-x-1 transition-transform duration-200">→</span>
-                  </span>
-                </button>
-              </div>
-
-              {/* Trust Pills: Solid obsidian backing to ensure dots and typography are crystal sharp */}
-              <div className="flex items-center justify-center gap-1.5 sm:gap-2 flex-wrap pt-0.5">
-                <span className="finale-stagger-item finale-trust-pill inline-flex items-center gap-1.5 px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full bg-[#0a0e18]/85 border border-white/15 eyebrow-chip text-[8.5px] sm:text-[9.5px] text-white/85 shadow-sm">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                  Zero Translation Lag
-                </span>
-                <span className="finale-stagger-item finale-trust-pill inline-flex items-center gap-1.5 px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full bg-[#0a0e18]/85 border border-white/15 eyebrow-chip text-[8.5px] sm:text-[9.5px] text-white/85 shadow-sm">
-                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-                  140+ Markets
-                </span>
-                <span className="finale-stagger-item finale-trust-pill inline-flex items-center gap-1.5 px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full bg-[#0a0e18]/85 border border-white/15 eyebrow-chip text-[8.5px] sm:text-[9.5px] text-white/85 shadow-sm">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#568DFF]" />
-                  DLD Integrated
-                </span>
-              </div>
-
-              {/* Ambient Dock Station below all content with generous clearance */}
-              <div className="finale-stagger-item finale-dock-cradle relative flex items-center justify-center pt-5 sm:pt-6 pb-2 w-full pointer-events-none">
-                {/* Voice-dock ambient cradle glow matching Scene 4 / Multilingual */}
-                <div className="absolute w-24 h-10 rounded-full bg-[#568DFF]/25 blur-lg pointer-events-none" />
-                <div className="absolute w-12 h-6 rounded-full bg-[#568DFF]/20 blur-sm pointer-events-none" />
-
-                {/* Sleek dock cradle ring with live status glow */}
-                <div className="relative w-7 h-7 rounded-full border border-white/20 bg-black/40 shadow-[0_0_15px_rgba(86,141,255,0.25)] flex items-center justify-center">
-                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-400/90 shadow-[0_0_8px_#34d399]" />
-                </div>
-
-                {/* Exact dock anchor for the orb at the bottom below all content */}
-                <div
-                  id="finale-dock-anchor"
-                  className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none"
-                />
-              </div>
+            {/* Where the orb comes to rest. Measured by OrbStage; draws nothing. */}
+            <div className="relative w-full h-10 pointer-events-none" aria-hidden="true">
+              <div
+                id="finale-dock-anchor"
+                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none"
+              />
             </div>
           </div>
         </div>
