@@ -30,6 +30,48 @@ export const BROKER_PHONE_RADIUS = 48;
 const PHONE_WIDTH = 390;
 const PHONE_HEIGHT = 844;
 
+/** The calibrated quad's lowest corner: where the handset's foot lands. */
+const PHONE_FOOT = 0.89882;
+/** The chapter rail, safe area included. */
+const RAIL_RESERVE = 78;
+/** Dashes + card + CTA, measured at 390px wide, with a little slack. */
+const PANEL_MIN = 216;
+
+/** The stage's bottom edge dissolves rather than cutting off above the panel. */
+const STAGE_MASK =
+  'linear-gradient(to bottom, #000 0%, #000 calc(100% - 60px), transparent 100%)';
+
+/**
+ * How tall the film stage stands on a stacked screen.
+ *
+ * The handset gets the frame; the panel underneath gets what is left. The
+ * reserve here was once 235px, sized for a panel that set its question at 16px
+ * and its answer at 13px with a 4-unit pad. Tightened a step (see the `stacked`
+ * sizes further down), the same content sits in 196 — and every point that
+ * frees goes to the phone, which is the one thing in this scene anybody is
+ * meant to be looking at.
+ *
+ * This is the only place the height is worked out, and it has to stay that
+ * way. The live screen is projected onto the footage by a homography measured
+ * off this very number, so a second copy of the sum anywhere else is a 30px
+ * seam between the assistant and the handset it is meant to be sitting in. A
+ * resize handler carrying the older 235px reserve is exactly how that seam got
+ * in, and on a phone — where a keyboard, a URL bar or a rotation each fire
+ * another `resize` — it reappeared on every one of them, which is what read
+ * as flicker.
+ */
+export function stageHeightFor(viewportHeight: number) {
+  return Math.round(
+    Math.min(
+      viewportHeight * 0.73,
+      // The panel hangs off the handset's foot, not off the stage's bottom
+      // edge, so the budget is measured from there. A flat reserve looked fine
+      // at 844 and clipped the call to action at 667.
+      (viewportHeight - RAIL_RESERVE - PANEL_MIN - 8) / PHONE_FOOT,
+    ),
+  );
+}
+
 /** The live broker assistant, both in the tracked handset and in a new tab. */
 export const BROKER_APP_URL =
   'https://icy-sand-0d102fd00.7.azurestaticapps.net/?sessionId=0b555e4f-a0cf-4459-be58-a6d45a69ac68';
@@ -143,27 +185,7 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
   const desktopMatrix = matrix3dFor(PHONE_WIDTH, PHONE_HEIGHT, desktopViewportCorners);
 
   // 2. Responsive Stage & Viewport Projection (Smart Content-Aware Split)
-  /*
-   * The handset gets the frame; the panel underneath gets what is left.
-   *
-   * The reserve below was 235px, sized for a panel that set its question at
-   * 16px and its answer at 13px with a 4-unit pad. Tightened a step (see the
-   * `stacked` sizes further down), the same content sits in 196 — and every
-   * point that frees goes to the phone, which is the one thing in this scene
-   * anybody is meant to be looking at.
-   */
-  const PHONE_FOOT = 0.89882;   // the calibrated quad's lowest corner
-  const RAIL_RESERVE = 78;      // the chapter rail, safe area included
-  const PANEL_MIN = 216;        // dashes + card + CTA, measured at 390px wide, with a little slack
-  const responsiveStageHeight = Math.round(
-    Math.min(
-      viewport.height * 0.73,
-      // The panel hangs off the handset's foot, not off the stage's bottom
-      // edge, so the budget is measured from there. A flat reserve looked fine
-      // at 844 and clipped the call to action at 667.
-      (viewport.height - RAIL_RESERVE - PANEL_MIN - 8) / PHONE_FOOT,
-    ),
-  );
+  const responsiveStageHeight = stageHeightFor(viewport.height);
   const responsiveRect = coverRect(viewport.width, responsiveStageHeight);
   const responsiveViewportCorners: Quad = toViewport(BROKER_PHONE_CORNERS, responsiveRect);
   const responsiveMatrix = matrix3dFor(PHONE_WIDTH, PHONE_HEIGHT, responsiveViewportCorners);
@@ -183,8 +205,6 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
 
   useEffect(() => {
     if (!stacked) return;
-    const STAGE_MASK =
-      'linear-gradient(to bottom, #000 0%, #000 calc(100% - 60px), transparent 100%)';
 
     const onShotStart = (e: Event) => {
       const detail = (e as CustomEvent<{ beat?: string; ms?: number }>).detail;
@@ -227,15 +247,18 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
       if (isVisibleRef.current) {
         const filmHost = document.getElementById('film-stage-host');
         if (filmHost) {
+          /*
+            No transition: the overlay above re-projects on this same resize,
+            in this same frame. Easing the stage there over half a second would
+            leave the live screen hanging off the handset for every one of
+            those frames, which is the seam this is trying to avoid.
+          */
           filmHost.style.transition = 'none';
           if (isPortraitFor(w, h)) {
-            const stageH = Math.round(Math.min(h * 0.67, h - 235));
             filmHost.style.bottom = 'auto';
-            filmHost.style.height = `${stageH}px`;
-            filmHost.style.webkitMaskImage =
-              'linear-gradient(to bottom, #000 0%, #000 calc(100% - 60px), transparent 100%)';
-            filmHost.style.maskImage =
-              'linear-gradient(to bottom, #000 0%, #000 calc(100% - 60px), transparent 100%)';
+            filmHost.style.height = `${stageHeightFor(h)}px`;
+            filmHost.style.webkitMaskImage = STAGE_MASK;
+            filmHost.style.maskImage = STAGE_MASK;
           } else {
             filmHost.style.bottom = '0px';
             filmHost.style.height = '100%';
@@ -300,7 +323,7 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
    * On mobile portrait, bottom clearance ensures all content floats safely above the ScrollRail progress bar.
    */
   // Exact physical bottom edge of the handset in mobile portrait
-  const phoneBottomY = Math.round(responsiveStageHeight * 0.89882 + 10);
+  const phoneBottomY = Math.round(responsiveStageHeight * PHONE_FOOT + 10);
 
   const hudStyle: React.CSSProperties = composited
     ? {
@@ -556,14 +579,21 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
 
           const filmHost = document.getElementById('film-stage-host');
           if (filmHost) {
+            /*
+              The boardroom scales this same host on its way out, and on
+              portrait that tween is still running when the broker arrives.
+              Writing `transform: none` underneath it only holds for a frame
+              before GSAP puts its own value back, so the stage wobbles against
+              a screen overlay that does not wobble with it. Kill the tween and
+              clear what it left, which is where it was heading anyway.
+            */
+            gsap.killTweensOf(filmHost);
+            gsap.set(filmHost, { clearProps: 'transform' });
             filmHost.style.transition = 'height 0.6s cubic-bezier(0.16, 1, 0.3, 1)';
             filmHost.style.bottom = 'auto';
             filmHost.style.height = `${stageHeightRef.current}px`;
-            filmHost.style.transform = 'none';
-            filmHost.style.webkitMaskImage =
-              'linear-gradient(to bottom, #000 0%, #000 calc(100% - 60px), transparent 100%)';
-            filmHost.style.maskImage =
-              'linear-gradient(to bottom, #000 0%, #000 calc(100% - 60px), transparent 100%)';
+            filmHost.style.webkitMaskImage = STAGE_MASK;
+            filmHost.style.maskImage = STAGE_MASK;
           }
 
           // Once the phone in the footage has completely settled at its final position (~650ms):

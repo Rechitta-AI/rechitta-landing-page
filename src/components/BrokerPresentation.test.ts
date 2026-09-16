@@ -4,6 +4,7 @@ import {
   BROKER_PHONE_RADIUS,
   BROKER_PROBLEMS,
   PROMPT_PILLS,
+  stageHeightFor,
 } from './BrokerPresentation';
 
 describe('BrokerPresentation Configuration & Data', () => {
@@ -65,51 +66,81 @@ describe('BrokerPresentation Configuration & Data', () => {
     expect(PROMPT_PILLS).toBe(BROKER_PROBLEMS);
   });
 
-  it('maps broker phone corners completely inside the top 60% stage on mobile portrait', async () => {
-    const { coverRect, toViewport, matrix3dFor } = await import('@/screens/warp');
+  it('fits the handset and still leaves the panel its room, at every phone height', async () => {
     const { isPortraitFor } = await import('@/hooks/useDeviceMode');
 
-    // Standard mobile portrait phone (iPhone 12/13/14/15/16)
-    const viewport = { width: 390, height: 844 };
-    const stacked = isPortraitFor(viewport.width, viewport.height);
-    expect(stacked).toBe(true);
+    // The handset's foot, the chapter rail and the panel below it. These are
+    // the numbers the height is solved against; if they drift, so must it.
+    const PHONE_FOOT = BROKER_PHONE_CORNERS[2][1];
+    const RAIL_RESERVE = 78;
+    const PANEL_MIN = 216;
 
-    const stageHeight = stacked ? viewport.height * 0.6 : viewport.height;
-    expect(stageHeight).toBeCloseTo(506.4, 1);
+    // iPhone SE through Pro Max, and a short landscape-ish portrait for luck.
+    [568, 667, 664, 736, 844, 852, 932].forEach((height) => {
+      expect(isPortraitFor(390, height)).toBe(true);
+      const stage = stageHeightFor(height);
+
+      // The stage never eats the screen, however tall the screen is.
+      expect(stage).toBeLessThanOrEqual(height * 0.73);
+
+      // Whatever is left under the handset's foot has to hold the panel and
+      // the rail. This is the whole point of the sum.
+      const belowFoot = height - stage * PHONE_FOOT;
+      expect(belowFoot).toBeGreaterThanOrEqual(RAIL_RESERVE + PANEL_MIN);
+    });
+  });
+
+  it('projects the phone inside the stage it reports, so the live screen sits in the handset', async () => {
+    const { coverRect, toViewport, matrix3dFor } = await import('@/screens/warp');
+
+    const viewport = { width: 390, height: 844 };
+    const stageHeight = stageHeightFor(viewport.height);
+    expect(stageHeight).toBe(603);
 
     const rect = coverRect(viewport.width, stageHeight);
-    expect(rect.height).toBeCloseTo(506.4, 1);
-    // 506.4 * 16 / 9 = 900.27
-    expect(rect.width).toBeCloseTo(900.27, 1);
+    expect(rect.height).toBe(stageHeight);
     expect(rect.y).toBe(0);
 
     const viewportCorners = toViewport(BROKER_PHONE_CORNERS, rect);
 
-    // Verify all 4 corners are inside the top 60% stage (0 <= y <= 506.4)
-    viewportCorners.forEach(([x, y]) => {
+    // Every corner lands inside the stage the host is actually given.
+    viewportCorners.forEach(([, y]) => {
       expect(y).toBeGreaterThanOrEqual(0);
       expect(y).toBeLessThanOrEqual(stageHeight);
     });
 
-    // Top corners sit comfortably with headroom at y ≈ 61px - 72px
-    expect(viewportCorners[0][1]).toBeGreaterThan(55);
-    expect(viewportCorners[0][1]).toBeLessThan(75);
-
-    // Bottom corners sit comfortably above the 506px horizon at y ≈ 434px - 455px
-    expect(viewportCorners[2][1]).toBeGreaterThan(430);
-    expect(viewportCorners[2][1]).toBeLessThan(465);
-
-    // Check that matrix3d is valid and starts with matrix3d(
     const matrix = matrix3dFor(390, 844, viewportCorners);
     expect(matrix).toMatch(/^matrix3d\(/);
 
-    // Verify 2D affine parameters
+    // Centred horizontally on the viewport, not off in the cropped overscan.
     const [p0, p1, p2, p3] = viewportCorners;
     const phoneCx = (p0[0] + p1[0] + p2[0] + p3[0]) / 4;
-    const phoneCy = (p0[1] + p1[1] + p2[1] + p3[1]) / 4;
     expect(phoneCx).toBeGreaterThan(180);
-    expect(phoneCx).toBeLessThan(210); // Centered around 195px
-    expect(phoneCy).toBeGreaterThan(240);
-    expect(phoneCy).toBeLessThan(270); // Centered vertically in 506px stage
+    expect(phoneCx).toBeLessThan(210);
+  });
+
+  /*
+   * The regression this file exists to hold.
+   *
+   * The resize handler used to carry its own copy of the sum, left over from a
+   * taller panel: `min(h * 0.67, h - 235)`. It wrote that straight onto the
+   * film stage while the overlay above kept projecting against the real one,
+   * so the assistant slid off the handset by ~26px on every resize a phone
+   * fires. There must be one answer per height, and `stageHeightFor` must be
+   * the one giving it.
+   */
+  it('gives one stage height per viewport height, not two', () => {
+    const stale = (h: number) => Math.round(Math.min(h * 0.67, h - 235));
+
+    [568, 620, 664, 844].forEach((height) => {
+      // Same input, same answer, however many times it is asked.
+      expect(stageHeightFor(height)).toBe(stageHeightFor(height));
+      // And it is no longer the height the old resize path was writing.
+      expect(stageHeightFor(height)).not.toBe(stale(height));
+    });
+
+    // The exact seam that was reported: 390x664, stage snapping 403 -> 429.
+    expect(stageHeightFor(664)).toBe(403);
+    expect(stale(664)).toBe(429);
   });
 });
