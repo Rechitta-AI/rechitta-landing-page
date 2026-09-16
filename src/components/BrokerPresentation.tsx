@@ -964,7 +964,13 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
               <button
                 key={prob.id}
                 onClick={() => handleProblemSelect(prob)}
-                className={`objection-reveal group relative overflow-hidden rounded-xl border px-3.5 py-3 text-left text-[13px] font-semibold leading-snug tracking-tight transition-all duration-300 cursor-pointer backdrop-blur-xl ${
+                /*
+                  Colours only. `transition-all` also caught the opacity and
+                  transform the entrance sets on these, so a button snapped
+                  hidden by GSAP faded out over 300ms first and then came back
+                  in — the whole column visibly loaded twice.
+                */
+                className={`objection-reveal group relative overflow-hidden rounded-xl border px-3.5 py-3 text-left text-[13px] font-semibold leading-snug tracking-tight transition-[background-color,border-color,color,box-shadow] duration-300 cursor-pointer backdrop-blur-xl ${
                   isSelected
                     ? 'bg-white text-neutral-950 border-white shadow-[0_12px_34px_rgba(0,0,0,0.55)]'
                     : 'bg-neutral-900/55 text-neutral-300 border-white/10 hover:bg-neutral-900/85 hover:text-white hover:border-white/25'
