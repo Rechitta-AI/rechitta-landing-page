@@ -17,6 +17,7 @@ import {
 } from '@/film/score';
 import { isPortraitFor } from '@/hooks/useDeviceMode';
 import { coverRect } from '@/screens/warp';
+import { preloadCityBlob } from './CityBackdrop';
 import {
   arrive,
   commit,
@@ -240,6 +241,11 @@ export default function FilmStage({
       publish(beatProgress(beat));
       if (beatPositionRef) beatPositionRef.current = index;
       setHold(beat.hold ?? -1);
+
+      if (beat.id === 'broker') {
+        preloadCityBlob('london');
+        preloadCityBlob('paris');
+      }
 
       if (beat.chapter !== currentChapter) {
         currentChapter = beat.chapter;
@@ -582,6 +588,8 @@ export default function FilmStage({
         } else {
           await crossChapter(target, async () => {
             if (target.chapter === 'cities') {
+              preloadCityBlob('london');
+              preloadCityBlob('paris');
               setLayerVisible(false);
               show(null, 0);
             } else {

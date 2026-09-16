@@ -26,7 +26,40 @@ import CityNav from './CityNav';
 const FADE_MS = 400;
 
 const posterFor = (key: string) => `/film/places/frames/${key}.jpg`;
-const clipFor = (key: string) => `/film/places/${key}.mp4`;
+export const clipFor = (key: string) => `/film/places/${key}.mp4`;
+
+// In-memory Blob Cache: once fetched, clips reside in RAM for 0ms instantaneous switching
+const cityBlobCache = new Map<string, string>();
+const cityBlobPromises = new Map<string, Promise<string>>();
+
+export async function preloadCityBlob(key: string): Promise<string> {
+  if (cityBlobCache.has(key)) return cityBlobCache.get(key)!;
+  if (cityBlobPromises.has(key)) return cityBlobPromises.get(key)!;
+
+  const url = clipFor(key);
+  if (typeof window === 'undefined') return url;
+
+  const p = fetch(url)
+    .then((r) => {
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      return r.blob();
+    })
+    .then((blob) => {
+      const blobUrl = URL.createObjectURL(blob);
+      cityBlobCache.set(key, blobUrl);
+      return blobUrl;
+    })
+    .catch((err) => {
+      console.warn(`[city] Blob preload failed for ${key}, falling back to direct URL:`, err);
+      return url;
+    })
+    .finally(() => {
+      cityBlobPromises.delete(key);
+    });
+
+  cityBlobPromises.set(key, p);
+  return p;
+}
 
 export default function CityBackdrop({
   index,
@@ -47,15 +80,17 @@ export default function CityBackdrop({
     onSwapRef.current = onSwap;
   }, [onSwap]);
 
-  // Load the current city and the one after it, and nothing else. Six 4K-ish
-  // drone clips held open at once is more decoders than a browser will give.
+  // Load the current city and bidirectional neighbours (index - 1, index, index + 1)
+  // Powered by in-memory blob caching for 0ms instantaneous playback without hitching.
   useEffect(() => {
     if (!active) return;
+    let cancelled = false;
 
     CITIES.forEach((city, i) => {
       const v = videoRefs.current[i];
       if (!v) return;
-      const wanted = i === index || i === index + 1;
+      // Bidirectional window: keep current, previous, and next warm
+      const wanted = Math.abs(i - index) <= 1;
 
       if (!wanted) {
         if (v.getAttribute('src')) {
@@ -66,26 +101,65 @@ export default function CityBackdrop({
         return;
       }
 
-      if (!v.getAttribute('src')) {
-        v.src = clipFor(city.key);
-        v.load();
-      }
+      // Attach blob or direct clip with instant playback
+      const assignSource = (srcUrl: string) => {
+        if (cancelled) return;
+        if (!v.src || !v.src.includes(city.key)) {
+          v.src = srcUrl;
+          v.preload = 'auto';
+          v.load();
+        }
 
-      if (i === index) {
-        // A touch under speed: a drone shot, not a video playing.
-        v.playbackRate = 0.85;
-        v.loop = true;
-        void v.play().catch(() => {});
+        if (i === index) {
+          v.playbackRate = 0.85;
+          v.loop = true;
+          const p = v.play();
+          if (p && typeof p.then === 'function') {
+            p.catch(() => {});
+          }
+        } else {
+          v.pause();
+        }
+      };
+
+      if (cityBlobCache.has(city.key)) {
+        assignSource(cityBlobCache.get(city.key)!);
       } else {
-        v.pause();
+        // Immediately assign direct clip so playback doesn't stall, while caching blob in background
+        assignSource(clipFor(city.key));
+        preloadCityBlob(city.key).then((blobUrl) => {
+          if (!cancelled && v && v.src !== blobUrl && (i === index || wanted)) {
+            const curTime = v.currentTime;
+            const wasPlaying = !v.paused;
+            v.src = blobUrl;
+            v.currentTime = curTime;
+            if (wasPlaying && i === index) {
+              v.play().catch(() => {});
+            }
+          }
+        });
       }
     });
 
     onSwapRef.current?.();
+
+    // Background pre-fetch remaining cities in sequence so all 6 are warm in RAM
+    const timer = setTimeout(() => {
+      CITIES.forEach((c, idx) => {
+        if (Math.abs(idx - index) > 1) {
+          preloadCityBlob(c.key);
+        }
+      });
+    }, 400);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
   }, [index, active]);
 
-  // Leaving the chapter must free every decoder, not just pause it. A paused
-  // 4K element still holds its buffers, and six of them add up.
+  // Leaving the chapter frees active decoder buffers, while cityBlobCache
+  // preserves the downloaded bytes in RAM so re-entering starts at 0ms.
   useEffect(() => {
     if (active) return;
     videoRefs.current.forEach((v) => {
@@ -127,7 +201,7 @@ export default function CityBackdrop({
             muted
             loop
             playsInline
-            preload="none"
+            preload="auto"
             className="absolute inset-0 w-full h-full object-cover"
           />
         </div>
