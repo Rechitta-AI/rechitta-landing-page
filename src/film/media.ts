@@ -68,9 +68,14 @@ export async function preloadBlobUrl(
       const blobUrl = URL.createObjectURL(blob);
       blobCache.set(key, blobUrl);
 
-      // If an existing pooled video already exists for this key, update its src
+      // If an existing pooled video already exists for this key, update its
+      // src — but only while nobody can see it. Swapping the source of a
+      // clip that is on screen or playing reloads it mid-shot, which is a
+      // black frame at best. That one keeps streaming; the blob is used the
+      // next time the clip is created.
       const existing = pool.get(key);
-      if (existing && !existing.src.startsWith('blob:')) {
+      const inUse = existing && (!existing.paused || existing.style.opacity !== '0');
+      if (existing && !inUse && !existing.src.startsWith('blob:')) {
         const currentTime = existing.currentTime;
         const paused = existing.paused;
         existing.src = blobUrl;
@@ -89,6 +94,12 @@ export async function preloadBlobUrl(
   activeFetches.set(key, promise);
   return promise;
 }
+
+/** iPhone and iPad, including iPadOS reporting itself as a Mac. */
+const IS_IOS =
+  typeof navigator !== 'undefined' &&
+  (/iP(hone|ad|od)/.test(navigator.userAgent) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1));
 
 /** The stage all pooled elements are appended into. */
 let host: HTMLElement | null = null;
@@ -232,15 +243,31 @@ export function park(v: HTMLVideoElement, time: number): Promise<void> {
       v.removeEventListener('seeked', done);
       window.clearTimeout(timer);
 
-      // On iOS WebKit, kickstarting playback AFTER seek lands ensures the decoder
-      // primes the target frame, never frame 0.
-      if (v.paused && Math.abs(v.currentTime - target) < 0.25) {
+      /*
+       * iOS WebKit only: a paused element that has seeked can still be
+       * showing frame 0, and a play/pause kick is what makes the decoder
+       * present the target frame.
+       *
+       * It used to run on every browser and resolve before the kick had
+       * finished, so the caller faded the clip in while it was playing a few
+       * frames forward and seeking back — a visible jump on every shot that
+       * landed. Now it is iOS-only, and the park waits for the re-seek.
+       */
+      if (IS_IOS && v.paused && Math.abs(v.currentTime - target) < 0.25) {
         const p = v.play();
         if (p && typeof p.then === 'function') {
           p.then(() => {
             v.pause();
+            const onReseek = () => {
+              v.removeEventListener('seeked', onReseek);
+              window.clearTimeout(reseekTimer);
+              resolve();
+            };
+            const reseekTimer = window.setTimeout(onReseek, 400);
+            v.addEventListener('seeked', onReseek);
             v.currentTime = target;
-          }).catch(() => {});
+          }).catch(() => resolve());
+          return;
         }
       }
 

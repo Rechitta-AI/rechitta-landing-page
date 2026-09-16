@@ -49,39 +49,48 @@ export default function CityBackdrop({
 
   // Load the current city and the one after it, and nothing else. Six 4K-ish
   // drone clips held open at once is more decoders than a browser will give.
+  //
+  // Only the city coming on screen is touched straight away. Tearing down
+  // the one that left and starting the next one's download both wait for the
+  // crossfade to finish: done in the same frame as the swap, they were a
+  // ~700ms stall right in the middle of it.
   useEffect(() => {
     if (!active) return;
 
-    CITIES.forEach((city, i) => {
-      const v = videoRefs.current[i];
-      if (!v) return;
-      const wanted = i === index || i === index + 1;
+    const current = videoRefs.current[index];
+    if (current) {
+      if (!current.getAttribute('src')) {
+        current.src = clipFor(CITIES[index].key);
+        current.load();
+      }
+      // A touch under speed: a drone shot, not a video playing.
+      current.playbackRate = 0.85;
+      current.loop = true;
+      void current.play().catch(() => {});
+    }
+    onSwapRef.current?.();
 
-      if (!wanted) {
+    const tidy = window.setTimeout(() => {
+      CITIES.forEach((city, i) => {
+        const v = videoRefs.current[i];
+        if (!v || i === index) return;
+        if (i === index + 1) {
+          if (!v.getAttribute('src')) {
+            v.src = clipFor(city.key);
+            v.load();
+          }
+          v.pause();
+          return;
+        }
         if (v.getAttribute('src')) {
           v.pause();
           v.removeAttribute('src');
           v.load();
         }
-        return;
-      }
+      });
+    }, FADE_MS + 50);
 
-      if (!v.getAttribute('src')) {
-        v.src = clipFor(city.key);
-        v.load();
-      }
-
-      if (i === index) {
-        // A touch under speed: a drone shot, not a video playing.
-        v.playbackRate = 0.85;
-        v.loop = true;
-        void v.play().catch(() => {});
-      } else {
-        v.pause();
-      }
-    });
-
-    onSwapRef.current?.();
+    return () => window.clearTimeout(tidy);
   }, [index, active]);
 
   // Leaving the chapter must free every decoder, not just pause it. A paused

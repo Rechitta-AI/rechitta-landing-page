@@ -1155,8 +1155,8 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
                 href={WAITLIST_URL}
                 target="_blank"
                 rel="noopener noreferrer"
-                /* The quieter action beside "Take it global": design.md's secondary button. */
-                className={`btn btn-secondary w-full active:scale-[0.98] ${
+                /* The button shape and type from design.md, painted white on black. */
+                className={`btn w-full bg-white text-black hover:bg-neutral-200 active:bg-neutral-300 active:scale-[0.98] ${
                   stacked ? 'btn-sm mt-2' : 'btn-md mt-4'
                 }`}
               >

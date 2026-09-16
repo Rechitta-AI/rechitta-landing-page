@@ -43,7 +43,7 @@ export default function MacroFocusPullTransition() {
 
     // Reset initial states
     gsap.set(container, { display: 'none' });
-    gsap.set(blurOverlay, { opacity: 0, backdropFilter: 'blur(0px)' });
+    gsap.set(blurOverlay, { opacity: 0 });
     gsap.set(bloomOverlay, { opacity: 0, scale: 0.95 });
     gsap.set(flare, { opacity: 0, scaleX: 0.1 });
     gsap.set(badge, { opacity: 0, scale: 0.9, y: 10 });
@@ -71,7 +71,7 @@ export default function MacroFocusPullTransition() {
       // ── MATCH-CUT CHOREOGRAPHY (1.20s total, 0.70s of it the hold) ────
 
       tl.set(container, { display: 'block' });
-      tl.set(blurOverlay, { opacity: 0, backdropFilter: 'blur(0px)' });
+      tl.set(blurOverlay, { opacity: 0 });
       tl.set(bloomOverlay, { opacity: 0, scale: 0.94 });
       tl.set(flare, { opacity: 0, scaleX: 0.1 });
       tl.set(badge, { opacity: 0, scale: 0.92, y: 8 });
@@ -81,7 +81,6 @@ export default function MacroFocusPullTransition() {
         blurOverlay,
         {
           opacity: 1,
-          backdropFilter: 'blur(16px)',
           duration: 0.2,
           ease: 'power2.inOut',
         },
@@ -186,7 +185,6 @@ export default function MacroFocusPullTransition() {
         blurOverlay,
         {
           opacity: 0,
-          backdropFilter: 'blur(0px)',
           duration: 0.25,
           ease: 'power3.out',
         },
@@ -220,10 +218,17 @@ export default function MacroFocusPullTransition() {
       <div
         ref={blurOverlayRef}
         className="absolute inset-0 pointer-events-none"
+        /*
+          The blur sits at its peak radius and the layer fades in and out.
+          Tweening the radius itself re-filters the whole viewport at a new
+          size every frame, the most expensive thing a transition can ask for;
+          fading a fixed blur is an opacity change on a composited layer.
+        */
         style={{
-          backdropFilter: 'blur(0px)',
-          WebkitBackdropFilter: 'blur(0px)',
-          willChange: 'backdrop-filter, opacity',
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
+          opacity: 0,
+          willChange: 'opacity',
         }}
       />
 

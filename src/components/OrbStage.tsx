@@ -58,6 +58,7 @@ export default function OrbStage({
   const holderRef = useRef<HTMLDivElement>(null);
   const trailLayerRef = useRef<HTMLDivElement>(null);
   const trailDotsRef = useRef<(HTMLDivElement | null)[]>([]);
+  const trailVisibleRef = useRef(true);
   const filamentRef = useRef<HTMLDivElement>(null);
 
   // The GSAP intro move runs once; the scroll path picks up where it lands.
@@ -427,6 +428,18 @@ export default function OrbStage({
       const intensity = reduceMotion
         ? 0
         : Math.max(0, Math.min(1, (speed - TRAIL_MIN_SPEED) / (TRAIL_MAX_SPEED - TRAIL_MIN_SPEED)));
+
+      /*
+        The trail layer is a full-viewport `mix-blend-mode: screen` surface,
+        and a blended layer that size costs a composite over the whole film
+        on every frame even with nothing visible in it. It only exists while
+        the orb is actually moving.
+      */
+      const trailOn = intensity > 0;
+      if (trailOn !== trailVisibleRef.current && trailLayerRef.current) {
+        trailVisibleRef.current = trailOn;
+        trailLayerRef.current.style.visibility = trailOn ? 'visible' : 'hidden';
+      }
 
       trailDotsRef.current.forEach((dot, i) => {
         if (!dot) return;

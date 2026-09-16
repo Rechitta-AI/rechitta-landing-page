@@ -409,12 +409,18 @@ export default function FinaleWorldMapPresentation({
     const el = containerRef.current;
     if (!el) return;
 
+    /*
+      A staggered fade, no scale. Scaling an SVG group re-lays out the whole
+      map SVG, labels and all, on every frame of the tween — 93 layouts on
+      the way into this scene, 20–30ms each on a mid-range phone. Opacity is
+      a repaint only.
+    */
     const nodes = el.querySelectorAll('.city-hub-node');
     if (nodes.length > 0) {
       gsap.fromTo(
         nodes,
-        { scale: 0.82, opacity: 0 },
-        { scale: 1, opacity: 1, duration: 0.45, stagger: 0.04, ease: 'back.out(1.5)', delay: 0.08 }
+        { opacity: 0 },
+        { opacity: 1, duration: 0.45, stagger: 0.04, ease: 'power2.out', delay: 0.08 }
       );
     }
     const arcs = el.querySelectorAll('.laser-stream-arc');
@@ -511,9 +517,15 @@ export default function FinaleWorldMapPresentation({
       dockRef.current,
     ].filter(Boolean);
 
+    const others = panels.filter((p) => p !== el);
+    const svg = el.querySelector('svg');
+
     if (isVisible) {
       gsap.killTweensOf(panels);
-      gsap.set(panels, { display: 'block' });
+      gsap.set(others, { display: 'block' });
+      gsap.set(el, { visibility: 'visible' });
+      el.removeAttribute('data-idle');
+      svg?.unpauseAnimations();
 
       /*
        * Open on the map, and say so.
@@ -596,7 +608,10 @@ export default function FinaleWorldMapPresentation({
         duration: 0.25,
         ease: 'power2.out',
         onComplete: () => {
-          gsap.set(panels, { display: 'none' });
+          gsap.set(others, { display: 'none' });
+          gsap.set(el, { visibility: 'hidden' });
+          el.setAttribute('data-idle', '');
+          svg?.pauseAnimations();
           // Back to the map, so the beat always opens where it opened before.
           setActiveSlide(0);
         },
@@ -721,9 +736,18 @@ export default function FinaleWorldMapPresentation({
     <div
       ref={containerRef}
       id="finale-world-map-screen"
+      /*
+        Hidden, never `display: none`. This is a 2000-unit SVG canvas with
+        three slides of type on it, and building its layout from scratch was
+        a 170–265ms stall in the middle of the transition that opens it. Kept
+        laid out, it only has to be made visible; `data-idle` pauses its
+        animations while nobody can see them.
+      */
+      data-idle=""
       className="fixed pointer-events-none select-none"
       style={{
-        display: 'none',
+        visibility: 'hidden',
+        opacity: 0,
         left: 0,
         top: 0,
         width: '2000px',
@@ -754,30 +778,14 @@ export default function FinaleWorldMapPresentation({
         viewBox="0 0 2000 1156"
         className="w-full h-full pointer-events-auto"
       >
-        <defs>
-          {/* Subtle laser arc glow */}
-          <filter id="arcGlow2k" x="-20%" y="-20%" width="140%" height="140%">
-            <feGaussianBlur stdDeviation="3" result="blur" />
-            <feMerge>
-              <feMergeNode in="blur" />
-              <feMergeNode in="SourceGraphic" />
-            </feMerge>
-          </filter>
-
-          {/* Dubai HQ luxury gold glow */}
-          <filter id="hqGlow2k" x="-50%" y="-50%" width="200%" height="200%">
-            <feGaussianBlur stdDeviation="5" result="blur" />
-            <feMerge>
-              <feMergeNode in="blur" />
-              <feMergeNode in="SourceGraphic" />
-            </feMerge>
-          </filter>
-
-          {/* Obsidian badge drop shadow */}
-          <filter id="pillShadow2k" x="-30%" y="-30%" width="160%" height="160%">
-            <feDropShadow dx="0" dy="3" stdDeviation="4" floodColor="#000000" floodOpacity="0.4" />
-          </filter>
-        </defs>
+        {/*
+          No SVG filters on this canvas, on purpose. The arcs and the hub pings
+          animate every frame, and any filter in the same SVG — the arc glow's
+          Gaussian blur, the badge drop shadows, the HQ bloom — was re-run on
+          every one of those frames. That was the whole of this scene's jank:
+          36fps on a throttled phone with them, 60 without. The glows and the
+          shadows below are drawn with plain translucent shapes instead.
+        */}
 
         {/* Subtle Architectural Distance Grid & Latitude Guide */}
         <g opacity="0.14" pointerEvents="none">
@@ -811,6 +819,7 @@ export default function FinaleWorldMapPresentation({
         {/* Top Right Status Badge - Obsidian Micro-Pill */}
         <g transform="translate(1940, 68)">
           {/* Label/Small on neutral/950, radius/full. */}
+          <rect x="-470" y="-17" width="470" height="40" rx="20" fill="rgba(0, 0, 0, 0.22)" />
           <rect
             x="-470"
             y="-20"
@@ -820,7 +829,6 @@ export default function FinaleWorldMapPresentation({
             fill="rgba(10, 10, 9, 0.9)"
             stroke="rgba(255, 255, 255, 0.16)"
             strokeWidth="1"
-            filter="url(#pillShadow2k)"
           />
           <circle cx="-444" cy="0" r="5" fill={SUCCESS_400} />
           <text
@@ -845,11 +853,7 @@ export default function FinaleWorldMapPresentation({
           width="2000"
           height="857"
           preserveAspectRatio="none"
-          style={{
-            mixBlendMode: 'multiply',
-            opacity: 0.94,
-            filter: 'drop-shadow(0 2px 5px rgba(10, 10, 9, 0.22))',
-          }}
+          style={{ opacity: 0.94 }}
         />
 
         {/* 3. Streaming Data Arcs Connecting All 6 Hubs to Dubai HQ */}
@@ -864,13 +868,25 @@ export default function FinaleWorldMapPresentation({
                 strokeWidth="1.8"
                 strokeDasharray="4 4"
               />
+              {/* The glow: the same stream, wider and faint, riding under it. */}
+              <path
+                d={arc.path}
+                fill="none"
+                stroke="rgba(61, 111, 245, 0.28)"
+                strokeWidth="10"
+                strokeLinecap="round"
+                strokeDasharray="48 180"
+                style={{
+                  animation: 'dashPureStream2k 2.4s linear infinite',
+                }}
+              />
               {/* Flowing electric blue laser stream */}
               <path
                 d={arc.path}
                 fill="none"
                 stroke="#3D6FF5"
                 strokeWidth="3.2"
-                filter="url(#arcGlow2k)"
+                strokeLinecap="round"
                 strokeDasharray="48 180"
                 style={{
                   animation: 'dashPureStream2k 2.4s linear infinite',
@@ -911,13 +927,15 @@ export default function FinaleWorldMapPresentation({
                 <animate attributeName="opacity" from="0.85" to="0" dur="2.4s" repeatCount="indefinite" />
               </circle>
 
+              {/* The HQ's bloom, as a soft disc rather than a blur filter. */}
+              {isHQ && <circle r="17" fill="rgba(197, 165, 114, 0.3)" />}
+
               {/* Node Center Dot */}
               <circle
                 r={isHQ ? 8.5 : 5.5}
                 fill={isHQ ? BRAND_GOLD[500] : BRAND_BLUE[500]}
                 stroke="#FFFFFF"
                 strokeWidth="2"
-                filter={isHQ ? 'url(#hqGlow2k)' : undefined}
               />
 
               {/* Floating Anti-Collision City Badge */}
@@ -925,6 +943,7 @@ export default function FinaleWorldMapPresentation({
                 {isHQ ? (
                   /* Dubai HQ Luxury Obsidian Badge */
                   <g>
+                    <rect x="-125" y="-17" width="250" height="40" rx="20" fill="rgba(0, 0, 0, 0.22)" />
                     <rect
                       x="-125"
                       y="-20"
@@ -934,7 +953,6 @@ export default function FinaleWorldMapPresentation({
                       fill="rgba(10, 10, 9, 0.94)"
                       stroke={BRAND_GOLD[500]}
                       strokeWidth="1.5"
-                      filter="url(#pillShadow2k)"
                     />
                     <rect
                       x="-115"
@@ -975,6 +993,7 @@ export default function FinaleWorldMapPresentation({
                 ) : (
                   /* Multilingual Partner City Obsidian Badge */
                   <g>
+                    <rect x="-116" y="-16" width="232" height="38" rx="19" fill="rgba(0, 0, 0, 0.22)" />
                     <rect
                       x="-116"
                       y="-19"
@@ -984,7 +1003,6 @@ export default function FinaleWorldMapPresentation({
                       fill="rgba(10, 10, 9, 0.9)"
                       stroke="rgba(61, 111, 245, 0.45)"
                       strokeWidth="1.2"
-                      filter="url(#pillShadow2k)"
                     />
                     <rect
                       x="-106"

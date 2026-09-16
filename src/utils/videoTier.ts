@@ -14,50 +14,27 @@ function override(): Tier | null {
 }
 
 /**
- * Pick the codec this browser can decode **in hardware**, which is not the
- * same question as which codec it can decode at all.
+ * Which cut of the film to stream.
  *
- * HEVC comes first, not AV1. A browser only reports HEVC support when the
- * platform has a decoder for it, and on Apple hardware that decoder is always
- * silicon. AV1 is the opposite: every recent browser can decode it, but only
- * fairly new chips do so in hardware, and 4K AV1 on the CPU cannot hold the
- * playback rates the transitions run at. Preferring AV1 there is how you get a
- * film that stutters on a two-year-old Mac.
+ * 1080p H.264 on every device, unless `?filmTier=` asks for another.
+ *
+ * The 4K cuts were measured against it on an M2 with hardware HEVC decoding,
+ * about as good a case as they will ever get, and they lost on every count.
+ * The transitions play at 2.4–3.6x, which asks a decoder for up to ninety 4K
+ * frames a second: a fifth to two fifths of them were dropped, the main
+ * thread picked up 270–930ms blocking tasks on every scene change, and the
+ * city chapter sat at 30fps while the next 4K clip preloaded behind it. At
+ * 1080p every one of those went to zero. AV1 was worse again: 4K AV1 decodes
+ * on the CPU even on that machine.
+ *
+ * H.264 at 1080p is decoded in hardware by effectively everything, which is
+ * what makes it the one cut that is smooth on every device rather than on
+ * the best ones.
  */
 export function pickTier(): Tier {
   if (cachedTier) return cachedTier;
-  if (typeof document === 'undefined') return 'h264';
-
-  const forced = override();
-  if (forced) {
-    cachedTier = forced;
-    return forced;
-  }
-
-  // On mobile phone screens (< 810px), 1080p delivers razor-sharp Full HD quality
-  // with zero pixelation on Retina screens, while consuming ~60% less decoder memory
-  // than 4K. Desktop and iPads (>= 810px) continue receiving pristine full 4K.
-  if (typeof window !== 'undefined' && window.innerWidth < 810) {
-    cachedTier = '1080p';
-    return '1080p';
-  }
-
-  const v = document.createElement('video');
-  const can = (type: string) => v.canPlayType(type) === 'probably';
-
-  if (
-    can('video/mp4; codecs="hvc1.1.6.L93.B0"') ||
-    can('video/mp4; codecs="hev1.1.6.L93.B0"')
-  ) {
-    cachedTier = 'hevc';
-    return 'hevc';
-  }
-  if (can('video/mp4; codecs="av01.0.08M.08"')) {
-    cachedTier = 'av1';
-    return 'av1';
-  }
-  cachedTier = 'h264';
-  return 'h264';
+  cachedTier = override() ?? '1080p';
+  return cachedTier;
 }
 
 export const fullUrl = (key: string, tier: Tier = pickTier()) => {

@@ -697,8 +697,9 @@ export default function FilmStage({
     };
 
     // A window onto the beat machine, for calibration and for the browser
-    // checks that drive the film end to end. Dev only.
-    if (process.env.NODE_ENV !== 'production') {
+    // checks that drive the film end to end. Dev, or `?bench` for measuring a
+    // production build.
+    if (process.env.NODE_ENV !== 'production' || window.location.search.includes('bench')) {
       (window as unknown as { __film?: unknown }).__film = {
         state,
         beats: BEATS,
