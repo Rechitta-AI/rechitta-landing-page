@@ -471,9 +471,9 @@ export default function FinaleWorldMapPresentation({
             v.style.transition = 'none';
             v.style.objectPosition = `calc(50% + ${shiftX}px) 50%`;
           } else if (flat && isDeparted) {
-            // Only when departing the presentation to fly to the wide horizon, smoothly glide back to 50% 50%
+            // Smoothly glide to 43% 50% matching the horizontal framing of mobile-seq1-2 opening shot
             v.style.transition = 'object-position 1.2s cubic-bezier(0.16, 1, 0.3, 1)';
-            v.style.objectPosition = '50% 50%';
+            v.style.objectPosition = '43% 50%';
           } else {
             v.style.transition = 'none';
             v.style.objectPosition = '50% 50%';
