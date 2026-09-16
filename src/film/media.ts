@@ -238,8 +238,10 @@ export function park(v: HTMLVideoElement, time: number): Promise<void> {
       window.clearTimeout(timer);
 
       // On iOS WebKit, kickstarting playback AFTER seek lands ensures the decoder
-      // primes the target frame, never frame 0.
-      if (v.paused && Math.abs(v.currentTime - target) < 0.25) {
+      // primes the target frame, never frame 0. Never do this right at EOF
+      // where starting playback would crash into the end of stream and flicker.
+      const isNearEnd = Boolean(v.duration && target >= v.duration - 0.15);
+      if (!isNearEnd && v.paused && Math.abs(v.currentTime - target) < 0.25) {
         const p = v.play();
         if (p && typeof p.then === 'function') {
           p.then(() => {

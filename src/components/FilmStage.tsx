@@ -162,11 +162,16 @@ export default function FilmStage({
       if (timingRef) timingRef.current = next;
     };
 
-    const alignFinaleClip = (v: HTMLVideoElement) => {
+    const alignFinaleClip = (v: HTMLVideoElement, beatId?: string) => {
       if (typeof window !== 'undefined' && window.innerHeight > window.innerWidth) {
-        const shiftX = Math.round(coverRect(window.innerWidth, window.innerHeight).width * (21.5 / 1920));
-        v.style.transition = 'none';
-        v.style.objectPosition = `calc(50% + ${shiftX}px) 50%`;
+        if (beatId === 'finale') {
+          v.style.transition = 'none';
+          v.style.objectPosition = '50% 50%';
+        } else {
+          const shiftX = Math.round(coverRect(window.innerWidth, window.innerHeight).width * (21.5 / 1920));
+          v.style.transition = 'none';
+          v.style.objectPosition = `calc(50% + ${shiftX}px) 50%`;
+        }
       }
     };
 
@@ -245,6 +250,7 @@ export default function FilmStage({
       if (beat.id === 'broker') {
         preloadCityBlob('london');
         preloadCityBlob('paris');
+        preloadBlobUrl('last').catch(() => {});
       }
 
       if (beat.chapter !== currentChapter) {
@@ -263,20 +269,27 @@ export default function FilmStage({
       const clip = getBeatClip(beat, isPortrait());
       if (clip) {
         const v = acquire(clip);
-        if (clip === 'last') alignFinaleClip(v);
-        await park(v, getBeatPark(beat, isPortrait()));
+        if (clip === 'last') alignFinaleClip(v, beat.id);
+        const targetPark = getBeatPark(beat, isPortrait());
+        const alreadyParked =
+          Math.abs(v.currentTime - targetPark) < 0.05 &&
+          v.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA;
+        if (!alreadyParked) {
+          await park(v, targetPark);
+        }
         if (!disposed) {
           show(v, FADE_MS);
-          if (playheadRef) playheadRef.current = { clip, t: getBeatPark(beat, isPortrait()) };
+          if (playheadRef) playheadRef.current = { clip, t: targetPark };
         }
-      } else if (beat.id === 'city-paris' || beat.id === 'city-riyadh') {
+      } else if (beat.id === 'city-mumbai' || beat.id === 'city-paris' || beat.id === 'city-riyadh') {
         // Pre-park the finale presentation clip ('last') in the background
         // so the hardware decoder is already primed before the clouds appear.
         const nextBeat = BEATS.find((b) => b.id === 'finale-screen');
         const nextClip = nextBeat ? getBeatClip(nextBeat, isPortrait()) : undefined;
         if (nextBeat && nextClip) {
+          preloadBlobUrl('last').catch(() => {});
           const v = acquire(nextClip);
-          if (nextClip === 'last') alignFinaleClip(v);
+          if (nextClip === 'last') alignFinaleClip(v, nextBeat.id);
           park(v, getBeatPark(nextBeat, isPortrait()));
         }
       }
@@ -299,7 +312,7 @@ export default function FilmStage({
       const { from, to, rate } = enterConf;
 
       const v = acquire(clip);
-      if (clip === 'last') alignFinaleClip(v);
+      if (clip === 'last') alignFinaleClip(v, beat.id);
       // Enough of the clip to start without stalling. Short, because the
       // background preloader has usually seen to it already, and because the
       // shot's own deadline covers a decoder that turns out to be struggling.
@@ -563,7 +576,7 @@ export default function FilmStage({
               setLayerVisible(true);
               if (target.clip) {
                 const v = acquire(target.clip);
-                if (target.clip === 'last') alignFinaleClip(v);
+                if (target.clip === 'last') alignFinaleClip(v, target.id);
                 const enterConf = getBeatEnter(target, isPortrait());
                 await park(
                   v,
@@ -590,13 +603,14 @@ export default function FilmStage({
             if (target.chapter === 'cities') {
               preloadCityBlob('london');
               preloadCityBlob('paris');
+              preloadBlobUrl('last').catch(() => {});
               setLayerVisible(false);
               show(null, 0);
             } else {
               setLayerVisible(true);
               if (target.clip) {
                 const v = acquire(target.clip);
-                if (target.clip === 'last') alignFinaleClip(v);
+                if (target.clip === 'last') alignFinaleClip(v, target.id);
                 const enterConf = getBeatEnter(target, isPortrait());
                 await park(
                   v,
