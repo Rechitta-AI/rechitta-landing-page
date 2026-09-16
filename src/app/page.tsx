@@ -17,12 +17,17 @@ import dynamic from 'next/dynamic';
 
 const FinaleWorldMapPresentation = dynamic(
   () => import('@/components/FinaleWorldMapPresentation'),
-  { ssr: false }
+  { ssr: false },
 );
 
 import type { FilmTiming } from '@/orb/types';
 import type { Playhead } from '@/screens/types';
 import { CITIES, type Beat, type Chapter } from '@/film/score';
+
+type HeroCopy = 'all' | 'heading' | 'none';
+
+const heroCopyFor = (beatId: string): HeroCopy =>
+  beatId === 'hero' ? 'all' : beatId === 'finale' ? 'heading' : 'none';
 import { BoardroomCta } from '@/components/CityNav';
 
 /**
@@ -37,8 +42,8 @@ import { BoardroomCta } from '@/components/CityNav';
  */
 export default function ExperiencePage() {
   const heroRef = useRef<HTMLDivElement>(null);
-  const heroWordsRef = useRef<NodeListOf<Element> | null>(null);
-  const heroExitedRef = useRef(false);
+  /** Which of the hero's copy is up: all of it, the headline alone, or none. */
+  const heroShownRef = useRef<HeroCopy>('all');
 
   const [chapter, setChapter] = useState<Chapter>('intro');
   const [beatIndex, setBeatIndex] = useState(0);
@@ -92,30 +97,47 @@ export default function ExperiencePage() {
     tl.to('.subheading-word', { opacity: 1, y: 0, duration: 0.8, stagger: 0.035, ease: 'power3.out' }, 0.5);
   }, [introPhase]);
 
-  /** The hero copy staggers away the moment the film leaves its first beat. */
-  const setHeroVisible = useCallback((visible: boolean) => {
+  /**
+   * The hero copy staggers away the moment the film leaves its first beat.
+   *
+   * The last beat brings the headline back on its own, in the very place it
+   * sits on the first. The film loops from there to the top, so the next
+   * scroll only has to add the eyebrow and the sub-line around a headline
+   * that never left — the end of the film reads straight into its opening.
+   */
+  const setHeroCopy = useCallback((next: HeroCopy) => {
     if (!heroRef.current) return;
-    if (visible === !heroExitedRef.current) return;
-    heroExitedRef.current = !visible;
+    const previous = heroShownRef.current;
+    if (next === previous) return;
+    heroShownRef.current = next;
 
-    const words =
-      heroWordsRef.current ??
-      (heroWordsRef.current = heroRef.current.querySelectorAll('.hero-word, .subheading-word'));
-    const indicator = heroRef.current.querySelector('#hero-scroll-indicator');
+    const root = heroRef.current;
+    const heading = root.querySelectorAll('.hero-heading-word');
+    const rest = root.querySelectorAll('.hero-word:not(.hero-heading-word), .subheading-word');
+    const indicator = root.querySelector('#hero-scroll-indicator');
 
-    gsap.to(words, {
-      y: visible ? 0 : 60,
-      opacity: visible ? 1 : 0,
-      stagger: visible ? -0.015 : 0.015,
-      duration: visible ? 0.4 : 0.3,
-      ease: visible ? 'power3.out' : 'power3.in',
-      overwrite: true,
-    });
-    if (indicator) {
-      gsap.to(indicator, {
+    const reveal = (els: NodeListOf<Element> | Element[], visible: boolean) => {
+      if (els.length === 0) return;
+      gsap.to(els, {
+        y: visible ? 0 : 60,
         opacity: visible ? 1 : 0,
-        y: visible ? 0 : 20,
-        scale: visible ? 1 : 0.95,
+        stagger: visible ? -0.015 : 0.015,
+        duration: visible ? 0.4 : 0.3,
+        ease: visible ? 'power3.out' : 'power3.in',
+        overwrite: true,
+      });
+    };
+
+    const headingVisible = next !== 'none';
+    if (headingVisible !== (previous !== 'none')) reveal(heading, headingVisible);
+    const restVisible = next === 'all';
+    if (restVisible !== (previous === 'all')) reveal(rest, restVisible);
+
+    if (indicator && restVisible !== (previous === 'all')) {
+      gsap.to(indicator, {
+        opacity: restVisible ? 1 : 0,
+        y: restVisible ? 0 : 20,
+        scale: restVisible ? 1 : 0.95,
         duration: 0.35,
         ease: 'power2.inOut',
         overwrite: true,
@@ -126,19 +148,22 @@ export default function ExperiencePage() {
   const handleBeat = useCallback(
     (beat: Beat, index: number) => {
       setIsMoving(false);
-      setHeroVisible(beat.id === 'hero');
+      setHeroCopy(heroCopyFor(beat.id));
       setBeatIndex(index);
     },
-    [setHeroVisible],
+    [setHeroCopy],
   );
 
   /** The copy leaves the moment the film commits, not when the shot lands. */
   const handleMoveStart = useCallback(
     (_from: number, to: number) => {
       setIsMoving(true);
-      setHeroVisible(to === 0);
+      // Into the hero the copy comes up at once, around a headline the last
+      // beat may already have up. Into the last beat, the headline waits for
+      // the camera to land.
+      setHeroCopy(to === 0 ? 'all' : 'none');
     },
-    [setHeroVisible],
+    [setHeroCopy],
   );
 
   const handleCity = useCallback((index: number) => {
@@ -153,7 +178,7 @@ export default function ExperiencePage() {
     <>
       <Cursor />
 
-      {/* "6/6 Briefings Delivered" — Macro UI Focus Pull Transition */}
+      {/* Macro UI Focus Pull Transition (Bridges Broker <-> Cities, and Cities <-> Finale) */}
       <MacroFocusPullTransition />
 
       {introPhase === 'loading' && (
@@ -172,7 +197,7 @@ export default function ExperiencePage() {
         <ScrollRail beatPosition={beatPosition} beatIndex={beatIndex} />
       </div>
 
-      <div className="fixed inset-0 w-full h-full bg-[#070A10] overflow-hidden film-grain-overlay">
+      <div className="fixed inset-0 w-full h-full bg-[#0A0A09] overflow-hidden film-grain-overlay">
         {/*
           The film stays dark through 'loading' and 'moving' so the orb glides
           against nothing but the sky, then fades up as it lands.
@@ -191,6 +216,7 @@ export default function ExperiencePage() {
             style={{
               opacity: chapter === 'cities' ? 1 : 0,
               visibility: chapter === 'cities' ? 'visible' : 'hidden',
+              transition: 'opacity 0.65s cubic-bezier(0.16, 1, 0.3, 1)',
             }}
           >
             {/*
@@ -246,12 +272,12 @@ export default function ExperiencePage() {
                   className="absolute inset-[0.8%_1.5%] rounded-[14%/7.5%] overflow-hidden"
                   style={{
                     background:
-                      'radial-gradient(ellipse at 50% 50%, rgba(45,58,78,0.96) 0%, rgba(16,20,29,0.98) 60%, rgba(9,12,18,1) 100%)',
+                      'radial-gradient(ellipse at 50% 50%, rgba(56, 56, 54,0.96) 0%, rgba(20, 20, 19,0.98) 60%, rgba(20, 20, 19,1) 100%)',
                   }}
                 >
                   {/* Voice-dock ambient cradle glow at the bottom center of the phone screen */}
-                  <div className="absolute bottom-[3%] left-1/2 -translate-x-1/2 w-28 h-20 rounded-full bg-[#568DFF]/20 blur-xl pointer-events-none" />
-                  <div className="absolute bottom-[5%] left-1/2 -translate-x-1/2 w-14 h-14 rounded-full bg-[#568DFF]/15 blur-md pointer-events-none" />
+                  <div className="absolute bottom-[3%] left-1/2 -translate-x-1/2 w-28 h-20 rounded-full bg-[#3D6FF5]/20 blur-xl pointer-events-none" />
+                  <div className="absolute bottom-[5%] left-1/2 -translate-x-1/2 w-14 h-14 rounded-full bg-[#3D6FF5]/15 blur-md pointer-events-none" />
 
                   {/* Sleek home indicator bar at bottom center */}
                   <div className="absolute bottom-[2.2%] left-1/2 -translate-x-1/2 w-24 h-[3.5px] rounded-full bg-white/20 pointer-events-none" />
@@ -293,7 +319,7 @@ export default function ExperiencePage() {
                       {CITIES[cityIndex]?.language}
                     </span>
                     <span className="flex items-center whitespace-nowrap">
-                      <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#568DFF] shadow-[0_0_8px_rgba(86,141,255,0.9)] mr-2" />
+                      <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#3D6FF5] shadow-[0_0_8px_rgba(61,111,245,0.9)] mr-2" />
                       <span className="-mr-[0.25em]">LIVE DATA</span>
                     </span>
                   </div>
@@ -310,20 +336,22 @@ export default function ExperiencePage() {
               className="md:hidden absolute left-1/2 -translate-x-1/2 z-[60] w-[min(94vw,420px)]"
               style={{ bottom: 'calc(max(1rem, env(safe-area-inset-bottom)) + 3.85rem)' }}
             >
-              <BoardroomCta isMoving={isMoving} className="w-full py-2 px-3 text-[12px]" />
+              <BoardroomCta isMoving={isMoving} className="w-full btn-sm" />
             </div>
           </div>
 
           {/* The film itself, plus the overlays that ride specific frames. */}
           <div className="absolute inset-0 z-10 w-full h-full pointer-events-none">
             {/* Instant 0ms visual underlay for Dawn scene (exact frame 120 at 60fps / t=2.0s) for iOS/mobile resilience */}
-            <div
-              className="absolute inset-0 -z-10 w-full h-full bg-cover bg-center pointer-events-none"
-              style={{
-                backgroundImage: "url('/film/frames/scene1-3/f_120.webp')",
-              }}
-              aria-hidden="true"
-            />
+            {introPhase !== 'done' && (
+              <div
+                className="absolute inset-0 -z-10 w-full h-full bg-cover bg-center pointer-events-none"
+                style={{
+                  backgroundImage: "url('/film/frames/scene1-3/f_120.webp')",
+                }}
+                aria-hidden="true"
+              />
+            )}
 
             <div className="absolute inset-0 z-20 animate-vignette-pulse pointer-events-none" />
 
@@ -376,21 +404,21 @@ export default function ExperiencePage() {
                     headline left the film's first frame reading flatter than
                     every frame after it.
                   */}
-                  <p className="hero-word eyebrow text-center text-white/45 mb-2 sm:mb-3 md:mb-4 text-[10px] sm:text-xs md:text-sm max-sm:tracking-[0.04em]! max-sm:leading-[1.5]!">
+                  <p className="hero-word eyebrow text-center text-[var(--text-accent)] mb-2 sm:mb-3 md:mb-4 text-[10px] sm:text-xs md:text-sm max-sm:tracking-[0.04em]! max-sm:leading-[1.5]!">
                     Real estate communication reimagined
                   </p>
 
                   <h1
                     id="hero-heading"
-                    className="text-[clamp(1.85rem,6vw,4.5rem)] leading-[1.08] md:leading-none text-white tracking-tight flex flex-wrap items-center justify-center gap-x-[0.26em]"
-                    style={{ fontFamily: 'var(--font-inter)' }}
+                    /* The brand statement: design.md's Display face. */
+                    className="type-display text-[clamp(1.85rem,6vw,4.5rem)] leading-[1.08] md:leading-[1.1] text-[var(--text-primary)] flex flex-wrap items-center justify-center gap-x-[0.26em]"
                   >
-                    <span className="hero-word inline-block">
+                    <span className="hero-word hero-heading-word inline-block">
                       <span id="hero-o-anchor">O</span>ne
                     </span>
-                    <span className="hero-word inline-block">source</span>
-                    <span className="hero-word inline-block">of</span>
-                    <span className="hero-word inline-block">truth.</span>
+                    <span className="hero-word hero-heading-word inline-block">source</span>
+                    <span className="hero-word hero-heading-word inline-block">of</span>
+                    <span className="hero-word hero-heading-word inline-block">truth.</span>
                   </h1>
                 </div>
 

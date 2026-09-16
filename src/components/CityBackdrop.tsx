@@ -161,7 +161,7 @@ export default function CityBackdrop({
   // Leaving the chapter frees active decoder buffers, while cityBlobCache
   // preserves the downloaded bytes in RAM so re-entering starts at 0ms.
   useEffect(() => {
-    if (active) return;
+    if (!active) return;
     videoRefs.current.forEach((v) => {
       if (!v) return;
       v.pause();
@@ -234,10 +234,9 @@ export default function CityBackdrop({
           <CityNav cityIndex={index} isMoving={isMoving} only={-1} size="sm" className="md:hidden" />
 
           <h2
-            className="text-white leading-[0.92] tracking-tighter
+            className="type-display text-[var(--text-primary)] leading-[0.98]
                        text-[clamp(2.15rem,10vw,3.25rem)] md:text-[clamp(3.25rem,7.5vw,7rem)]
-                       [text-shadow:0_2px_28px_rgba(7,10,16,0.6)]"
-            style={{ fontFamily: 'var(--font-inter)' }}
+                       [text-shadow:0_2px_28px_rgba(10,10,9,0.6)]"
           >
             {city.label}
           </h2>
@@ -247,17 +246,17 @@ export default function CityBackdrop({
 
         {/* Desktop: time sits beneath city name on the right side */}
         <div className="hidden md:flex mt-5 flex-wrap items-baseline justify-end gap-x-3 gap-y-1">
-          <span className="font-mono text-[13px] tracking-[0.3em] text-[#8FB4FF] [text-shadow:0_1px_12px_rgba(7,10,16,0.85)]">
+          <span className="font-mono text-[13px] tracking-[0.3em] text-[#8BB0FF] [text-shadow:0_1px_12px_rgba(10,10,9,0.85)]">
             {cityTime(city)} LOCAL
           </span>
-          <span className="font-mono text-[13px] tracking-[0.3em] text-white/45 [text-shadow:0_1px_12px_rgba(7,10,16,0.85)]">
+          <span className="font-mono text-[13px] tracking-[0.3em] text-white/45 [text-shadow:0_1px_12px_rgba(10,10,9,0.85)]">
             THE SAME MOMENT
           </span>
         </div>
 
         {/* Desktop: the call to action closes the block, clear of the phone. */}
         <div className="hidden md:flex mt-8 justify-end">
-          <BoardroomCta isMoving={isMoving} className="py-3.5 px-8 text-sm" />
+          <BoardroomCta isMoving={isMoving} className="btn-lg" />
         </div>
       </div>
 
@@ -269,10 +268,10 @@ export default function CityBackdrop({
         className="md:hidden absolute z-[25] left-0 right-0 top-[calc(50%+26.5dvh+34px)]
                    flex items-baseline justify-center gap-x-2.5 px-4 text-center pointer-events-none"
       >
-        <span className="font-mono text-[11px] tracking-[0.28em] text-[#8FB4FF] [text-shadow:0_1px_12px_rgba(7,10,16,0.85)]">
+        <span className="font-mono text-[11px] tracking-[0.28em] text-[#8BB0FF] [text-shadow:0_1px_12px_rgba(10,10,9,0.85)]">
           {cityTime(city)} LOCAL
         </span>
-        <span className="font-mono text-[11px] tracking-[0.28em] text-white/45 [text-shadow:0_1px_12px_rgba(7,10,16,0.85)]">
+        <span className="font-mono text-[11px] tracking-[0.28em] text-white/45 [text-shadow:0_1px_12px_rgba(10,10,9,0.85)]">
           · THE SAME MOMENT
         </span>
       </div>

@@ -7,7 +7,7 @@ import styles from './OrbStage.module.css';
 import { createClock, advanceClock } from '@/utils/filmClock';
 import { ORB_PATH, EXCLUSION_ZONES, MIN_SCALE_FRACTION } from '@/orb/path';
 import { findExclusionViolations, poseAt, resolvePath } from '@/orb/flight';
-import { isPortraitFor } from '@/hooks/useDeviceMode';
+import { isPortraitFor, TABLET_MIN } from '@/hooks/useDeviceMode';
 import type { FilmTiming, Keyframe, ResolvedKeyframe } from '@/orb/types';
 
 /** How many past positions the trail replays. */
@@ -24,6 +24,9 @@ const TRAIL_MAX_SPEED = 1.1;
  * no use for working out where the sphere actually ends.
  */
 const ORB_CORE_PX = 68;
+
+/** Tablet and desktop draw the orb a quarter larger than phones (SplineOrb.module.css). */
+const coreSizeFor = (width: number) => (width >= TABLET_MIN ? ORB_CORE_PX * 1.25 : ORB_CORE_PX);
 
 /** What the chapter rail reserves along the bottom, badge included. */
 const RAIL_BAND_PX = 78;
@@ -55,6 +58,7 @@ export default function OrbStage({
   const holderRef = useRef<HTMLDivElement>(null);
   const trailLayerRef = useRef<HTMLDivElement>(null);
   const trailDotsRef = useRef<(HTMLDivElement | null)[]>([]);
+  const trailVisibleRef = useRef(true);
   const filamentRef = useRef<HTMLDivElement>(null);
 
   // The GSAP intro move runs once; the scroll path picks up where it lands.
@@ -136,6 +140,24 @@ export default function OrbStage({
   };
 
   /**
+   * Measures the broker scene's orb anchor, above the answer column. Only
+   * rendered on a composited desktop layout, so anywhere else this is null and
+   * the authored pose stands.
+   */
+  const measureBrokerPose = (): { x: number; y: number } | null => {
+    if (typeof window === 'undefined') return null;
+    const target = document.getElementById('broker-orb-anchor');
+    if (!target) return null;
+    const rect = target.getBoundingClientRect();
+    if (rect.width === 0 && rect.height === 0) return null;
+    return {
+      x: ((rect.left + rect.width / 2) / window.innerWidth) * 100,
+      // Kept clear of the header along the top.
+      y: Math.max(14, ((rect.top + rect.height / 2) / window.innerHeight) * 100),
+    };
+  };
+
+  /**
    * Rebuilds the resolved path. Cheap, and only run when the film's measured
    * timing changes or the viewport resizes — not per frame.
    */
@@ -145,8 +167,9 @@ export default function OrbStage({
     const portrait = typeof window !== 'undefined' ? isPortraitFor(window.innerWidth, window.innerHeight) : false;
     const dock = portrait ? (dockPoseRef.current ?? measureDockPose()) : null;
     const finaleDock = finaleDockPoseRef.current ?? measureFinaleDockPose();
+    const brokerDock = portrait ? null : measureBrokerPose();
 
-    const path: Keyframe[] = hero || dock || finaleDock
+    const path: Keyframe[] = hero || dock || finaleDock || brokerDock
       ? ORB_PATH.map((k) => {
           let next = k;
           if (hero && k.hero) {
@@ -161,6 +184,9 @@ export default function OrbStage({
                 y: +dock.y.toFixed(2),
               },
             };
+          }
+          if (brokerDock && k.brokerDock) {
+            next = { ...next, x: +brokerDock.x.toFixed(2), y: +brokerDock.y.toFixed(2) };
           }
           if (finaleDock && k.finaleDock) {
             next = {
@@ -376,7 +402,7 @@ export default function OrbStage({
        * against the band the rail reserves, which is the one place that knows
        * both the pose and the viewport.
        */
-      const coreRadius = (ORB_CORE_PX / 2) * scale;
+      const coreRadius = (coreSizeFor(vw) / 2) * scale;
       const yCeiling = ((vh - RAIL_BAND_PX - coreRadius) / vh) * 100;
       const poseY = Math.min(pose.y, yCeiling);
 
@@ -402,6 +428,18 @@ export default function OrbStage({
       const intensity = reduceMotion
         ? 0
         : Math.max(0, Math.min(1, (speed - TRAIL_MIN_SPEED) / (TRAIL_MAX_SPEED - TRAIL_MIN_SPEED)));
+
+      /*
+        The trail layer is a full-viewport `mix-blend-mode: screen` surface,
+        and a blended layer that size costs a composite over the whole film
+        on every frame even with nothing visible in it. It only exists while
+        the orb is actually moving.
+      */
+      const trailOn = intensity > 0;
+      if (trailOn !== trailVisibleRef.current && trailLayerRef.current) {
+        trailVisibleRef.current = trailOn;
+        trailLayerRef.current.style.visibility = trailOn ? 'visible' : 'hidden';
+      }
 
       trailDotsRef.current.forEach((dot, i) => {
         if (!dot) return;

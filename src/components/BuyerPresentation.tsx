@@ -462,7 +462,7 @@ export default function BuyerPresentation({ holdData }: BuyerPresentationProps) 
       */}
       {!composited && (
         <div
-          className="absolute inset-0 -z-10 pointer-events-none bg-[#070A10]/78 backdrop-blur-[14px]"
+          className="absolute inset-0 -z-10 pointer-events-none bg-[#0A0A09]/78 backdrop-blur-[14px]"
           aria-hidden="true"
         />
       )}
@@ -532,17 +532,17 @@ export default function BuyerPresentation({ holdData }: BuyerPresentationProps) 
                 }),
             overflow: 'hidden',
             boxShadow:
-              '0 30px 70px -10px rgba(0, 0, 0, 0.95), 0 0 35px rgba(6, 182, 212, 0.12), inset 0 0 0 1.5px rgba(255, 255, 255, 0.18)',
+              '0 30px 70px -10px rgba(0, 0, 0, 0.95), 0 0 35px rgba(63, 152, 171, 0.12), inset 0 0 0 1.5px rgba(255, 255, 255, 0.18)',
             pointerEvents: 'auto',
           }}
-          className="bg-[#0B0F19] text-white flex flex-col justify-between select-none relative"
+          className="bg-[#141413] text-white flex flex-col justify-between select-none relative"
         >
           {/* Subtle architectural ambient background blur */}
           <div
             className="absolute inset-0 opacity-20 pointer-events-none bg-cover bg-center"
             style={{ backgroundImage: "url('/presentation/3-FINAL.jpeg')" }}
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-[#0B0F19]/90 via-[#0B0F19]/80 to-[#0B0F19]/95 pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-b from-[#141413]/90 via-[#141413]/80 to-[#141413]/95 pointer-events-none" />
 
           {/* --- PHONE TOP BAR (MATCHING APP MOCKUP: ← PROJECT NAME) --- */}
           <div className="relative z-10 px-5 pt-3.5 pb-2">
@@ -599,7 +599,7 @@ export default function BuyerPresentation({ holdData }: BuyerPresentationProps) 
 
             {/* The Luxury App Card Container */}
             <div
-              className={`rounded-2xl border border-white/15 bg-[#161B26] overflow-hidden shadow-2xl transition-all duration-250 ease-out delay-[30ms] ${
+              className={`rounded-2xl border border-white/15 bg-[#222220] overflow-hidden shadow-2xl transition-all duration-250 ease-out delay-[30ms] ${
                 langAnimState === 'exit'
                   ? 'opacity-0 -translate-y-2 scale-[0.98] blur-[4px]'
                   : 'opacity-100 translate-y-0 scale-100 blur-0'
@@ -626,10 +626,10 @@ export default function BuyerPresentation({ holdData }: BuyerPresentationProps) 
               </div>
 
               {/* Lower Section: Charcoal card with 2x2 specification matrix */}
-              <div className="p-3.5 bg-[#161B26]">
+              <div className="p-3.5 bg-[#222220]">
                 <div className="text-xs sm:text-[13px] font-bold text-white tracking-tight mb-2.5 flex items-center justify-between">
                   <span>{currentLang.cardSubtitle}</span>
-                  <span className="text-[9px] text-[#568DFF] font-mono font-semibold">
+                  <span className="text-[9px] text-[#3D6FF5] font-mono font-semibold">
                     {currentLang.category}
                   </span>
                 </div>
@@ -641,7 +641,7 @@ export default function BuyerPresentation({ holdData }: BuyerPresentationProps) 
                       key={idx}
                       className="p-2 rounded-xl bg-black/40 border border-white/5 flex items-start gap-2"
                     >
-                      <span className="text-xs text-[#568DFF] shrink-0 mt-0.5 font-mono">
+                      <span className="text-xs text-[#3D6FF5] shrink-0 mt-0.5 font-mono">
                         {item.icon}
                       </span>
                       <div className="flex flex-col overflow-hidden">
@@ -682,14 +682,14 @@ export default function BuyerPresentation({ holdData }: BuyerPresentationProps) 
               {/* Center: Glowing Electric Orb-Blue Voice Orb with Rechitta Monogram & Ripple Effect */}
               <div
                 id="buyer-voice-orb-dock"
-                className={`relative flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-tr from-blue-600 to-[#568DFF] shadow-[0_0_15px_rgba(86,141,255,0.6)] cursor-pointer transition-all duration-300 ${
-                  voiceRipple ? 'scale-115 shadow-[0_0_30px_rgba(86,141,255,0.95)]' : 'scale-100'
+                className={`relative flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-tr from-blue-600 to-[#3D6FF5] shadow-[0_0_15px_rgba(61,111,245,0.6)] cursor-pointer transition-all duration-300 ${
+                  voiceRipple ? 'scale-115 shadow-[0_0_30px_rgba(61,111,245,0.95)]' : 'scale-100'
                 }`}
               >
                 <span className="text-xs font-black text-white tracking-tighter">
                   R
                 </span>
-                <span className="animate-ping absolute inset-0 rounded-full bg-[#568DFF] opacity-40" />
+                <span className="animate-ping absolute inset-0 rounded-full bg-[#3D6FF5] opacity-40" />
                 {voiceRipple && (
                   <span className="animate-ping absolute -inset-2.5 rounded-full border-2 border-[#D6ECFF] opacity-80" />
                 )}
@@ -731,7 +731,7 @@ export default function BuyerPresentation({ holdData }: BuyerPresentationProps) 
           className="pointer-events-none absolute -inset-12 rounded-full blur-3xl opacity-80 -z-10"
           style={{
             background:
-              'radial-gradient(ellipse at 70% 50%, rgba(11, 15, 25, 0.95) 0%, rgba(11, 15, 25, 0.6) 60%, transparent 100%)',
+              'radial-gradient(ellipse at 70% 50%, rgba(20, 20, 19, 0.95) 0%, rgba(20, 20, 19, 0.6) 60%, transparent 100%)',
           }}
         />
 
@@ -739,7 +739,7 @@ export default function BuyerPresentation({ holdData }: BuyerPresentationProps) 
         <div
           className="pointer-events-none absolute -top-16 -right-16 w-80 h-80 rounded-full blur-3xl opacity-20 -z-10"
           style={{
-            background: 'radial-gradient(circle, rgba(86, 141, 255, 0.5) 0%, rgba(40, 90, 220, 0.25) 40%, transparent 70%)',
+            background: 'radial-gradient(circle, rgba(61, 111, 245, 0.5) 0%, rgba(42, 85, 224, 0.25) 40%, transparent 70%)',
           }}
         />
 
@@ -747,8 +747,8 @@ export default function BuyerPresentation({ holdData }: BuyerPresentationProps) 
         <div className="buyer-header-reveal flex items-center justify-between mb-3 border-b border-white/10 pb-2 text-[10px] font-mono tracking-widest text-neutral-400">
           <div className="flex items-center gap-2">
             <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#568DFF] opacity-75" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-[#568DFF] shadow-sm shadow-[#568DFF]" />
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#3D6FF5] opacity-75" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-[#3D6FF5] shadow-sm shadow-[#3D6FF5]" />
             </span>
             <span className="font-semibold text-neutral-200 uppercase tracking-wider">
               03 // THE BUYER&apos;S PERSPECTIVE
@@ -757,7 +757,7 @@ export default function BuyerPresentation({ holdData }: BuyerPresentationProps) 
 
           {/* State label near the toggle: Now speaking: [Language] */}
           <span className="text-[9px] px-2.5 py-0.5 rounded-full bg-white/5 border border-white/10 text-neutral-300 font-mono flex items-center gap-1.5 shadow-sm">
-            <span className={`w-1.5 h-1.5 rounded-full bg-[#568DFF] ${voiceRipple ? 'animate-ping' : 'animate-pulse'}`} />
+            <span className={`w-1.5 h-1.5 rounded-full bg-[#3D6FF5] ${voiceRipple ? 'animate-ping' : 'animate-pulse'}`} />
             <span>Now speaking:</span>
             <strong
               className={`text-white font-bold transition-all duration-200 ${
@@ -813,7 +813,7 @@ export default function BuyerPresentation({ holdData }: BuyerPresentationProps) 
         <div className="buyer-lang-reveal mb-3.5 flex flex-col gap-2">
           <div className="flex items-center justify-between text-[10px] font-mono text-neutral-400 px-1">
             <span className="uppercase tracking-wider flex items-center gap-1.5 text-neutral-300 font-semibold">
-              <span className="text-[#568DFF]">🌐</span>
+              <span className="text-[#3D6FF5]">🌐</span>
               <span>SELECT BUYER DIALECT</span>
             </span>
             <span className="hidden lg:inline text-[9px] text-neutral-500">SWITCHES LIVE PHONE</span>
@@ -874,7 +874,7 @@ export default function BuyerPresentation({ holdData }: BuyerPresentationProps) 
             </div>
 
             <div className="pt-2.5 border-t border-white/10 text-[11px] text-neutral-300 leading-relaxed flex items-start gap-1.5">
-              <span className="text-[#568DFF] text-xs shrink-0 mt-0.5">✦</span>
+              <span className="text-[#3D6FF5] text-xs shrink-0 mt-0.5">✦</span>
               <span>
                 <strong className="text-white font-semibold">Verified Response:</strong>{' '}
                 {currentLang.answer}
@@ -911,8 +911,8 @@ export default function BuyerPresentation({ holdData }: BuyerPresentationProps) 
               onClick={handleFlyToGlobal}
               className={`w-full min-w-0 py-3.5 sm:py-4 px-4 sm:px-5 rounded-xl text-white text-[13px] sm:text-sm font-bold tracking-tight transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer group border ${
                 showScrollPrompt
-                  ? 'bg-[#568DFF] border-[#8FB4FF] shadow-[0_0_32px_rgba(86,141,255,0.7)] scale-[1.02]'
-                  : 'bg-[#568DFF]/90 hover:bg-[#568DFF] border-[#568DFF]/60 hover:border-[#8FB4FF] shadow-[0_0_20px_rgba(86,141,255,0.4)] hover:shadow-[0_0_28px_rgba(86,141,255,0.6)]'
+                  ? 'bg-[#3D6FF5] border-[#8BB0FF] shadow-[0_0_32px_rgba(61,111,245,0.7)] scale-[1.02]'
+                  : 'bg-[#3D6FF5]/90 hover:bg-[#3D6FF5] border-[#3D6FF5]/60 hover:border-[#8BB0FF] shadow-[0_0_20px_rgba(61,111,245,0.4)] hover:shadow-[0_0_28px_rgba(61,111,245,0.6)]'
               }`}
               style={{ fontFamily: 'var(--font-inter)' }}
               aria-label="Fly to Global Reach"

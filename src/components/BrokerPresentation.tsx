@@ -480,7 +480,33 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
   };
 
   useEffect(() => {
+    const onFocusPull = (e: Event) => {
+      if (!isVisibleRef.current) return;
+      const detail = (e as CustomEvent<{ dir?: number; title?: string }>).detail;
+      if (detail?.dir === 1) {
+        // Smoothly fade & scale out broker HUD and phone as optical focus pull begins
+        if (containerRef.current) {
+          containerRef.current.style.pointerEvents = 'none';
+          gsap.to(containerRef.current, {
+            opacity: 0,
+            scale: 0.96,
+            duration: 0.45,
+            ease: 'power2.inOut',
+          });
+        }
+        if (phoneRef.current) {
+          gsap.to(phoneRef.current, {
+            opacity: 0,
+            duration: 0.38,
+            ease: 'power2.inOut',
+          });
+        }
+      }
+    };
+    window.addEventListener('rechitta:macro-focus-pull-transition', onFocusPull);
+
     return () => {
+      window.removeEventListener('rechitta:macro-focus-pull-transition', onFocusPull);
       const filmHost = document.getElementById('film-stage-host');
       if (filmHost) {
         gsap.killTweensOf(filmHost);
@@ -577,8 +603,8 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
         if (phoneRef.current && !stacked) gsap.killTweensOf(phoneRef.current);
         if (hudContentRef.current) gsap.killTweensOf(hudContentRef.current);
 
-        // Make container visible
-        gsap.set(containerRef.current, { autoAlpha: 1 });
+        // Make container visible and clear any previous exit styles
+        gsap.set(containerRef.current, { autoAlpha: 1, opacity: 1, scale: 1 });
         if (containerRef.current) {
           containerRef.current.style.pointerEvents = 'auto';
         }
@@ -895,7 +921,7 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
             style={{
               top: `${phoneBottomY - 60}px`,
               background:
-                'linear-gradient(to bottom, rgba(7, 10, 16, 0) 0px, rgba(7, 10, 16, 0.25) 15px, rgba(7, 10, 16, 0.6) 30px, rgba(7, 10, 16, 0.9) 45px, #070A10 60px, #070A10 100%)',
+                'linear-gradient(to bottom, rgba(10, 10, 9, 0) 0px, rgba(10, 10, 9, 0.25) 15px, rgba(10, 10, 9, 0.6) 30px, rgba(10, 10, 9, 0.9) 45px, #0A0A09 60px, #0A0A09 100%)',
             }}
             aria-hidden="true"
           />
@@ -906,7 +932,7 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
             style={{
               top: `${phoneBottomY - 25}px`,
               background:
-                'radial-gradient(ellipse at center, rgba(86, 141, 255, 0.7) 0%, rgba(86, 141, 255, 0.25) 50%, transparent 80%)',
+                'radial-gradient(ellipse at center, rgba(61, 111, 245, 0.7) 0%, rgba(61, 111, 245, 0.25) 50%, transparent 80%)',
             }}
             aria-hidden="true"
           />
@@ -936,13 +962,24 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
             transformOrigin: 'left center',
           }}
         >
+          <p
+            className="objection-reveal eyebrow mb-1 text-[var(--text-accent)]"
+          >
+            Without Rechitta
+          </p>
           {BROKER_PROBLEMS.map((prob) => {
             const isSelected = activeProblemId === prob.id;
             return (
               <button
                 key={prob.id}
                 onClick={() => handleProblemSelect(prob)}
-                className={`objection-reveal group relative overflow-hidden rounded-xl border px-3.5 py-3 text-left text-[13px] font-semibold leading-snug tracking-tight transition-all duration-300 cursor-pointer backdrop-blur-xl ${
+                /*
+                  Colours only. `transition-all` also caught the opacity and
+                  transform the entrance sets on these, so a button snapped
+                  hidden by GSAP faded out over 300ms first and then came back
+                  in — the whole column visibly loaded twice.
+                */
+                className={`objection-reveal group relative overflow-hidden rounded-xl border px-3.5 py-3 text-left text-[13px] font-semibold leading-snug tracking-tight transition-[background-color,border-color,color,box-shadow] duration-300 cursor-pointer backdrop-blur-xl ${
                   isSelected
                     ? 'bg-white text-neutral-950 border-white shadow-[0_12px_34px_rgba(0,0,0,0.55)]'
                     : 'bg-neutral-900/55 text-neutral-300 border-white/10 hover:bg-neutral-900/85 hover:text-white hover:border-white/25'
@@ -954,7 +991,7 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
                     the column and not only from its fill. */}
                 <span
                   className={`absolute inset-y-0 left-0 w-[3px] transition-colors duration-300 ${
-                    isSelected ? 'bg-[#568DFF]' : 'bg-transparent'
+                    isSelected ? 'bg-[#3D6FF5]' : 'bg-transparent'
                   }`}
                   aria-hidden="true"
                 />
@@ -985,14 +1022,14 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
               className="pointer-events-none absolute -inset-12 rounded-full blur-3xl opacity-80 -z-10"
               style={{
                 background:
-                  'radial-gradient(ellipse at 70% 50%, rgba(11, 15, 25, 0.95) 0%, rgba(11, 15, 25, 0.6) 60%, transparent 100%)',
+                  'radial-gradient(ellipse at 70% 50%, rgba(20, 20, 19, 0.95) 0%, rgba(20, 20, 19, 0.6) 60%, transparent 100%)',
               }}
             />
             <div
               className="pointer-events-none absolute -top-16 -right-16 w-80 h-80 rounded-full blur-3xl opacity-20 -z-10"
               style={{
                 background:
-                  'radial-gradient(circle, rgba(86, 141, 255, 0.5) 0%, rgba(40, 90, 220, 0.25) 40%, transparent 70%)',
+                  'radial-gradient(circle, rgba(61, 111, 245, 0.5) 0%, rgba(42, 85, 224, 0.25) 40%, transparent 70%)',
               }}
             />
           </>
@@ -1006,6 +1043,26 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
             gone: the scene is now the broker's four objections and what the
             briefing says back to each one, and nothing else.
            =================================================================== */}
+
+        {composited && (
+          <>
+            {/*
+              Where the orb comes to rest in this scene: over the column's top
+              right corner, so its right edge lines up with the copy's. Sized
+              to the orb's visible core. Measured by OrbStage; draws nothing.
+            */}
+            <div
+              id="broker-orb-anchor"
+              className="pointer-events-none absolute right-0 bottom-full mb-3 h-[60px] w-[60px]"
+              aria-hidden="true"
+            />
+            <p
+              className="prompt-pill-reveal eyebrow mb-3 text-[var(--text-brand)]"
+            >
+              With Rechitta
+            </p>
+          </>
+        )}
 
         {/* On tablet landscape, show the buttons list */}
         {!composited && !stacked && (
@@ -1045,14 +1102,14 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
                     backgroundColor: isSelected
                       ? isWaitlistTab
                         ? '#FFFFFF'
-                        : '#8FB4FF'
+                        : '#8BB0FF'
                       : isWaitlistTab
                         ? 'rgba(255, 255, 255, 0.45)'
                         : 'rgba(255, 255, 255, 0.22)',
                     boxShadow: isSelected
                       ? isWaitlistTab
-                        ? '0 0 10px rgba(255, 255, 255, 0.85), 0 0 18px rgba(86, 141, 255, 0.5)'
-                        : '0 0 8px rgba(143, 180, 255, 0.6)'
+                        ? '0 0 10px rgba(255, 255, 255, 0.85), 0 0 18px rgba(61, 111, 245, 0.5)'
+                        : '0 0 8px rgba(139, 176, 255, 0.6)'
                       : isWaitlistTab
                         ? '0 0 6px rgba(255, 255, 255, 0.35)'
                         : 'none',
@@ -1075,7 +1132,7 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
           {/* Card Header: Category */}
           <div className="flex items-center justify-between gap-1.5">
             <span
-              className={`self-start rounded-full border border-[#568DFF]/30 bg-[#568DFF]/15 px-2.5 py-0.5 eyebrow-chip text-[#8FB4FF] ${
+              className={`self-start rounded-full border border-[#3D6FF5]/30 bg-[#3D6FF5]/15 px-2.5 py-0.5 eyebrow-chip text-[#8BB0FF] ${
                 stacked ? 'text-[8.5px]' : 'text-[8.5px]'
               }`}
             >
@@ -1112,10 +1169,10 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
                 href={WAITLIST_URL}
                 target="_blank"
                 rel="noopener noreferrer"
-                className={`block w-full rounded-xl bg-white text-center font-bold tracking-tight text-neutral-950 transition-all duration-200 hover:bg-neutral-200 active:scale-[0.98] cursor-pointer ${
-                  stacked ? 'mt-2 py-1.5 px-3.5 text-[11.5px]' : 'mt-4 px-4 py-2.5 text-[13px]'
+                /* The button shape and type from design.md, painted white on black. */
+                className={`btn w-full bg-white text-black hover:bg-neutral-200 active:bg-neutral-300 active:scale-[0.98] ${
+                  stacked ? 'btn-sm mt-2' : 'btn-md mt-4'
                 }`}
-                style={{ fontFamily: 'var(--font-inter)' }}
               >
                 Join the waitlist →
               </a>
@@ -1133,8 +1190,8 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
                 <span className="truncate text-white/85 group-hover:text-white">
                   &ldquo;{activeProblem.query}&rdquo;
                 </span>
-                <span className="shrink-0 text-[#568DFF] font-sans font-bold">
-                  Try it →
+                <span className="shrink-0 text-[var(--text-link)] font-sans font-semibold">
+                  Try it ↗
                 </span>
               </a>
             )}
@@ -1158,19 +1215,19 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
           )}
           <button
             onClick={handleFlyOn}
-            className={`w-full rounded-xl text-white font-bold tracking-tight transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer group border ${
-              stacked ? 'py-2 px-3 text-[12px]' : 'py-3.5 px-5 text-sm'
-            } ${
+            /*
+              design.md's primary button. When the film is waiting on it, it
+              says so with the focus ring and a small lift rather than a glow.
+            */
+            className={`btn btn-primary group w-full ${stacked ? 'btn-sm' : 'btn-lg'} ${
               showScrollPrompt
-                ? 'bg-[#568DFF] border-[#8FB4FF] shadow-[0_0_32px_rgba(86,141,255,0.7)] scale-[1.02]'
+                ? 'scale-[1.02] outline-2 outline-offset-2 outline-[var(--border-focus)]'
                 : stacked && ctaHint
-                  ? 'bg-[#568DFF] border-[#8FB4FF]/80 shadow-[0_0_24px_rgba(86,141,255,0.55)] scale-[1.01]'
-                  : 'bg-[#568DFF]/90 hover:bg-[#568DFF] border-[#568DFF]/60 hover:border-[#8FB4FF] shadow-[0_0_20px_rgba(86,141,255,0.4)] hover:shadow-[0_0_28px_rgba(86,141,255,0.6)]'
+                  ? 'scale-[1.01]'
+                  : ''
             }`}
-            style={{ fontFamily: 'var(--font-inter)' }}
             aria-label="Take the briefing global"
           >
-            <span className="h-1.5 w-1.5 rounded-full bg-white shadow-[0_0_8px_#ffffff]" />
             <span className="whitespace-nowrap">
               {stacked && showScrollPrompt
                 ? 'Tap here to continue'
@@ -1178,7 +1235,7 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
                   ? 'Tap to continue'
                   : 'Take it global'}
             </span>
-            <span className="text-white/90 font-bold transition-transform group-hover:translate-x-1">
+            <span className="transition-transform group-hover:translate-x-1">
               &rarr;
             </span>
           </button>

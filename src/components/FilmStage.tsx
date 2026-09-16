@@ -215,6 +215,8 @@ export default function FilmStage({
       if (v) {
         v.style.transition = fadeMs ? `opacity ${fadeMs}ms ease` : 'none';
         v.style.opacity = '1';
+        // Undo any push-in a previous pass through this shot left behind.
+        v.style.transform = 'translateZ(0)';
       }
       if (previous) {
         previous.style.transition = fadeMs ? `opacity ${fadeMs}ms ease` : 'none';
@@ -331,8 +333,17 @@ export default function FilmStage({
         return;
       }
 
-      show(v, 180);
-      await sleep(180);
+      const fadeMs = beat.enterFadeMs ?? 180;
+      show(v, fadeMs);
+      if (beat.enterPush) {
+        // The push runs across the dissolve and the whole shot, so the camera
+        // is already moving forward as the previous frame gives way.
+        const pushMs = fadeMs + ((to - from) / rate) * 1000;
+        void v.offsetWidth;
+        v.style.transition = `opacity ${fadeMs}ms ease, transform ${pushMs}ms cubic-bezier(0.25, 0.1, 0.35, 1)`;
+        v.style.transform = `translateZ(0) scale(${beat.enterPush})`;
+      }
+      await sleep(fadeMs);
       if (disposed) return;
 
       v.playbackRate = rate;
@@ -366,7 +377,9 @@ export default function FilmStage({
           if (!rateChecked && now - startedAt > RATE_CHECK_MS) {
             rateChecked = true;
             const achieved = ((v.currentTime - from) / (now - startedAt)) * 1000;
-            if (achieved > 0.05 && achieved < rate * RATE_TOLERANCE) {
+            // Only a fast-forward can outrun a decoder. A shot slowed below 1x
+            // is well within reach, and lifting it to 1x would rush it.
+            if (rate > 1 && achieved > 0.05 && achieved < rate * RATE_TOLERANCE) {
               v.playbackRate = Math.max(1, achieved * 1.1);
             }
           }
@@ -490,12 +503,13 @@ export default function FilmStage({
     };
 
     /**
-     * "6/6 Briefings Delivered" — Macro UI Focus Pull transition between the
-     * multilingual cities chapter and the finale presentation.
+     * Optical Match-Cut Screen Handoff Transition.
+     * Bridges both major chapter boundaries (Broker <-> Cities, and Cities <-> Finale).
      */
     const runFocusPullTransition = (
       dir: 1 | -1,
       swap: () => void | Promise<void>,
+      meta?: { title?: string; subtitle?: string; igniteWorldMap?: boolean },
     ): Promise<void> =>
       new Promise<void>((resolve) => {
         let settled = false;
@@ -505,12 +519,7 @@ export default function FilmStage({
           window.clearTimeout(timer);
           resolve();
         };
-        /*
-          The safety net, not the schedule. It has to sit past the end of the
-          overlay's own timeline — that runs 1.2s now the sync badge holds —
-          or this fires first and the film moves on mid-cut.
-        */
-        const timer = window.setTimeout(done, 1600);
+        const timer = window.setTimeout(done, 2200);
 
         window.dispatchEvent(
           new CustomEvent('rechitta:macro-focus-pull-transition', {
@@ -518,6 +527,9 @@ export default function FilmStage({
               dir,
               swap,
               done,
+              title: meta?.title,
+              subtitle: meta?.subtitle,
+              igniteWorldMap: meta?.igniteWorldMap,
             },
           }),
         );
@@ -567,30 +579,90 @@ export default function FilmStage({
           (source.chapter === 'cities' && target.chapter === 'finale') ||
           (source.chapter === 'finale' && target.chapter === 'cities');
 
+        const isIntroCitiesBoundary =
+          (source.chapter === 'intro' && target.chapter === 'cities') ||
+          (source.chapter === 'cities' && target.chapter === 'intro');
+
         if (isCitiesFinaleBoundary) {
-          await runFocusPullTransition(dir, async () => {
-            if (target.chapter === 'cities') {
-              setLayerVisible(false);
-              show(null, 0);
-            } else {
-              setLayerVisible(true);
-              if (target.clip) {
-                const v = acquire(target.clip);
-                if (target.clip === 'last') alignFinaleClip(v, target.id);
-                const enterConf = getBeatEnter(target, isPortrait());
-                await park(
-                  v,
-                  dir === 1 && enterConf && !playsOut ? enterConf.from : getBeatPark(target, isPortrait()),
-                );
-                show(v, 0);
+          await runFocusPullTransition(
+            dir,
+            async () => {
+              if (target.chapter === 'cities') {
+                setLayerVisible(false);
+                show(null, 0);
+              } else {
+                setLayerVisible(true);
+                if (target.clip) {
+                  const v = acquire(target.clip);
+                  if (target.clip === 'last') alignFinaleClip(v, target.id);
+                  const enterConf = getBeatEnter(target, isPortrait());
+                  await park(
+                    v,
+                    dir === 1 && enterConf && !playsOut ? enterConf.from : getBeatPark(target, isPortrait()),
+                  );
+                  show(v, 0);
+                }
               }
-            }
-            if (target.city !== undefined) callbacks.current.onCity?.(target.city);
-            if (target.chapter !== currentChapter) {
-              currentChapter = target.chapter;
-              callbacks.current.onChapter?.(target.chapter);
-            }
-          });
+              if (target.city !== undefined) callbacks.current.onCity?.(target.city);
+              if (target.chapter !== currentChapter) {
+                currentChapter = target.chapter;
+                callbacks.current.onChapter?.(target.chapter);
+              }
+              if (target.hold !== undefined) {
+                setHold(target.hold);
+              }
+            },
+            {
+              title: dir === 1 ? 'SYNCING GLOBAL HUBS //' : 'RETURNING TO HUBS //',
+              subtitle: dir === 1 ? 'DUBAI HQ BOARDROOM' : 'MULTILINGUAL CITIES',
+              igniteWorldMap: dir === 1,
+            },
+          );
+          if (disposed) return;
+
+          if (!playsOut && dir === 1 && target.enter && target.chapter !== 'cities') {
+            await playForward(target, from, to);
+          } else {
+            publish(beatProgress(target));
+          }
+        } else if (isIntroCitiesBoundary) {
+          await runFocusPullTransition(
+            dir,
+            async () => {
+              if (target.chapter === 'cities') {
+                preloadCityBlob('london');
+                preloadCityBlob('paris');
+                preloadBlobUrl('last').catch(() => {});
+                setLayerVisible(false);
+                show(null, 0);
+              } else {
+                setLayerVisible(true);
+                if (target.clip) {
+                  const v = acquire(target.clip);
+                  if (target.clip === 'last') alignFinaleClip(v, target.id);
+                  const enterConf = getBeatEnter(target, isPortrait());
+                  await park(
+                    v,
+                    dir === 1 && enterConf && !playsOut ? enterConf.from : getBeatPark(target, isPortrait()),
+                  );
+                  show(v, 0);
+                }
+              }
+              if (target.city !== undefined) callbacks.current.onCity?.(target.city);
+              if (target.chapter !== currentChapter) {
+                currentChapter = target.chapter;
+                callbacks.current.onChapter?.(target.chapter);
+              }
+              if (target.hold !== undefined) {
+                setHold(target.hold);
+              }
+            },
+            {
+              title: dir === 1 ? 'DISPATCHING BRIEFING //' : 'RETURNING TO BROKER //',
+              subtitle: dir === 1 ? '6 GLOBAL HUBS' : 'LIVE BRIEFING',
+              igniteWorldMap: false,
+            },
+          );
           if (disposed) return;
 
           if (!playsOut && dir === 1 && target.enter && target.chapter !== 'cities') {
@@ -714,8 +786,9 @@ export default function FilmStage({
     };
 
     // A window onto the beat machine, for calibration and for the browser
-    // checks that drive the film end to end. Dev only.
-    if (process.env.NODE_ENV !== 'production') {
+    // checks that drive the film end to end. Dev, or `?bench` for measuring a
+    // production build.
+    if (process.env.NODE_ENV !== 'production' || window.location.search.includes('bench')) {
       (window as unknown as { __film?: unknown }).__film = {
         state,
         beats: BEATS,

@@ -54,7 +54,7 @@ export default function TestBoardroomPage() {
         <Loader onDone={() => setIntroPhase('revealing')} orbReady={true} />
       )}
 
-      <div ref={containerRef} className="relative w-full h-screen bg-[#070A10] overflow-hidden film-grain-overlay">
+      <div ref={containerRef} className="relative w-full h-screen bg-[#0A0A09] overflow-hidden film-grain-overlay">
         
         <div className="absolute inset-0 w-full h-full" style={{ opacity: (introPhase === 'loading') ? 0 : 1, transition: 'opacity 1s ease-in-out' }}>
 

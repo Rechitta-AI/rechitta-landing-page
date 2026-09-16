@@ -32,8 +32,7 @@
  */
 export const CLIP_SEQUENCE = [
   { key: 'scene1-3', in: 2, out: 11, holdWeight: 8 },
-  { key: 'transit-b', in: 2, out: 16.9, holdWeight: 6 },
-  { key: 'transit-e', in: 1.35, out: 1.92, holdWeight: 0 },
+  { key: 'transit-b', in: 2, out: 16.9, holdWeight: 0 },
 ] as const;
 
 /** The film's slice of the global 0–1 progress line the orb flies against. */
@@ -150,6 +149,19 @@ export type Beat = {
 
   /** Disables mid-transition skipping so cinematic sequences play uninterrupted. */
   noSkip?: boolean;
+
+  /**
+   * How long the incoming footage takes to dissolve in over the frame being
+   * left, ms. Most shots cut in over 180ms; the cloud wants the broker to
+   * disappear into it.
+   */
+  enterFadeMs?: number;
+  /**
+   * A slow push-in on the footage while it plays, as a final scale (1.1 is a
+   * tenth larger by the end). Sells forward motion through a shot that has
+   * little of its own.
+   */
+  enterPush?: number;
 };
 
 export function getBeatClip(beat: Beat, isPortrait = false): string | undefined {
@@ -185,13 +197,18 @@ export function getBeatProgressFrom(beat: Beat, isPortrait = false): number | un
  * the out point is hard — the Burj's mast breaks the cloud line at 1.95, and
  * a tower has no business in the second before Mumbai.
  *
- * The window is barely half a second of footage, so it is played well under
- * speed. That is not a compromise: cloud at 0.4x reads as altitude, and the
- * shot is the only thing on screen.
+ * It opens at 1.2, a beat before the cloud's edge starts to roll at 1.35, so
+ * the broker dissolves into a whiteout first and the sky then tears open
+ * through it — the read of flying into a cloud, rather than a white frame
+ * that happens to move. Played at 0.3x behind a 700ms dissolve and a slow
+ * push-in, the passage lasts around three seconds where it used to last one
+ * and a half, and it cannot be skipped by scrolling through it.
  */
-const CLOUD_IN = 1.35;
+const CLOUD_IN = 1.2;
 const CLOUD_OUT = 1.92;
-const CLOUD_RATE = 0.4;
+const CLOUD_RATE = 0.3;
+const CLOUD_FADE_MS = 700;
+const CLOUD_PUSH = 1.12;
 
 const cityProgress = (i: number) =>
   CITIES_SPAN.start + (i / (CITIES.length - 1)) * (CITIES_SPAN.end - CITIES_SPAN.start);
@@ -263,14 +280,9 @@ export const BEATS: Beat[] = [
    * },
    */
   /*
-   * The flight into the clouds used to be a beat of its own, so the film
-   * parked on a white frame and sat there until the viewer scrolled again. It
-   * is a transition, not a destination: the footage now plays as the way into
-   * Mumbai and the chapter turns over at the end of it, in one move.
-   *
-   * With the buyer gone the cloud is transit-e's opening rather than the tail
-   * of the beach shot, so the frame holds nothing but weather from the first
-   * frame to the flash.
+   * The World Chronometer luxury horology transition bridges Act III (The Broker)
+   * to Act IV (The Multilingual Cities), synchronizing the global 04:11 UTC
+   * briefing without unskippable cloud footage or harsh white flashes.
    */
   ...CITIES.map((city, i) => ({
     id: `city-${city.key}`,
@@ -278,10 +290,7 @@ export const BEATS: Beat[] = [
     label: `V · ${city.label}`,
     park: 0,
     city: i,
-    flash: i === 0,
-    ...(i === 0
-      ? { clip: 'transit-e', enter: { from: CLOUD_IN, to: CLOUD_OUT, rate: CLOUD_RATE } }
-      : null),
+    flash: false,
     progress: cityProgress(i),
     progressFrom: i === 0 ? INTRO_SPAN.end : cityProgress(i - 1),
   })),
@@ -335,13 +344,11 @@ export const LAZY_CLIPS = [
   /* The buyer's two shots. Nothing plays them while that scene is retired.
    * { key: 'transit-c', from: 0, to: 6.8 },
    * { key: 'transit-d', from: 0, to: 6.0 }, */
-  { key: 'transit-e', from: 1.0, to: CLOUD_OUT },
   { key: 'last', from: 1.0, to: 11.0 },
 ];
 
 /** Lazy clips for portrait/mobile screens. */
 export const MOBILE_LAZY_CLIPS = [
   { key: 'transit-b', from: 2.0, to: 16.9 },
-  { key: 'transit-e', from: 1.0, to: CLOUD_OUT },
   { key: 'last', from: 1.0, to: 11.0 },
 ];

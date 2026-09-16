@@ -137,12 +137,12 @@ export default function ClickPrompt({
       <div
         className={`relative flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1.5 text-[11px] font-semibold tracking-tight shadow-[0_8px_24px_-6px_rgba(0,0,0,0.55)] ${
           urgent
-            ? 'bg-[#568DFF] text-white ring-2 ring-[#568DFF]/30'
+            ? 'bg-[#3D6FF5] text-white ring-2 ring-[#3D6FF5]/30'
             : 'bg-white text-neutral-900 ring-1 ring-black/10'
         } ${visible ? 'animate-click-prompt-bob' : ''}`}
       >
         <span
-          className={`relative flex h-1.5 w-1.5 shrink-0 ${urgent ? 'text-white' : 'text-[#568DFF]'}`}
+          className={`relative flex h-1.5 w-1.5 shrink-0 ${urgent ? 'text-white' : 'text-[#3D6FF5]'}`}
         >
           <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-current" />
         </span>
@@ -152,8 +152,8 @@ export default function ClickPrompt({
         <span
           className={`absolute left-1/2 h-0 w-0 -translate-x-1/2 border-x-[5px] border-x-transparent ${
             top
-              ? `top-full border-t-[5px] ${urgent ? 'border-t-[#568DFF]' : 'border-t-white'}`
-              : `bottom-full border-b-[5px] ${urgent ? 'border-b-[#568DFF]' : 'border-b-white'}`
+              ? `top-full border-t-[5px] ${urgent ? 'border-t-[#3D6FF5]' : 'border-t-white'}`
+              : `bottom-full border-b-[5px] ${urgent ? 'border-b-[#3D6FF5]' : 'border-b-white'}`
           }`}
         />
       </div>

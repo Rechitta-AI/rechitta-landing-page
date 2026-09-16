@@ -45,23 +45,23 @@ export const ORB_PATH: Keyframe[] = [
     ease: 'inOut',
     note: 'K0 — centred above the headline. Text staggers away, the orb stays.',
   },
+  /*
+   * One waypoint between the headline and the credenza, not three.
+   *
+   * The dive used to zigzag — out to the window, down onto the near end of
+   * the table, back up its centreline — and packed all of that into under two
+   * seconds of footage played at 2.4x, so the orb raced the camera here when
+   * everywhere else it keeps pace with it. With a single waypoint roughly
+   * halfway along the distance and halfway through the shot, the orb covers
+   * the room at an even speed: 'in' then 'out' meet at the same velocity, so
+   * it never lurches at the waypoint either. It sits at 6.0s so it lands just
+   * before the screen's exclusion window opens.
+   */
   {
-    anchor: { clip: 'scene1-3', t: 5.0 },
-    x: 40, y: 48, scale: 0.5, opacity: 0.9, blur: 0,
+    anchor: { clip: 'scene1-3', t: 6.0 },
+    x: 46, y: 60, scale: 0.5, opacity: 0.9, blur: 0,
     ease: 'in',
-    note: 'K1 — at the lit boardroom window while the camera is still outside the glass.',
-  },
-  {
-    anchor: { clip: 'scene1-3', t: 6.6 },
-    x: 55, y: 80, scale: 0.58, opacity: 0.95, blur: 0,
-    ease: 'out',
-    note: 'K2 — through the glass, low, touching down on the near end of the table.',
-  },
-  {
-    anchor: { clip: 'scene1-3', t: 8.5 },
-    x: 58, y: 74, scale: 0.4, opacity: 0.9, blur: 0,
-    ease: 'inOut',
-    note: 'K3 — sliding up the table centreline, shrinking along its vanishing line.',
+    note: 'K1 — following the camera through the glass and down into the room.',
   },
   {
     anchor: { clip: 'scene1-3', t: 11.0 },
@@ -107,6 +107,8 @@ export const ORB_PATH: Keyframe[] = [
   {
     anchor: { clip: 'transit-b', t: 16.8 },
     pulse: true,
+    // Desktop measures its pose off the answer column instead (OrbStage).
+    brokerDock: true,
     // Stacked, the live app sits centre screen; 23% lands on it.
     portrait: { x: 84, y: 20, scale: 0.5 },
     /*
@@ -160,18 +162,19 @@ export const ORB_PATH: Keyframe[] = [
    * },
    */
 
-  // ── Act III — up through the cloud ──────────────────────────────────
+  // ── Act III — Focus pull into the multilingual chapter ─────────────
   {
-    anchor: { clip: 'transit-e', t: 1.4 },
-    x: 42, y: 62, scale: 0.44, opacity: 1, blur: 0,
-    ease: 'in',
-    note: 'K11 — enters the cloud low and left, small, the way a thing seen from below is.',
+    anchor: { progress: 0.47 },
+    x: 50, y: 50, scale: 0.65, opacity: 1, blur: 0,
+    ease: 'inOut',
+    note: 'K11 — glides to the center optical focus line.',
   },
   {
-    anchor: { clip: 'transit-e', t: 1.9 },
-    x: 50, y: 48, scale: 0.9, opacity: 1, blur: 0,
+    anchor: { progress: 0.495 },
+    pulse: true,
+    x: 50, y: 50, scale: 1.1, opacity: 1, blur: 0,
     ease: 'inOut',
-    note: 'K12 — expands into the cloud whiteout, seeding the white flash.',
+    note: 'K12 — pulses at 04:11 UTC under the anamorphic blue streak.',
   },
 
   /*
@@ -270,12 +273,12 @@ export const EXCLUSION_ZONES: ExclusionZone[] = [
      * zone stops above it rather than covering the whole object.
      */
     label: 'phone mockup screen, multilingual chapter',
-    window: { from: 0.5, to: 0.95 },
+    window: { from: 0.52, to: 0.95 },
     rect: { x0: 26, y0: 6, x1: 54, y1: 60 },
   },
   {
     label: 'city name, multilingual chapter',
-    window: { from: 0.5, to: 0.95 },
+    window: { from: 0.52, to: 0.95 },
     rect: { x0: 60, y0: 36, x1: 96, y1: 62 },
   },
 ];

@@ -80,6 +80,11 @@ export type Keyframe = Pose & {
    * in the finale presentation scene.
    */
   finaleDock?: true;
+  /**
+   * Landscape desktop pose is taken from the measured `#broker-orb-anchor`,
+   * above the broker scene's answer column.
+   */
+  brokerDock?: true;
   /** What this beat is, for the dev overlay and for anyone reading the path. */
   note: string;
 };

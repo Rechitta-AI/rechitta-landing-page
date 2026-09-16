@@ -24,7 +24,7 @@
   width: 30px;
   height: 30px;
   margin: -15px 0 0 -15px;
-  border: 1px solid rgba(232, 228, 220, 0.45);
+  border: 1px solid rgba(232, 232, 229, 0.45);
   transition: border-color 0.3s ease, background 0.3s ease;
 }
 
@@ -38,7 +38,7 @@
 /* Over anything clickable the reticle opens up and takes the accent blue. */
 .ringActive {
   border-color: var(--accent);
-  background: rgba(232, 162, 75, 0.1);
+  background: rgba(207, 163, 79, 0.1);
 }
 
 /* Where there is no fine pointer there is nothing to replace. */

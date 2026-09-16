@@ -69,14 +69,19 @@ export async function preloadBlobUrl(
       const blobUrl = URL.createObjectURL(blob);
       blobCache.set(key, blobUrl);
 
-      // If an existing pooled video already exists for this key, update its src
+      // If an existing pooled video already exists for this key, update its
+      // src — but only while nobody can see it. Swapping the source of a
+      // clip that is on screen or playing reloads it mid-shot, which is a
+      // black frame at best. That one keeps streaming; the blob is used the
+      // next time the clip is created.
       const existing = pool.get(key);
-      if (existing && !existing.src.startsWith('blob:')) {
+      const inUse = existing && (!existing.paused || existing.style.opacity !== '0');
+      if (existing && !inUse && !existing.src.startsWith('blob:')) {
         const currentTime = existing.currentTime;
         const paused = existing.paused;
         existing.src = blobUrl;
         existing.currentTime = currentTime;
-        if (!paused) existing.play().catch(() => {});
+        if (!paused) existing.play().catch(() => { });
       }
       return blobUrl;
     } catch (err) {
@@ -90,6 +95,12 @@ export async function preloadBlobUrl(
   activeFetches.set(key, promise);
   return promise;
 }
+
+/** iPhone and iPad, including iPadOS reporting itself as a Mac. */
+const IS_IOS =
+  typeof navigator !== 'undefined' &&
+  (/iP(hone|ad|od)/.test(navigator.userAgent) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1));
 
 /** The stage all pooled elements are appended into. */
 let host: HTMLElement | null = null;
@@ -188,7 +199,7 @@ export function releaseAll() {
   blobCache.forEach((url) => {
     try {
       URL.revokeObjectURL(url);
-    } catch {}
+    } catch { }
   });
   blobCache.clear();
   activeFetches.clear();
@@ -246,8 +257,16 @@ export function park(v: HTMLVideoElement, time: number): Promise<void> {
         if (p && typeof p.then === 'function') {
           p.then(() => {
             v.pause();
+            const onReseek = () => {
+              v.removeEventListener('seeked', onReseek);
+              window.clearTimeout(reseekTimer);
+              resolve();
+            };
+            const reseekTimer = window.setTimeout(onReseek, 400);
+            v.addEventListener('seeked', onReseek);
             v.currentTime = target;
-          }).catch(() => {});
+          }).catch(() => resolve());
+          return;
         }
       }
 
