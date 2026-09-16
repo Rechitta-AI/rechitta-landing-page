@@ -172,9 +172,15 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
       if (isVisibleRef.current) {
         const filmHost = document.getElementById('film-stage-host');
         if (filmHost) {
+          gsap.killTweensOf(filmHost);
           filmHost.style.transition = 'none';
           if (isPortraitFor(w, h)) {
-            const stageH = Math.round(Math.min(h * 0.67, h - 235));
+            const PHONE_FOOT = 0.89882;
+            const RAIL_RESERVE = 78;
+            const PANEL_MIN = 172;
+            const stageH = Math.round(
+              Math.min(h * 0.73, (h - RAIL_RESERVE - PANEL_MIN - 8) / PHONE_FOOT)
+            );
             filmHost.style.bottom = 'auto';
             filmHost.style.height = `${stageH}px`;
             filmHost.style.webkitMaskImage = 'none';
@@ -377,6 +383,8 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
     // Reset film stage host height and transform back to 100%
     const filmHost = document.getElementById('film-stage-host');
     if (filmHost) {
+      gsap.killTweensOf(filmHost);
+      filmHost.style.transition = 'none';
       filmHost.style.height = '100%';
       filmHost.style.bottom = '0px';
       filmHost.style.transform = 'none';
@@ -428,12 +436,21 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
             // Reset film stage host height back to 100%
             const filmHost = document.getElementById('film-stage-host');
             if (filmHost) {
-              filmHost.style.transition = 'height 0.6s cubic-bezier(0.16, 1, 0.3, 1)';
-              filmHost.style.height = '100%';
-              filmHost.style.bottom = '0px';
-              filmHost.style.transform = 'none';
-              filmHost.style.webkitMaskImage = 'none';
-              filmHost.style.maskImage = 'none';
+              const currentH = filmHost.getBoundingClientRect().height || responsiveStageHeight;
+              gsap.killTweensOf(filmHost);
+              filmHost.style.transition = 'none';
+              gsap.to(filmHost, {
+                height: window.innerHeight,
+                duration: 0.55,
+                ease: 'power3.inOut',
+                onComplete: () => {
+                  filmHost.style.bottom = '0px';
+                  filmHost.style.height = '100%';
+                  filmHost.style.transform = 'none';
+                  filmHost.style.webkitMaskImage = 'none';
+                  filmHost.style.maskImage = 'none';
+                },
+              });
             }
 
             // Dissolve the rest of the Broker HUD UI
@@ -466,6 +483,8 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
     return () => {
       const filmHost = document.getElementById('film-stage-host');
       if (filmHost) {
+        gsap.killTweensOf(filmHost);
+        filmHost.style.transition = 'none';
         filmHost.style.height = '100%';
         filmHost.style.bottom = '0px';
         filmHost.style.transform = 'none';
@@ -502,12 +521,22 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
 
           const filmHost = document.getElementById('film-stage-host');
           if (filmHost) {
-            filmHost.style.transition = 'height 0.6s cubic-bezier(0.16, 1, 0.3, 1)';
+            const startH = filmHost.getBoundingClientRect().height || window.innerHeight;
+            gsap.killTweensOf(filmHost);
+            filmHost.style.transition = 'none';
             filmHost.style.bottom = 'auto';
-            filmHost.style.height = `${responsiveStageHeight}px`;
             filmHost.style.transform = 'none';
             filmHost.style.webkitMaskImage = 'none';
             filmHost.style.maskImage = 'none';
+            gsap.fromTo(
+              filmHost,
+              { height: startH },
+              {
+                height: responsiveStageHeight,
+                duration: 0.65,
+                ease: 'power3.out',
+              }
+            );
           }
 
           // Once the phone in the footage has completely settled at its final position (~650ms):
@@ -633,12 +662,31 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
 
         const filmHost = document.getElementById('film-stage-host');
         if (filmHost) {
-          filmHost.style.transition = 'height 0.6s cubic-bezier(0.16, 1, 0.3, 1)';
-          filmHost.style.height = '100%';
-          filmHost.style.bottom = '0px';
-          filmHost.style.transform = 'none';
-          filmHost.style.webkitMaskImage = 'none';
-          filmHost.style.maskImage = 'none';
+          if (stacked) {
+            const currentH = filmHost.getBoundingClientRect().height || responsiveStageHeight;
+            gsap.killTweensOf(filmHost);
+            filmHost.style.transition = 'none';
+            gsap.to(filmHost, {
+              height: window.innerHeight,
+              duration: 0.55,
+              ease: 'power3.inOut',
+              onComplete: () => {
+                filmHost.style.bottom = '0px';
+                filmHost.style.height = '100%';
+                filmHost.style.transform = 'none';
+                filmHost.style.webkitMaskImage = 'none';
+                filmHost.style.maskImage = 'none';
+              },
+            });
+          } else {
+            gsap.killTweensOf(filmHost);
+            filmHost.style.transition = 'none';
+            filmHost.style.height = '100%';
+            filmHost.style.bottom = '0px';
+            filmHost.style.transform = 'none';
+            filmHost.style.webkitMaskImage = 'none';
+            filmHost.style.maskImage = 'none';
+          }
         }
 
         if (ctaHintTimerRef.current) clearTimeout(ctaHintTimerRef.current);

@@ -462,15 +462,22 @@ export default function FinaleWorldMapPresentation({
 
   // Keep the physical boardroom monitor centered horizontally on mobile portrait
   useEffect(() => {
+    const isDeparted = chapter === 'finale' && beatIndex > beatIndexById('finale-screen');
+
     const applyVideoPosition = () => {
       const videos = document.querySelectorAll<HTMLVideoElement>('#film-stage-host video');
       videos.forEach((v) => {
         if (v.dataset.clip === 'last') {
-          if (flat && isVisible) {
-            v.style.transition = 'object-position 0.4s ease-out';
+          if (flat && !isDeparted) {
+            // Instantly locked to centered monitor position from frame 0 with zero visible pan
+            v.style.transition = 'none';
             v.style.objectPosition = `calc(50% + ${shiftX}px) 50%`;
+          } else if (flat && isDeparted) {
+            // Only when departing the presentation to fly to the wide horizon, smoothly glide back to 50% 50%
+            v.style.transition = 'object-position 1.2s cubic-bezier(0.16, 1, 0.3, 1)';
+            v.style.objectPosition = '50% 50%';
           } else {
-            v.style.transition = 'object-position 0.4s ease-out';
+            v.style.transition = 'none';
             v.style.objectPosition = '50% 50%';
           }
         }
@@ -479,19 +486,18 @@ export default function FinaleWorldMapPresentation({
 
     applyVideoPosition();
     const rafId = requestAnimationFrame(applyVideoPosition);
-    const timerId = setTimeout(applyVideoPosition, 100);
+    const timerId = setTimeout(applyVideoPosition, 60);
+
+    // Pre-align the video during the match-cut focus pull transition so it is already centered before the cut reveals it
+    const onFocusPull = () => applyVideoPosition();
+    window.addEventListener('rechitta:macro-focus-pull-transition', onFocusPull);
 
     return () => {
       cancelAnimationFrame(rafId);
       clearTimeout(timerId);
-      const videos = document.querySelectorAll<HTMLVideoElement>('#film-stage-host video');
-      videos.forEach((v) => {
-        if (v.dataset.clip === 'last') {
-          v.style.objectPosition = '50% 50%';
-        }
-      });
+      window.removeEventListener('rechitta:macro-focus-pull-transition', onFocusPull);
     };
-  }, [isVisible, flat, shiftX]);
+  }, [flat, shiftX, chapter, beatIndex]);
 
   useEffect(() => {
     const el = containerRef.current;

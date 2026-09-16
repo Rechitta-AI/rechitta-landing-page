@@ -13,8 +13,7 @@ import gsap from 'gsap';
  *   thing ran in 460ms and the one line of copy on it was gone before anyone could
  *   finish it — a sync that says what it is doing has to be legible to be worth showing.
  * - Phase 3 (at 920ms): Instantaneous video/stage DOM hand-off under peak optical bloom, firing 'rechitta:ignite-world-map'.
- * - Phase 4 (920ms - 1200ms): Optical blur and bloom contract directly into the boardroom monitor bezels,
- *   snapping razor-sharp focus onto the physical display.
+ * - Phase 4 (920ms - 1200ms): Optical blur and bloom clear smoothly, snapping razor-sharp focus onto the physical display.
  * - Reversible: Symmetrical optical focus pull on reverse scroll (Dubai -> Paris).
  */
 /** How long the bloomed frame holds on the badge before the cut, in seconds. */
@@ -134,7 +133,7 @@ export default function MacroFocusPullTransition() {
       tl.to(flare, { scaleX: 1.08, duration: HOLD, ease: 'sine.inOut' }, 0.22);
       tl.to(bloomOverlay, { scale: 1.12, duration: HOLD, ease: 'sine.inOut' }, 0.22);
 
-      // Phase 3: at 0.92s — Seamless match-cut DOM swap beneath peak bloom
+      // Phase 3: at 0.92s — Seamless match-cut DOM swap beneath peak blur & bloom
       tl.call(
         () => {
           if (swap) {
@@ -266,12 +265,6 @@ export default function MacroFocusPullTransition() {
       >
         <div className="px-4 py-1.5 rounded-full bg-[#070A10]/95 border border-[#568DFF]/40 shadow-[0_0_25px_rgba(86,141,255,0.4)] backdrop-blur-md flex items-center gap-2 text-[10px] font-mono tracking-[0.2em] text-white">
           <span className="w-1.5 h-1.5 rounded-full bg-[#568DFF] animate-ping" />
-          {/*
-            Broken where it means something. Left to wrap on its own the line
-            split mid-phrase on a narrow screen — "SYNCING GLOBAL / HUBS //
-            DUBAI HQ" — so the two halves of the statement did not line up
-            with the two lines carrying them.
-          */}
           <span className="flex flex-col font-semibold uppercase leading-[1.35] text-[#8FB4FF]">
             <span className="whitespace-nowrap">SYNCING GLOBAL HUBS //</span>
             <span className="whitespace-nowrap">DUBAI HQ</span>
@@ -281,4 +274,3 @@ export default function MacroFocusPullTransition() {
     </div>
   );
 }
-

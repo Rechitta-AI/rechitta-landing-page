@@ -15,6 +15,7 @@
  */
 
 import { fullUrl } from '@/utils/videoTier';
+import { coverRect } from '@/screens/warp';
 
 export type ClipSpan = { key: string; from: number; to: number };
 
@@ -137,6 +138,10 @@ function create(key: string): HTMLVideoElement {
     willChange: 'opacity',
     transform: 'translateZ(0)',
   });
+  if (key === 'last' && typeof window !== 'undefined' && window.innerHeight > window.innerWidth) {
+    const shiftX = Math.round(coverRect(window.innerWidth, window.innerHeight).width * (21.5 / 1920));
+    v.style.objectPosition = `calc(50% + ${shiftX}px) 50%`;
+  }
   host?.append(v);
   return v;
 }

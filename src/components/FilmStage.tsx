@@ -16,6 +16,7 @@ import {
   type Chapter,
 } from '@/film/score';
 import { isPortraitFor } from '@/hooks/useDeviceMode';
+import { coverRect } from '@/screens/warp';
 import {
   arrive,
   commit,
@@ -160,6 +161,14 @@ export default function FilmStage({
       if (timingRef) timingRef.current = next;
     };
 
+    const alignFinaleClip = (v: HTMLVideoElement) => {
+      if (typeof window !== 'undefined' && window.innerHeight > window.innerWidth) {
+        const shiftX = Math.round(coverRect(window.innerWidth, window.innerHeight).width * (21.5 / 1920));
+        v.style.transition = 'none';
+        v.style.objectPosition = `calc(50% + ${shiftX}px) 50%`;
+      }
+    };
+
     /** The video currently painted. Only one is ever visible. */
     let shown: HTMLVideoElement | null = null;
     let disposed = false;
@@ -248,6 +257,7 @@ export default function FilmStage({
       const clip = getBeatClip(beat, isPortrait());
       if (clip) {
         const v = acquire(clip);
+        if (clip === 'last') alignFinaleClip(v);
         await park(v, getBeatPark(beat, isPortrait()));
         if (!disposed) {
           show(v, FADE_MS);
@@ -260,6 +270,7 @@ export default function FilmStage({
         const nextClip = nextBeat ? getBeatClip(nextBeat, isPortrait()) : undefined;
         if (nextBeat && nextClip) {
           const v = acquire(nextClip);
+          if (nextClip === 'last') alignFinaleClip(v);
           park(v, getBeatPark(nextBeat, isPortrait()));
         }
       }
@@ -282,6 +293,7 @@ export default function FilmStage({
       const { from, to, rate } = enterConf;
 
       const v = acquire(clip);
+      if (clip === 'last') alignFinaleClip(v);
       // Enough of the clip to start without stalling. Short, because the
       // background preloader has usually seen to it already, and because the
       // shot's own deadline covers a decoder that turns out to be struggling.
@@ -545,6 +557,7 @@ export default function FilmStage({
               setLayerVisible(true);
               if (target.clip) {
                 const v = acquire(target.clip);
+                if (target.clip === 'last') alignFinaleClip(v);
                 const enterConf = getBeatEnter(target, isPortrait());
                 await park(
                   v,
@@ -575,6 +588,7 @@ export default function FilmStage({
               setLayerVisible(true);
               if (target.clip) {
                 const v = acquire(target.clip);
+                if (target.clip === 'last') alignFinaleClip(v);
                 const enterConf = getBeatEnter(target, isPortrait());
                 await park(
                   v,
