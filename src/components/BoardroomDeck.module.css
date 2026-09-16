@@ -1,0 +1,327 @@
+/*
+ * The boardroom decks, on the Rechitta design system (design.md).
+ *
+ * Only the two boardroom decks use it so far, so the tokens live on each
+ * deck's own canvas rather than on :root. Once it is approved site-wide they
+ * move up to :root unchanged and the rest of the film picks them up there.
+ *
+ * The deck is a lit wall screen — a white surface — so it takes the LIGHT
+ * column of every semantic token, even though the film around it is dark.
+ */
+
+.deck {
+  /* ── Primitives in use ───────────────────────────────────────────── */
+  --brand-blue-200: #b8cfff;
+  --brand-blue-500: #3d6ff5;
+
+  /* ── Semantic tokens, light ──────────────────────────────────────── */
+  --bg-primary: #ffffff;
+  --bg-secondary: #fafaf9;
+  --bg-tertiary: #f4f4f2;
+  --bg-brand: #3d6ff5;
+  --bg-accent: #c5a572;
+
+  --text-primary: #0a0a09;
+  --text-secondary: #383836;
+  --text-tertiary: #7a7a72;
+  --text-inverse: #ffffff;
+  --text-brand: #2a55e0;
+  --text-accent: #a6803d;
+  --text-on-brand: #ffffff;
+
+  --border-default: #e8e8e5;
+  --border-strong: #a8a8a1;
+  --border-brand: #3d6ff5;
+  --border-accent: #c5a572;
+
+  --icon-subtle: #7a7a72;
+
+  --action-primary-default: #2a55e0;
+  --action-primary-hover: #1e40b8;
+  --action-primary-pressed: #162f8a;
+
+  /* ── Fonts ───────────────────────────────────────────────────────── */
+  --font-display: var(--font-playfair), 'Playfair Display', serif;
+  --font-body: var(--font-inter), 'Inter', sans-serif;
+  --font-code: var(--font-jetbrains), 'JetBrains Mono', monospace;
+
+  /* ── Radius ──────────────────────────────────────────────────────── */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-full: 9999px;
+
+  /* ── Elevation / effects ─────────────────────────────────────────── */
+  --shadow-2: 0 2px 4px rgba(0, 0, 0, 0.05), 0 4px 8px rgba(0, 0, 0, 0.06);
+  --shadow-4: 0 8px 16px rgba(0, 0, 0, 0.08), 0 16px 32px rgba(0, 0, 0, 0.12);
+  --focus-ring: 0 0 0 3px rgba(0, 0, 0, 0.3);
+
+  /* No fill of its own: the lit screen in the footage is the surface, so the
+     deck sits in the display instead of reading as a white card pasted on it. */
+  background: transparent;
+  color: var(--text-primary);
+  font-family: var(--font-body);
+}
+
+/* ── Surface ─────────────────────────────────────────────────────────── */
+
+.wash {
+  background: radial-gradient(ellipse at top, var(--bg-tertiary), transparent 70%);
+}
+
+.grid {
+  background-image:
+    linear-gradient(to right, rgba(10, 10, 9, 0.03) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(10, 10, 9, 0.03) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
+
+.topRule {
+  background: linear-gradient(to right, transparent, var(--border-brand) 18%, var(--border-brand) 82%, transparent);
+  opacity: 0.6;
+}
+
+/* ── Chrome ──────────────────────────────────────────────────────────── */
+
+/* Label/Small */
+.chromeLabel {
+  font-family: var(--font-body);
+  font-weight: 500;
+  font-size: 11px;
+  line-height: 14px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+/* Code/Small */
+.chromeCode {
+  font-family: var(--font-code);
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.chromeRule {
+  border-color: var(--border-default);
+}
+
+/* ── Slide type ──────────────────────────────────────────────────────── */
+
+/* Label/Default, the design system's section-label convention: gold. */
+.eyebrow {
+  font-family: var(--font-body);
+  font-weight: 500;
+  font-size: 12px;
+  line-height: 16px;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--text-accent);
+}
+
+.eyebrowBrand {
+  color: var(--text-brand);
+}
+
+.eyebrowRule {
+  display: block;
+  width: 36px;
+  height: 1px;
+  background: linear-gradient(to right, transparent, var(--border-accent), transparent);
+}
+
+/* Display/L */
+.headline {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 48px;
+  line-height: 56px;
+  letter-spacing: -0.8px;
+  color: var(--text-primary);
+  text-wrap: balance;
+}
+
+/* Body/Large */
+.body {
+  font-family: var(--font-body);
+  font-weight: 400;
+  font-size: 18px;
+  line-height: 28px;
+  color: var(--text-secondary);
+  text-wrap: pretty;
+}
+
+/* Display/2XL, outlined into the surface as a watermark. */
+.watermark {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 128px;
+  line-height: 1;
+  letter-spacing: -1.5px;
+  color: transparent;
+  -webkit-text-stroke: 1px rgba(10, 10, 9, 0.06);
+}
+
+/* Label/Small */
+.label {
+  font-family: var(--font-body);
+  font-weight: 500;
+  font-size: 11px;
+  line-height: 14px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+.labelBrand {
+  color: var(--text-brand);
+}
+
+/* Body/Small Bold */
+.bodySmallBold {
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.textPrimary {
+  color: var(--text-primary);
+}
+
+.textBrand {
+  color: var(--text-brand);
+}
+
+.divider {
+  background: var(--border-default);
+}
+
+/* ── Slide 1 · the calendar card ─────────────────────────────────────── */
+
+/* Card pattern: 1px border, radius/lg, 16px padding, Elevation/2. */
+.card {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  padding: 12px 16px 16px;
+  box-shadow: var(--shadow-2);
+}
+
+.dayColumn {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+}
+
+.slotEmpty {
+  border: 1px dashed var(--border-default);
+  border-radius: var(--radius-sm);
+}
+
+.slotBooked {
+  background: var(--text-primary);
+  color: var(--text-inverse);
+  border-radius: var(--radius-sm);
+}
+
+.slotOverflow {
+  background: var(--bg-brand);
+  color: var(--text-on-brand);
+  border-radius: var(--radius-sm);
+}
+
+/* font/size/2xs, semibold: the smallest size on the scale. */
+.slotText {
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 10px;
+  line-height: 14px;
+}
+
+/* ── Slide 2 · the relay ─────────────────────────────────────────────── */
+
+.relayRing {
+  border-radius: var(--radius-full);
+}
+
+.relayRingSolid {
+  border: 2px solid var(--border-brand);
+}
+
+.relayRingFaded {
+  border: 2px dashed var(--border-strong);
+}
+
+/* Heading/H6 */
+.relayName {
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 16px;
+  line-height: 22px;
+  color: var(--text-secondary);
+}
+
+.chevron {
+  color: var(--icon-subtle);
+}
+
+/* ── Slide 3 · the figures ───────────────────────────────────────────── */
+
+/* Display/XL */
+.figure {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 56px;
+  line-height: 64px;
+  letter-spacing: -1px;
+}
+
+/* ── Slide 4 · the name and the button ───────────────────────────────── */
+
+/* Display/M, bold — the splash screen sets the product name in bold. */
+.brandName {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 40px;
+  line-height: 48px;
+  letter-spacing: -0.4px;
+  color: var(--text-brand);
+}
+
+/* Button/Large on action/primary, radius/full, Elevation/4. */
+.cta {
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 16px;
+  line-height: 24px;
+  letter-spacing: 0;
+  color: var(--text-on-brand);
+  background: var(--action-primary-default);
+  border-radius: var(--radius-full);
+  padding: 16px 40px;
+  box-shadow: var(--shadow-4);
+  transition: background-color 200ms ease, box-shadow 200ms ease, transform 200ms ease;
+}
+
+.cta:hover:not(:disabled) {
+  background: var(--action-primary-hover);
+}
+
+.cta:active:not(:disabled) {
+  background: var(--action-primary-pressed);
+}
+
+.cta:focus-visible,
+.ctaNudge {
+  box-shadow: var(--focus-ring), var(--shadow-4);
+  outline: none;
+}
+
+.ctaDot {
+  background: var(--brand-blue-200);
+}
+
+.ctaSpinner {
+  border-color: rgba(255, 255, 255, 0.4);
+  border-top-color: var(--text-on-brand);
+}

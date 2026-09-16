@@ -5,9 +5,11 @@ import gsap from 'gsap';
 import { coverRect, matrix3dFor } from '@/screens/warp';
 import { isPortraitFor } from '@/hooks/useDeviceMode';
 import { beatIndexById } from '@/film/score';
-import WallLogoReel, { LogoCarousels, DEVELOPER_LOGOS, PROJECT_LOGOS } from './BuilderCarousel';
+import WallLogoReel, { DEVELOPER_LOGOS, PROJECT_LOGOS } from './BuilderCarousel';
 import { FinaleStatsSlide, FinaleQuestionsSlide } from './FinaleDeckSlides';
 import DeckDock from './DeckDock';
+import { FONT_BODY, FONT_CODE } from '@/design/fonts';
+import { BRAND_BLUE, BRAND_GOLD, NEUTRAL, SUCCESS_400, light } from '@/design/tokens';
 import { MONITOR_CORNERS, DEFAULT_CALIBRATION, sanitizeCalibration, type CalibrationCoords } from './MonitorCalibrator';
 
 /**
@@ -140,6 +142,9 @@ interface FinaleWorldMapPresentationProps {
   beatIndex: number;
   isMoving?: boolean;
 }
+
+/** The closing boardroom's logo reels, switched off. */
+const SHOW_WALL_REELS: boolean = false;
 
 export default function FinaleWorldMapPresentation({
   chapter,
@@ -328,7 +333,10 @@ export default function FinaleWorldMapPresentation({
 
   /* The floor follows the cap down: at 75 a strip is still a legible mark, and
      gating at the old 76 would have switched these off altogether. */
-  const reelFits = !flat && reelWidth >= 52 && reelHeight > 120;
+  /* The closing boardroom carries no logos: the opening one already made that
+     point, and here the map is the only thing on the wall. The geometry above
+     is kept so the reels can be switched back on in one place. */
+  const reelFits = SHOW_WALL_REELS && !flat && reelWidth >= 52 && reelHeight > 120;
   const rightReelFits = reelFits;
 
   /*
@@ -698,14 +706,6 @@ export default function FinaleWorldMapPresentation({
           />
             </div>
 
-            {/*
-              The empty table carries the logos, the way the wall's two reels do
-              on desktop: developers in one strip, their projects in the other,
-              running opposite ways so they read as two lists.
-            */}
-            <div className="w-full mt-4">
-              <LogoCarousels itemClassName="finale-stagger-item finale-marquee-wrap" />
-            </div>
 
             {/* Where the orb comes to rest. Measured by OrbStage; draws nothing. */}
             <div className="relative w-full h-10 pointer-events-none" aria-hidden="true">
@@ -781,27 +781,28 @@ export default function FinaleWorldMapPresentation({
 
         {/* Subtle Architectural Distance Grid & Latitude Guide */}
         <g opacity="0.14" pointerEvents="none">
-          <circle cx="1292" cy="485" r="180" fill="none" stroke="#568DFF" strokeWidth="1" strokeDasharray="4 6" />
-          <circle cx="1292" cy="485" r="380" fill="none" stroke="#568DFF" strokeWidth="1" strokeDasharray="4 6" />
-          <circle cx="1292" cy="485" r="620" fill="none" stroke="#568DFF" strokeWidth="1" strokeDasharray="4 6" />
-          <line x1="80" y1="485" x2="1920" y2="485" stroke="#334155" strokeWidth="1" strokeDasharray="3 6" />
-          <line x1="1292" y1="120" x2="1292" y2="980" stroke="#334155" strokeWidth="1" strokeDasharray="3 6" />
+          <circle cx="1292" cy="485" r="180" fill="none" stroke="#3D6FF5" strokeWidth="1" strokeDasharray="4 6" />
+          <circle cx="1292" cy="485" r="380" fill="none" stroke="#3D6FF5" strokeWidth="1" strokeDasharray="4 6" />
+          <circle cx="1292" cy="485" r="620" fill="none" stroke="#3D6FF5" strokeWidth="1" strokeDasharray="4 6" />
+          <line x1="80" y1="485" x2="1920" y2="485" stroke={NEUTRAL[600]} strokeWidth="1" strokeDasharray="3 6" />
+          <line x1="1292" y1="120" x2="1292" y2="980" stroke={NEUTRAL[600]} strokeWidth="1" strokeDasharray="3 6" />
         </g>
 
         {/* 1. Top Header (y = 68) with generous margin above northern landmasses */}
+        {/* Label/Default, gold, at the canvas's 1.69 scale — the deck's section-label convention. */}
         <g transform="translate(60, 68)">
-          <circle cx="0" cy="0" r="4.5" fill="#568DFF" />
-          <circle cx="0" cy="0" r="9" fill="none" stroke="#568DFF" strokeWidth="1.2" opacity="0.35" />
+          <circle cx="0" cy="0" r="5" fill={light.bgAccent} />
+          <circle cx="0" cy="0" r="10" fill="none" stroke={light.borderAccent} strokeWidth="1.2" opacity="0.45" />
 
           <text
             x="22"
             y="2"
             dominantBaseline="central"
-            fill="#070A10"
-            fontSize="17"
-            fontFamily="var(--font-inter), monospace"
-            fontWeight="700"
-            letterSpacing="0.22em"
+            fill={light.textAccent}
+            fontSize="20.3"
+            fontWeight="500"
+            letterSpacing="2"
+            style={{ fontFamily: FONT_BODY }}
           >
             RECHITTA // GLOBAL DISTRIBUTION ENGINE
           </text>
@@ -809,27 +810,28 @@ export default function FinaleWorldMapPresentation({
 
         {/* Top Right Status Badge - Obsidian Micro-Pill */}
         <g transform="translate(1940, 68)">
+          {/* Label/Small on neutral/950, radius/full. */}
           <rect
-            x="-370"
-            y="-16"
-            width="370"
-            height="32"
-            rx="16"
-            fill="rgba(7, 10, 16, 0.90)"
+            x="-470"
+            y="-20"
+            width="470"
+            height="40"
+            rx="20"
+            fill="rgba(10, 10, 9, 0.9)"
             stroke="rgba(255, 255, 255, 0.16)"
             strokeWidth="1"
             filter="url(#pillShadow2k)"
           />
-          <circle cx="-346" cy="0" r="4" fill="#10B981" />
+          <circle cx="-444" cy="0" r="5" fill={SUCCESS_400} />
           <text
-            x="-330"
+            x="-426"
             y="2"
             dominantBaseline="central"
-            fill="#E8E4DC"
-            fontSize="12.5"
-            fontFamily="var(--font-inter), monospace"
-            fontWeight="600"
-            letterSpacing="0.14em"
+            fill={NEUTRAL[200]}
+            fontSize="18.6"
+            fontWeight="500"
+            letterSpacing="1.7"
+            style={{ fontFamily: FONT_BODY }}
           >
             6/6 HUBS SYNCHRONIZED · 04:11 UTC
           </text>
@@ -846,7 +848,7 @@ export default function FinaleWorldMapPresentation({
           style={{
             mixBlendMode: 'multiply',
             opacity: 0.94,
-            filter: 'drop-shadow(0 2px 5px rgba(15, 23, 42, 0.22))',
+            filter: 'drop-shadow(0 2px 5px rgba(10, 10, 9, 0.22))',
           }}
         />
 
@@ -858,7 +860,7 @@ export default function FinaleWorldMapPresentation({
               <path
                 d={arc.path}
                 fill="none"
-                stroke="rgba(86, 141, 255, 0.26)"
+                stroke="rgba(61, 111, 245, 0.26)"
                 strokeWidth="1.8"
                 strokeDasharray="4 4"
               />
@@ -866,7 +868,7 @@ export default function FinaleWorldMapPresentation({
               <path
                 d={arc.path}
                 fill="none"
-                stroke="#568DFF"
+                stroke="#3D6FF5"
                 strokeWidth="3.2"
                 filter="url(#arcGlow2k)"
                 strokeDasharray="48 180"
@@ -902,7 +904,7 @@ export default function FinaleWorldMapPresentation({
               <circle
                 r="6"
                 fill="none"
-                stroke={isHQ ? '#D97706' : '#568DFF'}
+                stroke={isHQ ? BRAND_GOLD[500] : BRAND_BLUE[500]}
                 strokeWidth="1.8"
               >
                 <animate attributeName="r" from="6" to={isHQ ? '38' : '26'} dur="2.4s" repeatCount="indefinite" />
@@ -912,7 +914,7 @@ export default function FinaleWorldMapPresentation({
               {/* Node Center Dot */}
               <circle
                 r={isHQ ? 8.5 : 5.5}
-                fill={isHQ ? '#D97706' : '#568DFF'}
+                fill={isHQ ? BRAND_GOLD[500] : BRAND_BLUE[500]}
                 stroke="#FFFFFF"
                 strokeWidth="2"
                 filter={isHQ ? 'url(#hqGlow2k)' : undefined}
@@ -929,8 +931,8 @@ export default function FinaleWorldMapPresentation({
                       width="250"
                       height="40"
                       rx="20"
-                      fill="rgba(7, 10, 16, 0.94)"
-                      stroke="#D97706"
+                      fill="rgba(10, 10, 9, 0.94)"
+                      stroke={BRAND_GOLD[500]}
                       strokeWidth="1.5"
                       filter="url(#pillShadow2k)"
                     />
@@ -940,8 +942,8 @@ export default function FinaleWorldMapPresentation({
                       width="38"
                       height="22"
                       rx="5"
-                      fill="rgba(217, 119, 6, 0.25)"
-                      stroke="#D97706"
+                      fill="rgba(197, 165, 114, 0.25)"
+                      stroke={BRAND_GOLD[500]}
                       strokeWidth="1"
                     />
                     <text
@@ -949,10 +951,10 @@ export default function FinaleWorldMapPresentation({
                       y="1"
                       textAnchor="middle"
                       dominantBaseline="central"
-                      fill="#FBBF24"
+                      fill={BRAND_GOLD[300]}
                       fontSize="13.5"
-                      fontFamily="var(--font-inter), monospace"
-                      fontWeight="800"
+                      fontWeight="600"
+                      style={{ fontFamily: FONT_BODY }}
                     >
                       HQ
                     </text>
@@ -961,13 +963,13 @@ export default function FinaleWorldMapPresentation({
                       y="1"
                       textAnchor="start"
                       dominantBaseline="central"
-                      fill="#FFFFFF"
+                      fill={NEUTRAL[50]}
                       fontSize="17.5"
-                      fontFamily="var(--font-inter), monospace"
-                      fontWeight="700"
-                      letterSpacing="0.08em"
+                      fontWeight="600"
+                      letterSpacing="1.4"
+                      style={{ fontFamily: FONT_BODY }}
                     >
-                      DUBAI · <tspan fill="#FBBF24" fontWeight="600">{hub.time}</tspan>
+                      DUBAI · <tspan fill={BRAND_GOLD[300]} fontWeight="500">{hub.time}</tspan>
                     </text>
                   </g>
                 ) : (
@@ -979,8 +981,8 @@ export default function FinaleWorldMapPresentation({
                       width="232"
                       height="38"
                       rx="19"
-                      fill="rgba(7, 10, 16, 0.90)"
-                      stroke="rgba(86, 141, 255, 0.45)"
+                      fill="rgba(10, 10, 9, 0.9)"
+                      stroke="rgba(61, 111, 245, 0.45)"
                       strokeWidth="1.2"
                       filter="url(#pillShadow2k)"
                     />
@@ -990,8 +992,8 @@ export default function FinaleWorldMapPresentation({
                       width="32"
                       height="20"
                       rx="4"
-                      fill="rgba(86, 141, 255, 0.2)"
-                      stroke="rgba(86, 141, 255, 0.4)"
+                      fill="rgba(61, 111, 245, 0.2)"
+                      stroke="rgba(61, 111, 245, 0.4)"
                       strokeWidth="0.8"
                     />
                     <text
@@ -999,10 +1001,10 @@ export default function FinaleWorldMapPresentation({
                       y="1"
                       textAnchor="middle"
                       dominantBaseline="central"
-                      fill="#8FB4FF"
+                      fill={BRAND_BLUE[300]}
                       fontSize="13.5"
-                      fontFamily="var(--font-inter), monospace"
-                      fontWeight="700"
+                      fontWeight="600"
+                      style={{ fontFamily: FONT_BODY }}
                     >
                       {hub.lang}
                     </text>
@@ -1011,13 +1013,13 @@ export default function FinaleWorldMapPresentation({
                       y="1"
                       textAnchor="start"
                       dominantBaseline="central"
-                      fill="#FFFFFF"
+                      fill={NEUTRAL[50]}
                       fontSize="17"
-                      fontFamily="var(--font-inter), monospace"
                       fontWeight="600"
-                      letterSpacing="0.07em"
+                      letterSpacing="1.2"
+                      style={{ fontFamily: FONT_BODY }}
                     >
-                      {hub.name} · <tspan fill="#94A3B8" fontWeight="500">{hub.time}</tspan>
+                      {hub.name} · <tspan fill={NEUTRAL[400]} fontWeight="500">{hub.time}</tspan>
                     </text>
                   </g>
                 )}
@@ -1028,16 +1030,15 @@ export default function FinaleWorldMapPresentation({
 
         {/* 5. Bottom Telemetry Ticker (y = 1090) */}
         <g transform="translate(60, 1090)">
-          <circle cx="0" cy="0" r="4" fill="#10B981" />
+          {/* Code/Small at the canvas's scale, like the other two slides' footers. */}
+          <circle cx="0" cy="0" r="5" fill={SUCCESS_400} />
           <text
-            x="14"
+            x="16"
             y="2"
             dominantBaseline="central"
-            fill="#0F172A"
-            fontSize="13.5"
-            fontFamily="var(--font-inter), monospace"
-            fontWeight="700"
-            letterSpacing="0.14em"
+            fill={light.textSecondary}
+            fontSize="20.3"
+            style={{ fontFamily: FONT_CODE }}
           >
             BRIEFINGS DELIVERED: PARIS (FR) · LONDON (EN) · RIYADH (AR) · MOSCOW (RU) · MUMBAI (HI) · SHANGHAI (ZH)
           </text>
@@ -1049,11 +1050,9 @@ export default function FinaleWorldMapPresentation({
             y="2"
             textAnchor="end"
             dominantBaseline="central"
-            fill="#475569"
-            fontSize="13.5"
-            fontFamily="var(--font-inter), monospace"
-            fontWeight="600"
-            letterSpacing="0.16em"
+            fill={light.textTertiary}
+            fontSize="20.3"
+            style={{ fontFamily: FONT_CODE }}
           >
             LATENCY: 12ms · 100% CONCURRENCY
           </text>
@@ -1072,11 +1071,9 @@ export default function FinaleWorldMapPresentation({
             y="2"
             textAnchor="end"
             dominantBaseline="central"
-            fill="#404040"
-            fontSize="13.5"
-            fontFamily="var(--font-inter), monospace"
-            fontWeight="700"
-            letterSpacing="0.16em"
+            fill={light.textSecondary}
+            fontSize="20.3"
+            style={{ fontFamily: FONT_CODE }}
           >
             01 / 03
           </text>

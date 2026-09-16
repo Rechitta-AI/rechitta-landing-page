@@ -28,12 +28,11 @@ export function BoardroomCta({
           new CustomEvent('rechitta:jump-to-beat', { detail: { index: FINALE_BEAT } }),
         )
       }
-      className={`rounded-xl text-white font-bold tracking-tight flex items-center justify-center gap-2 cursor-pointer group border bg-[#568DFF]/90 hover:bg-[#568DFF] border-[#568DFF]/60 hover:border-[#8FB4FF] shadow-[0_0_20px_rgba(86,141,255,0.4)] hover:shadow-[0_0_28px_rgba(86,141,255,0.6)] transition-all duration-300 active:scale-[0.98] disabled:opacity-70 disabled:cursor-default touch-manipulation ${className}`}
-      style={{ fontFamily: 'var(--font-inter)' }}
+      /* design.md's primary button; the caller picks the size. */
+      className={`btn btn-primary group active:scale-[0.98] ${className}`}
     >
-      <span className="h-1.5 w-1.5 rounded-full bg-white shadow-[0_0_8px_#ffffff]" />
       <span className="whitespace-nowrap">Into the boardroom</span>
-      <span className="text-white/90 font-bold transition-transform group-hover:translate-x-1">
+      <span className="transition-transform group-hover:translate-x-1">
         &rarr;
       </span>
     </button>
@@ -135,8 +134,8 @@ export default function CityNav({
             style={{
               /* Barely there until it is asked for — the chapter is a held
                  shot, and a solid control parked on it reads as chrome. */
-              background: 'rgba(7, 10, 16, 0.34)',
-              border: '1px solid rgba(255, 255, 255, 0.22)',
+              background: 'rgba(10, 10, 9, 0.34)',
+              border: '1px solid var(--border-strong)',
               backdropFilter: 'blur(10px) saturate(140%)',
               WebkitBackdropFilter: 'blur(10px) saturate(140%)',
               touchAction: 'manipulation',
@@ -150,8 +149,8 @@ export default function CityNav({
               aria-hidden="true"
               className="absolute inset-[-1px] rounded-full opacity-0 transition-opacity duration-300 group-hover:opacity-100"
               style={{
-                border: '1px solid rgba(143, 180, 255, 0.55)',
-                boxShadow: '0 0 26px rgba(86, 141, 255, 0.35)',
+                border: '1px solid var(--border-brand)',
+                boxShadow: '0 0 26px rgba(61, 111, 245, 0.35)',
               }}
             />
             <Chevron dir={dir} />

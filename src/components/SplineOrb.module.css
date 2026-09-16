@@ -5,8 +5,10 @@
   aspect-ratio: 1;
   opacity: 0;
   transition: opacity 1s ease;
-  /* Shrink visually to the requested size without clipping the iframe */
-  transform: scale(0.25);
+  /* Shrink visually to the requested size without clipping the iframe.
+     0.3125 is the original 0.25 grown by a quarter, for tablet and desktop;
+     phones keep their own size below. */
+  transform: scale(0.3125);
 }
 
 .revealed {
@@ -59,7 +61,7 @@
   animation: orbDriftIcon 7s ease-in-out infinite;
 }
 
-@media (max-width: 810px) {
+@media (max-width: 809px) {
   .orb {
     transform: scale(0.30);
   }

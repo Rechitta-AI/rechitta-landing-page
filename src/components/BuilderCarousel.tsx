@@ -135,7 +135,7 @@ export default function WallLogoReel({
               : {
                   height: `${rowHeight}px`,
                   padding: `0 ${Math.round(width * 0.07)}px`,
-                  background: 'rgba(10, 14, 24, 0.42)',
+                  background: 'rgba(20, 20, 19, 0.42)',
                   border: '1px solid rgba(255,255,255,0.14)',
                   backdropFilter: 'blur(14px) saturate(150%)',
                   WebkitBackdropFilter: 'blur(14px) saturate(150%)',

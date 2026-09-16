@@ -3,9 +3,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 import gsap from 'gsap';
 import { coverRect } from '@/screens/warp';
-import { isPortraitFor } from '@/hooks/useDeviceMode';
+import { isPortraitFor, modeFor } from '@/hooks/useDeviceMode';
 import { setHold } from '@/film/holds';
 import ClickPrompt from './ClickPrompt';
+import d from './BoardroomDeck.module.css';
 import DeckDock from './DeckDock';
 import WallLogoReel, {
   LogoCarousels,
@@ -213,15 +214,27 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
    * numbers these replace started at 14.5% and ran to 85.5%, both of which are
    * out in the glass, which is why marks were drifting off the wall.
    */
-  const WALL_L = { from: 0.168, to: 0.272 };
-  const WALL_R = { from: 0.749, to: 0.838 };
+  /*
+   * On desktop the marks run up the glazing instead, outside the wall panels.
+   *
+   * Measured off the same park frame: the left pane runs from the frame edge
+   * to the credenza's end at 13%, the right from where the credenza stops at
+   * 87.6% out to the edge, and both stand on the window ledge at 88.5% down.
+   * The reel's window starts at the top of the frame, so a mark rises out of
+   * that ledge and thins away into the ceiling.
+   */
+  const onGlass = !isPortrait && modeFor(viewport.width) === 'desktop';
+  const WALL_L = onGlass ? { from: 0.005, to: 0.13 } : { from: 0.168, to: 0.272 };
+  const WALL_R = onGlass ? { from: 0.876, to: 0.995 } : { from: 0.749, to: 0.838 };
   /* How much of each panel stays clear either side of the strip. Tighter than
      the finale's, because these marks stand on the wall with no tile under
      them and want the room. */
   /* Dialled back to about three quarters: at 0.08 the marks were pulling the
      eye off the deck, which is the thing in the shot that has to be read. */
-  const WALL_INSET = 0.185;
-  const MAX_REEL_W = 126;
+  /* Smaller on the glass: out there, at full width, the marks pulled the eye
+     off the deck. */
+  const WALL_INSET = onGlass ? 0.2 : 0.185;
+  const MAX_REEL_W = onGlass ? 92 : 126;
 
   /* Clamped to what is actually on screen: a viewport narrower than 16:9 crops
      the footage, and part of a wall can be off the edge of it. */
@@ -233,8 +246,8 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
   const leftRun = wallRun(WALL_L);
   const rightRun = wallRun(WALL_R);
 
-  const WALL_TOP = 0.08;
-  const WALL_BOTTOM = 0.745;
+  const WALL_TOP = onGlass ? 0 : 0.08;
+  const WALL_BOTTOM = onGlass ? 0.885 : 0.745;
   const wallTop = rect.y + WALL_TOP * rect.height;
   const wallHeight = (WALL_BOTTOM - WALL_TOP) * rect.height;
 
@@ -586,7 +599,7 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
       <div
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
-        className="overflow-hidden pointer-events-auto rounded-sm"
+        className={`${d.deck} overflow-hidden pointer-events-auto rounded-sm`}
         style={{
           width: `${BASE_W}px`,
           height: `${BASE_H}px`,
@@ -608,30 +621,23 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
           measure across the top, a faint grid, and a wash that lifts toward
           the top edge give the surface somewhere to start.
         */}
-        <div className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-neutral-200/45 via-transparent to-transparent opacity-70" />
+        <div className={`${d.wash} pointer-events-none absolute inset-0 z-0 opacity-70`} />
         <div
-          className="pointer-events-none absolute inset-0 z-0 opacity-[0.55]"
+          className={`${d.grid} pointer-events-none absolute inset-0 z-0 opacity-[0.55]`}
           style={{
-            backgroundImage:
-              'linear-gradient(to right, rgba(23,23,23,0.028) 1px, transparent 1px), linear-gradient(to bottom, rgba(23,23,23,0.028) 1px, transparent 1px)',
-            backgroundSize: '46px 46px',
             maskImage: 'radial-gradient(ellipse at 50% 40%, #000 25%, transparent 78%)',
             WebkitMaskImage: 'radial-gradient(ellipse at 50% 40%, #000 25%, transparent 78%)',
           }}
           aria-hidden="true"
         />
         <div
-          className="pointer-events-none absolute inset-x-0 top-0 z-20 h-[2px]"
-          style={{
-            background:
-              'linear-gradient(to right, transparent, rgba(63,116,224,0.55) 18%, rgba(63,116,224,0.55) 82%, transparent)',
-          }}
+          className={`${d.topRule} pointer-events-none absolute inset-x-0 top-0 z-20 h-[2px]`}
           aria-hidden="true"
         />
 
         {/* Top Header Chrome */}
         <div
-          className="absolute top-3.5 z-20 flex items-center justify-between gap-3 border-b border-neutral-900/10 pb-1.5 pointer-events-none text-[11px] font-mono tracking-widest text-neutral-400 uppercase left-8 right-8"
+          className={`${d.chromeRule} ${d.chromeLabel} absolute top-4 z-20 flex items-center justify-between gap-3 border-b pb-2 pointer-events-none left-8 right-8`}
         >
           {/*
             One label, carried across the whole deck: this is the internal
@@ -640,14 +646,12 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
           */}
           <div className="flex items-center gap-2 min-w-0">
             <span
-              className={`w-1.5 h-1.5 shrink-0 rounded-full ${
-                isSolutionSlide ? 'bg-[#3f74e0]' : 'bg-neutral-900'
-              }`}
+              className="w-1.5 h-1.5 shrink-0 rounded-full"
+              style={{ background: isSolutionSlide ? 'var(--bg-brand)' : 'var(--bg-accent)' }}
             />
             <span
-              className={`font-semibold tracking-wider truncate ${
-                isSolutionSlide ? 'text-[#3f74e0]' : 'text-neutral-800'
-              }`}
+              className={`truncate ${isSolutionSlide ? d.textBrand : ''}`}
+              style={isSolutionSlide ? undefined : { color: 'var(--text-accent)' }}
             >
               {isSolutionSlide ? 'The solution' : "Today's briefing problems"}
             </span>
@@ -656,10 +660,11 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
 
         {/* Bottom Footer Chrome */}
         <div
-          className="absolute bottom-3 z-20 flex items-center justify-between gap-3 border-t border-neutral-900/10 pt-1.5 pointer-events-none text-[10px] font-mono tracking-widest text-neutral-400 uppercase left-8 right-8"
+          className={`${d.chromeRule} ${d.chromeCode} absolute bottom-3 z-20 flex items-center justify-between gap-3 border-t pt-2 pointer-events-none uppercase left-8 right-8`}
+          style={{ color: 'var(--text-tertiary)' }}
         >
           <span className="truncate">{isPortrait ? 'CONFIDENTIAL' : 'CONFIDENTIAL DEVELOPER DOSSIER'}</span>
-          <span className="shrink-0 font-bold text-neutral-700">0{activeSlide + 1} / 04</span>
+          <span className="shrink-0" style={{ color: 'var(--text-secondary)' }}>0{activeSlide + 1} / 04</span>
         </div>
 
         {/*
@@ -679,7 +684,7 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
           {SLIDES.map((slide) => (
             <div
               key={slide.id}
-              className="w-1/4 h-full flex flex-col items-center justify-center px-12 py-9 text-center relative overflow-hidden"
+              className="w-1/4 h-full flex flex-col items-center justify-center px-12 py-10 text-center relative overflow-hidden"
             >
               {/*
                 The numeral, set into the paper rather than printed on it.
@@ -688,16 +693,7 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
                 crop rather than as a watermark. Outlined, sitting clear of the
                 copy, it marks the slide without competing with it.
               */}
-              <div
-                className="pointer-events-none absolute select-none text-[132px] leading-none font-semibold bottom-5 right-7"
-                style={{
-                  fontFamily: 'var(--font-inter)',
-                  fontVariationSettings: '"opsz" 32',
-                  letterSpacing: '-0.06em',
-                  color: 'transparent',
-                  WebkitTextStroke: '1px rgba(23, 23, 23, 0.055)',
-                }}
-              >
+              <div className={`${d.watermark} pointer-events-none absolute select-none bottom-5 right-8`}>
                 0{slide.id}
               </div>
 
@@ -705,32 +701,29 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
                 /* The live slide's tiers replay their entrance; the ones
                    sliding out of frame hold their finished state. */
                 data-deck-live={SLIDES[activeSlide]?.id === slide.id}
-                className="w-full max-w-[40rem] flex flex-col items-center justify-center relative z-10"
+                className="w-full max-w-[46rem] flex flex-col items-center justify-center relative z-10"
               >
                 {/* Section eyebrow, on the shared editorial tier. */}
                 <div className="deck-tier mb-4 flex flex-col items-center gap-2" style={{ '--tier': 0 } as React.CSSProperties}>
-                  <span
-                    className={`deck-eyebrow ${isSolutionSlide && slide.isInteractive ? 'text-[#3f74e0]' : 'text-neutral-400'} text-[12px] tracking-[0.24em]`}
-                    style={{ fontFamily: 'var(--font-inter)' }}
-                  >
+                  <span className={`${d.eyebrow} ${slide.isInteractive ? d.eyebrowBrand : ''}`}>
                     {slide.tag}
                   </span>
-                  <span className="eyebrow-rule" data-align="center" aria-hidden="true" />
+                  <span className={d.eyebrowRule} aria-hidden="true" />
                 </div>
 
-                {/* The headline, in Inter's display cut. */}
+                {/* The headline: Display/L, in the design system's display face. */}
                 <h2
-                  className="deck-tier deck-headline text-[3.1rem] leading-[1.08] text-neutral-900"
-                  style={{ fontFamily: 'var(--font-inter)', '--tier': 1 } as React.CSSProperties}
+                  className={`deck-tier ${d.headline}`}
+                  style={{ '--tier': 1 } as React.CSSProperties}
                 >
                   {slide.headline}
                 </h2>
 
-                {/* Body copy, on a measure wide enough to read at a distance. */}
+                {/* Body/Large, on a measure wide enough to read at a distance. */}
                 {slide.body && (
                   <p
-                    className="deck-tier deck-body mt-3 max-w-[44ch] text-[18.5px] leading-relaxed text-neutral-500"
-                    style={{ fontFamily: 'var(--font-inter)', '--tier': 2 } as React.CSSProperties}
+                    className={`deck-tier ${d.body} mt-3 max-w-[44ch]`}
+                    style={{ '--tier': 2 } as React.CSSProperties}
                   >
                     {slide.body}
                   </p>
@@ -745,27 +738,23 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
                 */}
                 {slide.id === 1 && (
                   <div
-                    className="deck-tier mt-6 w-full max-w-[31rem] flex flex-col items-center"
+                    className="deck-tier mt-4 w-full max-w-[31rem] flex flex-col items-center"
                     style={{ '--tier': 3 } as React.CSSProperties}
                   >
-                    <div className="w-full rounded-2xl border border-neutral-200/80 bg-white px-4 pt-3.5 pb-4 shadow-[0_2px_10px_-4px_rgba(23,23,23,0.12)]">
-                      <div className="mb-2.5 flex items-center justify-between px-0.5">
-                        <span className="deck-caption text-[11px] font-semibold text-neutral-400">
-                          Briefing calendar
-                        </span>
-                        <span className="deck-caption text-[11px] font-semibold text-neutral-400">
-                          Weeks 1-5 of 26
-                        </span>
+                    <div className={`${d.card} w-full`}>
+                      <div className="mb-3 flex items-center justify-between">
+                        <span className={d.label}>Briefing calendar</span>
+                        <span className={d.label}>Weeks 1-5 of 26</span>
                       </div>
 
                       <div className="grid grid-cols-5 gap-2">
                         {[1, 2, 3, 4, 5].map((day) => (
                           <div key={day} className="flex flex-col gap-1.5">
-                            <span className="deck-caption text-center text-[10.5px] font-bold text-neutral-400">
+                            <span className={`${d.label} text-center`}>
                               {['Mon', 'Tue', 'Wed', 'Thu', 'Fri'][day - 1]}
                             </span>
                             {/* Four slots a day. Most of them taken. */}
-                            <div className="flex h-[82px] flex-col gap-[4px] rounded-lg bg-neutral-50 p-[4px] ring-1 ring-inset ring-neutral-200/70">
+                            <div className={`${d.dayColumn} flex h-[72px] flex-col gap-1 p-1`}>
                               {[0, 1, 2, 3].map((slot) => {
                                 const booking = CALENDAR_AGENCIES.find(
                                   (a) => a.day === day && a.slot === slot,
@@ -774,7 +763,7 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
                                   return (
                                     <div
                                       key={slot}
-                                      className="flex-1 rounded-[4px] border border-dashed border-neutral-200"
+                                      className={`${d.slotEmpty} flex-1`}
                                     />
                                   );
                                 }
@@ -784,16 +773,12 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
                                     /* Each card sits a hair off square on
                                        purpose: a calendar this oversubscribed
                                        never looks tidy. */
-                                    className={`flex flex-1 items-center overflow-hidden rounded-[4px] px-1.5 ${
-                                      booking.overflow
-                                        ? 'bg-[#3f74e0] text-white'
-                                        : 'bg-neutral-900 text-neutral-100'
-                                    }`}
+                                    className={`${booking.overflow ? d.slotOverflow : d.slotBooked} flex flex-1 items-center overflow-hidden px-1.5`}
                                     style={{
                                       transform: `rotate(${((booking.slot % 2 ? 1 : -1) * (0.7 + (booking.day % 3) * 0.3)).toFixed(2)}deg)`,
                                     }}
                                   >
-                                    <span className="truncate text-[9.5px] font-bold leading-none tracking-tight">
+                                    <span className={`${d.slotText} truncate`}>
                                       {booking.name}
                                     </span>
                                   </div>
@@ -805,10 +790,10 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
                       </div>
                     </div>
 
-                    <div className="mt-4 flex items-center gap-3 text-[13px] font-medium text-neutral-500">
-                      <span className="text-neutral-900 font-bold">9 agencies booked</span>
-                      <span className="h-3.5 w-px bg-neutral-200" />
-                      <span className="text-[#3f74e0] font-bold">1,191 still waiting</span>
+                    <div className={`${d.bodySmallBold} mt-3 flex items-center gap-3`}>
+                      <span className={d.textPrimary}>9 agencies booked</span>
+                      <span className={`${d.divider} h-4 w-px`} />
+                      <span className={d.textBrand}>1,191 still waiting</span>
                     </div>
                   </div>
                 )}
@@ -833,7 +818,7 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
                               {[0, 1, 2, 3].map((n) => (
                                 <span
                                   key={n}
-                                  className="text-[14px] font-bold leading-none text-neutral-400"
+                                  className={`${d.chevron} text-[14px] font-semibold leading-none`}
                                   style={{ opacity: 0.7 - i * 0.18 - n * 0.11 }}
                                 >
                                   &rsaquo;
@@ -844,29 +829,16 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
 
                           <div className="flex shrink-0 flex-col items-center gap-2.5">
                             <div
-                              className="flex h-[86px] w-[86px] items-center justify-center rounded-full px-2 text-center"
-                              style={{
-                                border: stage.solid
-                                  ? '2px solid #3f74e0'
-                                  : `1.5px dashed rgba(115, 115, 115, ${0.7 - i * 0.2})`,
-                              }}
+                              className={`${d.relayRing} ${stage.solid ? d.relayRingSolid : d.relayRingFaded} flex h-[88px] w-[88px] items-center justify-center px-2 text-center`}
+                              style={{ opacity: stage.solid ? 1 : 1 - i * 0.2 }}
                             >
-                              <span
-                                className="text-[13.5px] font-bold leading-tight tracking-tight"
-                                style={{
-                                  color: stage.solid ? '#3f74e0' : '#404040',
-                                  opacity: stage.solid ? 1 : 0.85 - i * 0.18,
-                                }}
-                              >
+                              <span className={`${d.relayName} ${stage.solid ? d.textBrand : ''}`}>
                                 {stage.label}
                               </span>
                             </div>
                             <span
-                              className="deck-caption text-[10px] font-medium tracking-wide"
-                              style={{
-                                color: stage.solid ? '#3f74e0' : '#737373',
-                                opacity: stage.solid ? 1 : 0.9 - i * 0.2,
-                              }}
+                              className={`${d.label} ${stage.solid ? d.labelBrand : ''}`}
+                              style={{ opacity: stage.solid ? 1 : 1 - i * 0.2 }}
                             >
                               {stage.loses}
                             </span>
@@ -889,37 +861,17 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
                     style={{ '--tier': 3 } as React.CSSProperties}
                   >
                     <div className="flex-1 py-1 text-center">
-                      <div
-                        className="text-[58px] leading-none text-neutral-900"
-                        style={{
-                          fontFamily: 'var(--font-inter)',
-                          fontVariationSettings: '"opsz" 32',
-                          fontWeight: 700,
-                          letterSpacing: '-0.04em',
-                        }}
-                      >
-                        30,000
-                      </div>
-                      <div className="deck-caption mt-3 text-[11px] font-semibold tracking-wider text-neutral-400">
+                      <div className={`${d.figure} ${d.textPrimary}`}>30,000</div>
+                      <div className={`${d.label} mt-2`}>
                         Brochures sent
                       </div>
                     </div>
 
-                    <div className="w-px shrink-0 bg-gradient-to-b from-transparent via-neutral-200 to-transparent" />
+                    <div className={`${d.divider} w-px shrink-0`} />
 
                     <div className="flex-1 py-1 text-center">
-                      <div
-                        className="text-[58px] leading-none text-[#3f74e0]"
-                        style={{
-                          fontFamily: 'var(--font-inter)',
-                          fontVariationSettings: '"opsz" 32',
-                          fontWeight: 700,
-                          letterSpacing: '-0.04em',
-                        }}
-                      >
-                        0
-                      </div>
-                      <div className="deck-caption mt-3 text-[11px] font-semibold tracking-wider text-[#3f74e0]/80">
+                      <div className={`${d.figure} ${d.textBrand}`}>0</div>
+                      <div className={`${d.label} ${d.labelBrand} mt-2`}>
                         Questions captured
                       </div>
                     </div>
@@ -936,25 +888,13 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
                   object here.
                 */}
                 {slide.isInteractive && (
-                  <div className="w-full flex flex-col items-center pointer-events-auto mt-7 justify-center gap-9">
+                  <div className="w-full flex flex-col items-center pointer-events-auto mt-6 justify-center gap-10">
                     <div
                       className="deck-tier flex flex-col items-center gap-2"
                       style={{ '--tier': 2 } as React.CSSProperties}
                     >
-                      <p
-                        className="text-[2.5rem] font-bold leading-none text-[#3f74e0]"
-                        style={{
-                          fontFamily: 'var(--font-inter)',
-                          fontVariationSettings: '"opsz" 32',
-                          letterSpacing: '-0.035em',
-                        }}
-                      >
-                        Rechitta
-                      </p>
-                      <p
-                        className="deck-body text-[17.5px] font-medium text-neutral-500"
-                        style={{ fontFamily: 'var(--font-inter)' }}
-                      >
+                      <p className={d.brandName}>Rechitta</p>
+                      <p className={d.body}>
                         Super simple to implement.
                       </p>
                     </div>
@@ -973,34 +913,26 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
                       <button
                         onClick={handleUploadClick}
                         disabled={isUploading || isSynced}
-                        className={`px-10 py-4 rounded-full bg-neutral-950 hover:bg-neutral-800 text-white text-[17px] font-bold tracking-tight active:scale-[0.97] transition-all flex items-center gap-3 cursor-pointer relative overflow-hidden group disabled:cursor-default disabled:opacity-90 ${
-                          nudgeCta ? 'scale-[1.04]' : ''
-                        }`}
-                        style={{
-                          fontFamily: 'var(--font-inter)',
-                          boxShadow: nudgeCta
-                            ? '0 0 0 5px rgba(86,141,255,0.28), 0 18px 34px -12px rgba(0,0,0,0.55)'
-                            : '0 18px 34px -12px rgba(0,0,0,0.55), inset 0 1px 1px 0 rgba(255,255,255,0.14)',
-                        }}
+                        className={`${d.cta} ${nudgeCta ? `${d.ctaNudge} scale-[1.04]` : ''} active:scale-[0.97] flex items-center gap-3 cursor-pointer relative overflow-hidden group disabled:cursor-default disabled:opacity-90`}
                       >
                         {/* Shimmer on hover */}
                         <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/18 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
 
                         {isSynced ? (
                           <>
-                            <span className="w-2 h-2 rounded-full bg-[#568DFF]" />
+                            <span className={`${d.ctaDot} w-2 h-2 rounded-full`} />
                             <span>Sent to every broker</span>
                           </>
                         ) : isUploading ? (
                           <>
-                            <span className="w-4 h-4 border-2 border-neutral-600 border-t-white rounded-full animate-spin" />
+                            <span className={`${d.ctaSpinner} w-4 h-4 border-2 rounded-full animate-spin`} />
                             <span>Uploading project...</span>
                           </>
                         ) : (
                           <>
-                            <span className="h-2 w-2 shrink-0 rounded-full bg-[#568DFF]" />
+                            <span className={`${d.ctaDot} h-2 w-2 shrink-0 rounded-full`} />
                             <span>Upload a project, send it to our brokers</span>
-                            <span className="text-[#8FB4FF] font-bold transition-transform group-hover:translate-x-0.5">
+                            <span className="transition-transform group-hover:translate-x-0.5">
                               &rarr;
                             </span>
                           </>

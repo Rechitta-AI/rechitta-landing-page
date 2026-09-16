@@ -1,15 +1,104 @@
 @import "tailwindcss";
 
 :root {
-  /* Two colours and nothing else: the orb's blue against a cold blue-black
-     sky, with white and neutrals carrying everything in between. */
-  --ink: #070a10;
-  --ink-raise: #0d131c;
-  --bone: #e8e4dc;
-  --mute: #6b7684;
-  --accent: #568dff;
-  --accent-soft: #8fb4ff;
-  --hairline: rgba(232, 228, 220, 0.14);
+  /* ── The Rechitta design system (design.md) ────────────────────────────
+   *
+   * Primitives first, then the semantic tokens components should reach for.
+   * The site is dark-first, so the semantic names below carry the DARK column.
+   * Lit surfaces inside the film — the boardroom screens — take the light
+   * column instead (BoardroomDeck.module.css, src/design/tokens.ts).
+   */
+
+  /* Brand blue */
+  --brand-blue-50: #eef4ff;
+  --brand-blue-100: #dce7ff;
+  --brand-blue-200: #b8cfff;
+  --brand-blue-300: #8bb0ff;
+  --brand-blue-400: #5c8dff;
+  --brand-blue-500: #3d6ff5;
+  --brand-blue-600: #2a55e0;
+  --brand-blue-700: #1e40b8;
+  --brand-blue-800: #162f8a;
+  --brand-blue-900: #0e1f5c;
+  --brand-blue-950: #06112e;
+
+  /* Brand gold */
+  --brand-gold-50: #fbf6ec;
+  --brand-gold-100: #f5ebd3;
+  --brand-gold-200: #ead4a4;
+  --brand-gold-300: #ddbb73;
+  --brand-gold-400: #cfa34f;
+  --brand-gold-500: #c5a572;
+  --brand-gold-600: #a6803d;
+  --brand-gold-700: #85632f;
+  --brand-gold-800: #5c4421;
+  --brand-gold-900: #3a2b14;
+  --brand-gold-950: #1f170b;
+
+  /* Neutral */
+  --neutral-50: #fafaf9;
+  --neutral-100: #f4f4f2;
+  --neutral-200: #e8e8e5;
+  --neutral-300: #d2d2cd;
+  --neutral-400: #a8a8a1;
+  --neutral-500: #7a7a72;
+  --neutral-600: #535350;
+  --neutral-700: #383836;
+  --neutral-800: #222220;
+  --neutral-900: #141413;
+  --neutral-950: #0a0a09;
+
+  /* Semantic, dark */
+  --bg-primary: var(--neutral-950);
+  --bg-secondary: var(--neutral-900);
+  --bg-tertiary: var(--neutral-800);
+  --bg-brand: var(--brand-blue-500);
+  --bg-brand-subtle: var(--brand-blue-950);
+  --bg-accent: var(--brand-gold-500);
+  --bg-accent-subtle: var(--brand-gold-950);
+  --bg-overlay: #000000;
+  --bg-hover: var(--neutral-800);
+  --bg-pressed: var(--neutral-700);
+
+  --text-primary: var(--neutral-50);
+  --text-secondary: var(--neutral-200);
+  --text-tertiary: var(--neutral-400);
+  --text-disabled: var(--neutral-600);
+  --text-inverse: var(--neutral-950);
+  --text-brand: var(--brand-blue-300);
+  --text-accent: var(--brand-gold-300);
+  --text-on-brand: #ffffff;
+  --text-link: var(--brand-blue-300);
+  --text-success: #83bb85;
+
+  --border-default: var(--neutral-800);
+  --border-subtle: var(--neutral-900);
+  --border-strong: var(--neutral-600);
+  --border-brand: var(--brand-blue-400);
+  --border-accent: var(--brand-gold-400);
+  --border-focus: var(--brand-blue-400);
+
+  --action-primary-default: var(--brand-blue-500);
+  --action-primary-hover: var(--brand-blue-400);
+  --action-primary-pressed: var(--brand-blue-700);
+  --action-primary-disabled: var(--neutral-800);
+  --action-secondary-default: var(--neutral-800);
+  --action-secondary-hover: var(--neutral-700);
+  --action-secondary-pressed: var(--neutral-600);
+
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-full: 9999px;
+
+  /* The names the site was built on, kept as aliases of the tokens. */
+  --ink: var(--bg-primary);
+  --ink-raise: var(--bg-secondary);
+  --bone: var(--text-secondary);
+  --mute: var(--text-tertiary);
+  --accent: var(--brand-blue-500);
+  --accent-soft: var(--brand-blue-300);
+  --hairline: rgba(232, 232, 229, 0.14);
 }
 
 @theme {
@@ -28,11 +117,102 @@
   --breakpoint-lg: 1200px;
   --breakpoint-xl: 1200px;
   --breakpoint-2xl: 1200px;
+
+  /*
+   * Tailwind's stock palettes, replaced by the design system's. Every
+   * `neutral-*`, `blue-*`, `emerald-*`/`green-*`, `amber-*`/`yellow-*`,
+   * `red-*` and `cyan-*` class in the codebase resolves to design.md values,
+   * and the brand scales are available by their own names.
+   */
+  --color-neutral-50: #fafaf9;
+  --color-neutral-100: #f4f4f2;
+  --color-neutral-200: #e8e8e5;
+  --color-neutral-300: #d2d2cd;
+  --color-neutral-400: #a8a8a1;
+  --color-neutral-500: #7a7a72;
+  --color-neutral-600: #535350;
+  --color-neutral-700: #383836;
+  --color-neutral-800: #222220;
+  --color-neutral-900: #141413;
+  --color-neutral-950: #0a0a09;
+
+  --color-brand-blue-50: #eef4ff;
+  --color-brand-blue-100: #dce7ff;
+  --color-brand-blue-200: #b8cfff;
+  --color-brand-blue-300: #8bb0ff;
+  --color-brand-blue-400: #5c8dff;
+  --color-brand-blue-500: #3d6ff5;
+  --color-brand-blue-600: #2a55e0;
+  --color-brand-blue-700: #1e40b8;
+  --color-brand-blue-800: #162f8a;
+  --color-brand-blue-900: #0e1f5c;
+  --color-brand-blue-950: #06112e;
+
+  --color-blue-50: #eef4ff;
+  --color-blue-100: #dce7ff;
+  --color-blue-200: #b8cfff;
+  --color-blue-300: #8bb0ff;
+  --color-blue-400: #5c8dff;
+  --color-blue-500: #3d6ff5;
+  --color-blue-600: #2a55e0;
+  --color-blue-700: #1e40b8;
+  --color-blue-800: #162f8a;
+  --color-blue-900: #0e1f5c;
+  --color-blue-950: #06112e;
+
+  --color-brand-gold-50: #fbf6ec;
+  --color-brand-gold-100: #f5ebd3;
+  --color-brand-gold-200: #ead4a4;
+  --color-brand-gold-300: #ddbb73;
+  --color-brand-gold-400: #cfa34f;
+  --color-brand-gold-500: #c5a572;
+  --color-brand-gold-600: #a6803d;
+  --color-brand-gold-700: #85632f;
+  --color-brand-gold-800: #5c4421;
+  --color-brand-gold-900: #3a2b14;
+  --color-brand-gold-950: #1f170b;
+
+  --color-success-300: #83bb85;
+  --color-success-400: #56a05b;
+  --color-success-500: #3b8240;
+  --color-emerald-300: #83bb85;
+  --color-emerald-400: #56a05b;
+  --color-emerald-500: #3b8240;
+  --color-green-300: #83bb85;
+  --color-green-400: #56a05b;
+  --color-green-500: #3b8240;
+
+  --color-warning-300: #f5b452;
+  --color-warning-400: #f09827;
+  --color-warning-500: #d97a10;
+  --color-amber-300: #f5b452;
+  --color-amber-400: #f09827;
+  --color-amber-500: #d97a10;
+  --color-yellow-300: #f5b452;
+  --color-yellow-400: #f09827;
+  --color-yellow-500: #d97a10;
+
+  --color-error-300: #f58d8d;
+  --color-error-400: #ea5a5a;
+  --color-error-500: #d63838;
+  --color-red-300: #f58d8d;
+  --color-red-400: #ea5a5a;
+  --color-red-500: #d63838;
+
+  --color-info-300: #6bb8c7;
+  --color-info-400: #3f98ab;
+  --color-info-500: #2a7b8e;
+  --color-cyan-300: #6bb8c7;
+  --color-cyan-400: #3f98ab;
+  --color-cyan-500: #2a7b8e;
 }
 
 @theme inline {
-  --font-display: var(--font-inter);
-  --font-body: var(--font-inter);
+  /* Display: Playfair Display. UI and body: Inter. Code: JetBrains Mono. */
+  --font-display: var(--font-playfair), 'Playfair Display', serif;
+  --font-body: var(--font-inter), 'Inter', sans-serif;
+  --font-sans: var(--font-inter), 'Inter', system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains), 'JetBrains Mono', ui-monospace, monospace;
   --color-ink: var(--ink);
   --color-bone: var(--bone);
   --color-accent: var(--accent);
@@ -42,8 +222,8 @@ html,
 body {
   margin: 0;
   padding: 0;
-  background: var(--ink);
-  color: var(--bone);
+  background: var(--bg-primary);
+  color: var(--text-secondary);
   font-family: var(--font-inter), system-ui, -apple-system, sans-serif;
   overflow-x: hidden;
   font-optical-sizing: auto;
@@ -78,8 +258,97 @@ html[data-modal-open="true"] body {
 }
 
 :focus-visible {
-  outline: 1px solid var(--accent);
+  outline: 2px solid var(--border-focus);
   outline-offset: 3px;
+}
+
+/* ── BUTTONS ───────────────────────────────────────────────────────────────
+ *
+ * design.md's actions, dark column. `btn-primary` is the call to action;
+ * `btn-secondary` the quieter alternative beside one. Sizes are the Button
+ * text styles on the control heights: sm = Button/Small on control/md (36),
+ * md = Button/Default on control/lg (44), lg = Button/Large on control/xl (52).
+ * Every call to action is a full pill, the way the splash screen's is.
+ *
+ * Declared as utilities so they take responsive prefixes: `btn-sm md:btn-md`.
+ */
+@utility btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: var(--radius-full);
+  border: 1px solid transparent;
+  font-family: var(--font-inter), system-ui, sans-serif;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition:
+    background-color 200ms ease,
+    border-color 200ms ease,
+    color 200ms ease,
+    transform 200ms ease;
+
+  &:disabled {
+    cursor: default;
+  }
+}
+
+@utility btn-primary {
+  background-color: var(--action-primary-default);
+  color: var(--text-on-brand);
+
+  &:hover:not(:disabled) {
+    background-color: var(--action-primary-hover);
+  }
+  &:active:not(:disabled) {
+    background-color: var(--action-primary-pressed);
+  }
+  &:disabled {
+    background-color: var(--action-primary-disabled);
+    color: var(--text-disabled);
+  }
+}
+
+@utility btn-secondary {
+  background-color: var(--action-secondary-default);
+  border-color: var(--border-default);
+  color: var(--text-primary);
+
+  &:hover:not(:disabled) {
+    background-color: var(--action-secondary-hover);
+  }
+  &:active:not(:disabled) {
+    background-color: var(--action-secondary-pressed);
+  }
+  &:disabled {
+    color: var(--text-disabled);
+  }
+}
+
+@utility btn-sm {
+  height: 36px;
+  padding-inline: 16px;
+  font-size: 12px;
+  line-height: 16px;
+  letter-spacing: 0.2px;
+}
+
+@utility btn-md {
+  height: 44px;
+  padding-inline: 20px;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0;
+}
+
+@utility btn-lg {
+  height: 52px;
+  padding-inline: 24px;
+  font-size: 16px;
+  line-height: 24px;
+  letter-spacing: 0;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -95,8 +364,8 @@ html[data-modal-open="true"] body {
 /* These run purely on the GPU to give life to static states without taxing the main thread */
 
 @keyframes vignette-pulse {
-  0%, 100% { box-shadow: inset 0 0 80px rgba(7, 10, 16, 0.5); }
-  50% { box-shadow: inset 0 0 200px rgba(7, 10, 16, 0.85); }
+  0%, 100% { box-shadow: inset 0 0 80px rgba(10, 10, 9, 0.5); }
+  50% { box-shadow: inset 0 0 200px rgba(10, 10, 9, 0.85); }
 }
 .animate-vignette-pulse {
   animation: vignette-pulse 8s ease-in-out infinite;
@@ -237,39 +506,48 @@ html[data-modal-open="true"] body {
 
 
 /* ── TYPE SCALE ────────────────────────────────────────────────────────────
- * One family across the site, so hierarchy is carried by weight and optical
- * size rather than by switching typefaces. Inter's opsz axis runs 14–32:
- * high values are the "Display" cut (tight, fine) for large type, low values
- * are the reading cut (open, sturdy) for small type.
+ * design.md: Inter Semi Bold for headings, Inter Regular for body, and
+ * Playfair Display — through the `font-display` utility — for hero headings
+ * and brand statements. Sizes stay with each component; weight and tracking
+ * come from here.
  */
-h1 {
-  font-variation-settings: "opsz" 32;
-  font-weight: 640;
-  letter-spacing: -0.03em;
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-weight: 600;
   text-wrap: balance;
+}
+
+h1 {
+  letter-spacing: -0.5px;
 }
 
 h2 {
-  font-variation-settings: "opsz" 32;
-  font-weight: 620;
-  letter-spacing: -0.025em;
-  text-wrap: balance;
+  letter-spacing: -0.4px;
 }
 
-h3,
+h3 {
+  letter-spacing: -0.3px;
+}
+
 h4 {
-  font-variation-settings: "opsz" 24;
-  font-weight: 600;
-  letter-spacing: -0.015em;
-  text-wrap: balance;
+  letter-spacing: -0.2px;
 }
 
 p {
-  font-variation-settings: "opsz" 18;
   font-weight: 400;
-  letter-spacing: -0.005em;
   /* Never leave a single word alone on the last line of a paragraph. */
   text-wrap: pretty;
+}
+
+/* Display: Playfair Display Regular, tracked in. */
+.type-display {
+  font-family: var(--font-playfair), 'Playfair Display', serif;
+  font-weight: 400;
+  letter-spacing: -0.02em;
 }
 
 /* Small uppercase chrome: nav, counters, chapter names. Letterspaced type
@@ -287,12 +565,12 @@ p {
  * shot to shot. The mono telemetry strips in the phone scenes are a separate
  * voice on purpose and keep their own styling.
  */
+/* Label/Default: Inter Medium, 12/16, 1.2px, uppercase. */
 .eyebrow {
-  font-variation-settings: "opsz" 14;
-  font-weight: 600;
-  font-size: 0.6875rem;
-  line-height: 1;
-  letter-spacing: 0.32em;
+  font-weight: 500;
+  font-size: 12px;
+  line-height: 16px;
+  letter-spacing: 1.2px;
   text-transform: uppercase;
 }
 
@@ -417,45 +695,11 @@ p {
 /* ── THE BOARDROOM DECK ────────────────────────────────────────────────────
  *
  * The deck is projected onto a wall screen in the footage, so it is read at a
- * distance and at a fraction of its authored size. It gets the display cut of
- * Inter, a wider measure than body copy elsewhere, and tiers that arrive one
- * after another rather than all at once — a slide that lands in one block
- * reads as a screenshot, not as a presentation.
+ * distance and at a fraction of its authored size. Its type lives with each
+ * deck (BoardroomDeck.module.css, FinaleDeckSlides.tsx); what is shared here
+ * is the entrance, in tiers that arrive one after another rather than all at
+ * once — a slide that lands in one block reads as a screenshot.
  */
-.deck-eyebrow {
-  font-variation-settings: "opsz" 14;
-  font-weight: 600;
-  font-size: 0.625rem;
-  line-height: 1;
-  letter-spacing: 0.3em;
-  text-transform: uppercase;
-}
-
-.deck-headline {
-  font-variation-settings: "opsz" 32;
-  font-weight: 660;
-  letter-spacing: -0.032em;
-  line-height: 1.06;
-  text-wrap: balance;
-}
-
-.deck-body {
-  font-variation-settings: "opsz" 18;
-  font-weight: 400;
-  letter-spacing: -0.006em;
-  line-height: 1.62;
-  text-wrap: pretty;
-}
-
-/* Small print inside a slide's diagram: sturdy at size, never letterspaced
-   so far that it stops reading as a word. */
-.deck-caption {
-  font-variation-settings: "opsz" 14;
-  font-weight: 500;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
 @keyframes deck-tier-in {
   from {
     opacity: 0;
@@ -510,10 +754,10 @@ p {
  * `.eyebrow-chip` is that first voice at the size the overlays need it, for
  * the pills and category marks that were reaching for mono to get small.
  */
+/* Label/Small's voice at whatever size the chip needs. */
 .eyebrow-chip {
   font-family: var(--font-inter), system-ui, sans-serif;
-  font-variation-settings: "opsz" 14;
-  font-weight: 600;
-  letter-spacing: 0.16em;
+  font-weight: 500;
+  letter-spacing: 1px;
   text-transform: uppercase;
 }

@@ -18,7 +18,7 @@ import React from 'react';
  * to hand over.
  */
 
-const ACCENT = '#8FB4FF';
+const ACCENT = '#8BB0FF';
 
 function Chevron({ back }: { back?: boolean }) {
   return (
@@ -83,7 +83,7 @@ export default function DeckDock({
     <div
       className="flex items-center rounded-[9px] px-[5px] py-[4px]"
       style={{
-        background: 'rgba(9, 12, 19, 0.66)',
+        background: 'rgba(20, 20, 19, 0.66)',
         backdropFilter: 'blur(10px) saturate(140%)',
         WebkitBackdropFilter: 'blur(10px) saturate(140%)',
         border: '1px solid rgba(255, 255, 255, 0.11)',

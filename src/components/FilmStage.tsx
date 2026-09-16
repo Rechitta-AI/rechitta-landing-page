@@ -200,6 +200,8 @@ export default function FilmStage({
       if (v) {
         v.style.transition = fadeMs ? `opacity ${fadeMs}ms ease` : 'none';
         v.style.opacity = '1';
+        // Undo any push-in a previous pass through this shot left behind.
+        v.style.transform = 'translateZ(0)';
       }
       if (previous) {
         previous.style.transition = fadeMs ? `opacity ${fadeMs}ms ease` : 'none';
@@ -300,8 +302,17 @@ export default function FilmStage({
         return;
       }
 
-      show(v, 180);
-      await sleep(180);
+      const fadeMs = beat.enterFadeMs ?? 180;
+      show(v, fadeMs);
+      if (beat.enterPush) {
+        // The push runs across the dissolve and the whole shot, so the camera
+        // is already moving forward as the previous frame gives way.
+        const pushMs = fadeMs + ((to - from) / rate) * 1000;
+        void v.offsetWidth;
+        v.style.transition = `opacity ${fadeMs}ms ease, transform ${pushMs}ms cubic-bezier(0.25, 0.1, 0.35, 1)`;
+        v.style.transform = `translateZ(0) scale(${beat.enterPush})`;
+      }
+      await sleep(fadeMs);
       if (disposed) return;
 
       v.playbackRate = rate;
@@ -341,7 +352,9 @@ export default function FilmStage({
           if (!rateChecked && now - startedAt > RATE_CHECK_MS) {
             rateChecked = true;
             const achieved = ((v.currentTime - from) / (now - startedAt)) * 1000;
-            if (achieved > 0.05 && achieved < rate * RATE_TOLERANCE) {
+            // Only a fast-forward can outrun a decoder. A shot slowed below 1x
+            // is well within reach, and lifting it to 1x would rush it.
+            if (rate > 1 && achieved > 0.05 && achieved < rate * RATE_TOLERANCE) {
               v.playbackRate = Math.max(1, achieved * 1.1);
             }
           }

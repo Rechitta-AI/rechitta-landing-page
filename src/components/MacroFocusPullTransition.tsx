@@ -237,12 +237,12 @@ export default function MacroFocusPullTransition() {
           className="w-[125vw] h-[125vh] -translate-y-4 pointer-events-none"
           style={{
             background:
-              'radial-gradient(ellipse at 50% 46%, rgba(255, 255, 255, 0.42) 0%, rgba(86, 141, 255, 0.24) 30%, rgba(7, 10, 16, 0.58) 65%, rgba(7, 10, 16, 0.94) 100%)',
+              'radial-gradient(ellipse at 50% 46%, rgba(255, 255, 255, 0.42) 0%, rgba(61, 111, 245, 0.24) 30%, rgba(10, 10, 9, 0.58) 65%, rgba(10, 10, 9, 0.94) 100%)',
           }}
         />
       </div>
 
-      {/* 3. Anamorphic Laser Streak in Rechitta Electric Blue (#568DFF) */}
+      {/* 3. Anamorphic Laser Streak in Rechitta Electric Blue (#3D6FF5) */}
       <div
         ref={flareRef}
         className="absolute top-[46%] left-0 right-0 h-[2.5px] -translate-y-1/2 pointer-events-none opacity-0 flex items-center justify-center"
@@ -252,8 +252,8 @@ export default function MacroFocusPullTransition() {
           className="w-full h-full"
           style={{
             background:
-              'linear-gradient(90deg, transparent 0%, rgba(86, 141, 255, 0.2) 20%, rgba(255, 255, 255, 0.95) 50%, rgba(86, 141, 255, 0.2) 80%, transparent 100%)',
-            filter: 'drop-shadow(0 0 10px #568DFF)',
+              'linear-gradient(90deg, transparent 0%, rgba(61, 111, 245, 0.2) 20%, rgba(255, 255, 255, 0.95) 50%, rgba(61, 111, 245, 0.2) 80%, transparent 100%)',
+            filter: 'drop-shadow(0 0 10px #3D6FF5)',
           }}
         />
       </div>
@@ -264,15 +264,15 @@ export default function MacroFocusPullTransition() {
         className="absolute top-[46%] left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none opacity-0 z-10"
         style={{ willChange: 'opacity, transform' }}
       >
-        <div className="px-4 py-1.5 rounded-full bg-[#070A10]/95 border border-[#568DFF]/40 shadow-[0_0_25px_rgba(86,141,255,0.4)] backdrop-blur-md flex items-center gap-2 text-[10px] font-mono tracking-[0.2em] text-white">
-          <span className="w-1.5 h-1.5 rounded-full bg-[#568DFF] animate-ping" />
+        <div className="px-4 py-1.5 rounded-full bg-[#0A0A09]/95 border border-[#3D6FF5]/40 shadow-[0_0_25px_rgba(61,111,245,0.4)] backdrop-blur-md flex items-center gap-2 text-[10px] font-mono tracking-[0.2em] text-white">
+          <span className="w-1.5 h-1.5 rounded-full bg-[#3D6FF5] animate-ping" />
           {/*
             Broken where it means something. Left to wrap on its own the line
             split mid-phrase on a narrow screen — "SYNCING GLOBAL / HUBS //
             DUBAI HQ" — so the two halves of the statement did not line up
             with the two lines carrying them.
           */}
-          <span className="flex flex-col items-center text-center font-semibold uppercase leading-[1.35] text-[#8FB4FF]">
+          <span className="flex flex-col items-center text-center font-semibold uppercase leading-[1.35] text-[#8BB0FF]">
             <span className="whitespace-nowrap">SYNCING GLOBAL HUBS //</span>
             <span className="whitespace-nowrap">DUBAI HQ</span>
           </span>

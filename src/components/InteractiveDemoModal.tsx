@@ -65,14 +65,14 @@ export default function InteractiveDemoModal() {
             <div className="absolute inset-0 bg-black p-[8px] md:p-[12px] lg:p-[16px] rounded-[24px] md:rounded-[36px] shadow-[inset_0_0_0_2px_rgba(255,255,255,0.2),inset_0_0_0_3px_rgba(0,0,0,1),0_30px_60px_rgba(0,0,0,0.8)]">
               
               {/* Subtle Camera Lens in the top bezel */}
-              <div className="absolute top-[4px] md:top-[6px] lg:top-[8px] left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-[#111] shadow-[inset_0_0_2px_rgba(255,255,255,0.3)]"></div>
+              <div className="absolute top-[4px] md:top-[6px] lg:top-[8px] left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-[#141413] shadow-[inset_0_0_2px_rgba(255,255,255,0.3)]"></div>
 
               {/* Iframe Container */}
               <div
                 onTouchStart={(e) => e.stopPropagation()}
                 onTouchMove={(e) => e.stopPropagation()}
                 onTouchEnd={(e) => e.stopPropagation()}
-                className="w-full h-full rounded-[16px] md:rounded-[24px] overflow-hidden bg-[#0a0a0a] relative flex items-center justify-center pointer-events-auto"
+                className="w-full h-full rounded-[16px] md:rounded-[24px] overflow-hidden bg-[#0A0A09] relative flex items-center justify-center pointer-events-auto"
                 style={{ touchAction: 'manipulation' }}
               >
                 
@@ -83,7 +83,7 @@ export default function InteractiveDemoModal() {
                       initial={{ opacity: 1 }}
                       exit={{ opacity: 0 }}
                       transition={{ duration: 0.6, ease: 'easeInOut' }}
-                      className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-[#0a0a0a] pointer-events-none"
+                      className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-[#0A0A09] pointer-events-none"
                     >
                       <motion.div 
                         initial={{ opacity: 0, y: 10 }}

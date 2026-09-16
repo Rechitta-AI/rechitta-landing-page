@@ -1,29 +1,52 @@
 'use client';
 
 import React from 'react';
+import { FONT_BODY, FONT_CODE, FONT_DISPLAY } from '@/design/fonts';
+import { light } from '@/design/tokens';
 
 /**
  * The two analytics slides on the closing boardroom monitor.
  *
- * Same deck as the opening boardroom — same white ground, same Inter display
- * cut through the shared `.deck-*` classes, same neutral scale and the same
- * #3f74e0 accent, same chrome top and bottom, same outlined numeral, same
- * tiered entrance. The film comes back to a room it has already been in, and
- * the screen on the wall has to look like the same product it did the first
- * time.
+ * Same deck as the opening boardroom, on the same design system (design.md):
+ * Playfair Display for the headline and the figures, Inter for everything
+ * that is read as interface, JetBrains Mono for the telemetry, the light
+ * column of the colour tokens, gold section labels and brand-blue emphasis.
+ * The film comes back to a room it has already been in, and the screen on
+ * the wall has to look like the same product it did the first time.
  *
  * They are laid out on the 2000 x 1156 reference canvas the world map uses,
  * because all three slides are warped onto the monitor's calibrated quad as
  * one piece. Nothing here is responsive: the canvas is a fixed surface the
  * quad transform scales.
  *
- * Sizes are the opening deck's own, multiplied by 1.69. That canvas is 826
- * units across 43% of the frame; this one is 2000 across 61.5% of it, so a
- * unit here paints 1.69x smaller and the type has to be that much larger to
- * read at the same size in the room.
+ * Every size is the design system's own, multiplied by S. The opening deck's
+ * canvas is 826 units across 43% of the frame; this one is 2000 across 61.5%
+ * of it, so a unit here paints 1.69x smaller and the type has to be that much
+ * larger to read at the same size in the room.
  */
 
-const ACCENT = '#3f74e0';
+const S = 1.69;
+const px = (n: number) => Math.round(n * S * 10) / 10;
+
+const ACCENT = light.bgBrand;
+
+/** Card pattern: 1px border/default, radius/lg, Elevation/2 — scaled. */
+const CARD: React.CSSProperties = {
+  background: light.bgPrimary,
+  border: `1px solid ${light.borderDefault}`,
+  boxShadow: `0 ${px(2)}px ${px(4)}px rgba(0,0,0,0.05), 0 ${px(4)}px ${px(8)}px rgba(0,0,0,0.06)`,
+};
+
+/** Label/Small, uppercase. */
+const labelSmall = (compactSize?: number): React.CSSProperties => ({
+  fontFamily: FONT_BODY,
+  fontWeight: 500,
+  fontSize: compactSize ?? px(11),
+  lineHeight: compactSize ? 1.27 : `${px(14)}px`,
+  letterSpacing: compactSize ? '0.09em' : px(1),
+  textTransform: 'uppercase',
+  color: light.textTertiary,
+});
 
 /*
  * The safe area, in canvas units.
@@ -53,7 +76,7 @@ type Stat = { label: string; value: string; note: string; icon: React.ReactNode 
 
 const stroke = {
   fill: 'none',
-  stroke: ACCENT,
+  stroke: light.iconBrand,
   strokeWidth: 1.8,
   strokeLinecap: 'round' as const,
   strokeLinejoin: 'round' as const,
@@ -190,23 +213,22 @@ function DeckSlide({
         No painted ground. The opening deck has none either — the display it
         sits on is lit white in the footage, and letting that through is what
         makes the slide look like it is on the screen rather than over it.
-        Painting our own white also meant any error in the quad showed up as a
-        rim of bare screen around the edge of it.
       */
       className="relative h-full w-full overflow-hidden"
-      style={{ fontFamily: 'var(--font-inter)' }}
+      style={{ fontFamily: FONT_BODY, color: light.textPrimary }}
     >
       {/* The paper, exactly as the opening deck mixes it. */}
       <div
-        className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-neutral-200/45 via-transparent to-transparent opacity-70"
+        className="pointer-events-none absolute inset-0 z-0 opacity-70"
+        style={{ background: `radial-gradient(ellipse at top, ${light.bgTertiary}, transparent 70%)` }}
         aria-hidden="true"
       />
       <div
         className="pointer-events-none absolute inset-0 z-0 opacity-[0.55]"
         style={{
           backgroundImage:
-            'linear-gradient(to right, rgba(23,23,23,0.028) 1px, transparent 1px), linear-gradient(to bottom, rgba(23,23,23,0.028) 1px, transparent 1px)',
-          backgroundSize: '112px 112px',
+            'linear-gradient(to right, rgba(10,10,9,0.03) 1px, transparent 1px), linear-gradient(to bottom, rgba(10,10,9,0.03) 1px, transparent 1px)',
+          backgroundSize: `${px(48)}px ${px(48)}px`,
           maskImage: 'radial-gradient(ellipse at 50% 40%, #000 25%, transparent 78%)',
           WebkitMaskImage: 'radial-gradient(ellipse at 50% 40%, #000 25%, transparent 78%)',
         }}
@@ -217,66 +239,72 @@ function DeckSlide({
         style={{
           top: SAFE_Y,
           height: 5,
-          background:
-            'linear-gradient(to right, transparent, rgba(63,116,224,0.55) 18%, rgba(63,116,224,0.55) 82%, transparent)',
+          opacity: 0.6,
+          background: `linear-gradient(to right, transparent, ${light.borderBrand} 18%, ${light.borderBrand} 82%, transparent)`,
         }}
         aria-hidden="true"
       />
 
       {/* Top chrome. One label across the deck, the way the opening one runs
-          "Today's briefing problems" across its own. */}
+          "Today's briefing problems" across its own. Label/Small, gold. */}
       {!compact && (
       <div
-        className="absolute z-20 flex items-center justify-between border-b border-neutral-900/10 font-mono uppercase tracking-widest text-neutral-400"
+        className="absolute z-20 flex items-center justify-between"
         style={{
+          ...labelSmall(),
+          color: light.textAccent,
           top: SAFE_Y + 30,
           left: SAFE_X + 74,
           right: SAFE_X + 74,
-          paddingBottom: 14,
-          fontSize: 19,
+          paddingBottom: px(8),
+          borderBottom: `1px solid ${light.borderDefault}`,
         }}
       >
-        <div className="flex min-w-0 items-center" style={{ gap: 14 }}>
+        <div className="flex min-w-0 items-center" style={{ gap: px(8) }}>
           <span
-            className="block shrink-0 rounded-full bg-neutral-900"
-            style={{ width: 11, height: 11 }}
+            className="block shrink-0 rounded-full"
+            style={{ width: px(6), height: px(6), background: light.bgAccent }}
           />
-          <span className="truncate font-semibold tracking-wider text-neutral-800">{PROJECT}</span>
+          <span className="truncate">{PROJECT}</span>
         </div>
       </div>
       )}
 
-      {/* Bottom chrome. */}
+      {/* Bottom chrome. Code/Small. */}
       {!compact && (
       <div
-        className="absolute z-20 flex items-center justify-between border-t border-neutral-900/10 font-mono uppercase tracking-widest text-neutral-400"
+        className="absolute z-20 flex items-center justify-between uppercase"
         style={{
+          fontFamily: FONT_CODE,
+          fontSize: px(12),
+          lineHeight: `${px(16)}px`,
+          color: light.textTertiary,
           bottom: SAFE_Y + 28,
           left: SAFE_X + 74,
           right: SAFE_X + 74,
-          paddingTop: 14,
-          fontSize: 17,
+          paddingTop: px(8),
+          borderTop: `1px solid ${light.borderDefault}`,
         }}
       >
         <span className="truncate">Confidential developer dossier</span>
-        <span className="shrink-0 font-bold text-neutral-700">0{index} / 03</span>
+        <span className="shrink-0" style={{ color: light.textSecondary }}>0{index} / 03</span>
       </div>
       )}
 
-      {/* The numeral, set into the paper rather than printed on it. */}
+      {/* The numeral, set into the paper rather than printed on it. Display/2XL. */}
       {!compact && (
       <div
         className="pointer-events-none absolute select-none"
         style={{
           bottom: SAFE_Y + 82,
           right: SAFE_X + 88,
-          fontSize: 264,
+          fontFamily: FONT_DISPLAY,
+          fontSize: px(128),
           lineHeight: 1,
-          fontWeight: 600,
-          fontVariationSettings: '"opsz" 32',
-          letterSpacing: '-0.06em',
+          fontWeight: 400,
+          letterSpacing: px(-1.5),
           color: 'transparent',
-          WebkitTextStroke: '2px rgba(23, 23, 23, 0.055)',
+          WebkitTextStroke: '2px rgba(10, 10, 9, 0.06)',
         }}
         aria-hidden="true"
       >
@@ -292,38 +320,69 @@ function DeckSlide({
             : `${SAFE_Y + 112}px ${SAFE_X + 98}px ${SAFE_Y + 94}px`,
         }}
       >
-        {/* Section eyebrow, on the shared editorial tier. */}
+        {/* Section eyebrow: Label/Default, gold. */}
         {!compact && (
           <div
             className="deck-tier flex flex-col items-center"
-            style={{ marginBottom: 34, gap: 14, '--tier': 0 } as React.CSSProperties}
+            style={{ marginBottom: px(16), gap: px(8), '--tier': 0 } as React.CSSProperties}
           >
-            <span className="deck-eyebrow text-neutral-400" style={{ fontSize: 17 }}>
+            <span
+              style={{
+                fontFamily: FONT_BODY,
+                fontWeight: 500,
+                fontSize: px(12),
+                lineHeight: `${px(16)}px`,
+                letterSpacing: px(1.2),
+                textTransform: 'uppercase',
+                color: light.textAccent,
+              }}
+            >
               {tag}
             </span>
             <span
-              className="eyebrow-rule"
-              data-align="center"
-              style={{ width: '3.8rem' }}
+              className="block"
+              style={{
+                width: px(36),
+                height: 2,
+                background: `linear-gradient(to right, transparent, ${light.borderAccent}, transparent)`,
+              }}
               aria-hidden="true"
             />
           </div>
         )}
 
+        {/* Display/L. */}
         <h2
-          className="deck-tier deck-headline text-neutral-900"
-          style={{ fontSize: compact ? 132 : 70, '--tier': 1 } as React.CSSProperties}
+          className="deck-tier"
+          style={
+            {
+              fontFamily: FONT_DISPLAY,
+              fontWeight: 400,
+              fontSize: compact ? 132 : px(48),
+              lineHeight: compact ? 1.17 : `${px(56)}px`,
+              letterSpacing: compact ? -2.4 : px(-0.8),
+              color: light.textPrimary,
+              textWrap: 'balance',
+              '--tier': 1,
+            } as React.CSSProperties
+          }
         >
           {headline}
         </h2>
 
+        {/* Body/Large. */}
         <p
-          className="deck-tier deck-body text-neutral-500"
+          className="deck-tier"
           style={
             {
-              fontSize: compact ? 62 : 28,
-              marginTop: compact ? 18 : 24,
+              fontFamily: FONT_BODY,
+              fontWeight: 400,
+              fontSize: compact ? 62 : px(18),
+              lineHeight: compact ? 1.55 : `${px(28)}px`,
+              color: light.textSecondary,
+              marginTop: compact ? 18 : px(12),
               maxWidth: '62ch',
+              textWrap: 'pretty',
               '--tier': 2,
             } as React.CSSProperties
           }
@@ -333,7 +392,7 @@ function DeckSlide({
 
         <div
           className="deck-tier w-full"
-          style={{ marginTop: compact ? 34 : 56, '--tier': 3 } as React.CSSProperties}
+          style={{ marginTop: compact ? 34 : px(28), '--tier': 3 } as React.CSSProperties}
         >
           {children}
         </div>
@@ -353,49 +412,53 @@ export function FinaleStatsSlide({
   const tile = (s: Stat, span: number) => (
     <div
       key={s.label}
-      className="flex flex-col justify-center border border-neutral-200/80 bg-white text-left"
+      className="flex flex-col justify-center text-left"
       style={{
+        ...CARD,
         gridColumn: `span ${span}`,
-        borderRadius: compact ? 34 : 26,
-        padding: compact ? '26px 32px' : '34px 38px',
-        boxShadow: '0 2px 10px -4px rgba(23,23,23,0.12)',
+        borderRadius: compact ? 34 : px(12),
+        padding: compact ? '26px 32px' : `${px(20)}px ${px(20)}px`,
       }}
     >
       <div
         className="flex items-center"
-        style={{ gap: compact ? 16 : 13, marginBottom: compact ? 14 : 20 }}
+        style={{ gap: compact ? 16 : px(8), marginBottom: compact ? 14 : px(12) }}
       >
         <svg
-          width={compact ? 34 : 21}
-          height={compact ? 34 : 21}
+          width={compact ? 34 : px(12)}
+          height={compact ? 34 : px(12)}
           viewBox="0 0 20 20"
           aria-hidden="true"
         >
           {s.icon}
         </svg>
-        <span
-          className="deck-caption text-neutral-400"
-          style={{ fontSize: compact ? 30 : 14.5, letterSpacing: compact ? '0.05em' : undefined }}
-        >
-          {s.label}
-        </span>
+        <span style={labelSmall(compact ? 30 : undefined)}>{s.label}</span>
       </div>
+      {/* Display/M. */}
       <div
-        className="text-neutral-900"
         style={{
-          fontSize: compact ? 104 : 62,
-          fontWeight: 660,
-          lineHeight: 1,
-          letterSpacing: '-0.04em',
-          fontVariationSettings: '"opsz" 32',
+          fontFamily: FONT_DISPLAY,
+          fontWeight: 400,
+          fontSize: compact ? 104 : px(40),
+          lineHeight: compact ? 1 : `${px(48)}px`,
+          letterSpacing: compact ? -1 : px(-0.4),
+          color: light.textPrimary,
         }}
       >
         {s.value}
       </div>
       {/* The note is the first thing to go: at this scale it is a grey smear
-          under a number that already says what it is. */}
+          under a number that already says what it is. Caption/Default. */}
       {!compact && (
-        <div className="text-neutral-400" style={{ fontSize: 18, marginTop: 16 }}>
+        <div
+          style={{
+            fontSize: px(12),
+            lineHeight: `${px(16)}px`,
+            letterSpacing: px(0.1),
+            marginTop: px(6),
+            color: light.textTertiary,
+          }}
+        >
           {s.note}
         </div>
       )}
@@ -415,7 +478,7 @@ export function FinaleStatsSlide({
         style={{
           display: 'grid',
           gridTemplateColumns: compact ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)',
-          gap: compact ? 22 : 26,
+          gap: compact ? 22 : px(16),
         }}
       >
         {compact
@@ -447,17 +510,17 @@ export function FinaleQuestionsSlide({
       live={live}
       compact={compact}
     >
-      <div className="flex items-stretch text-left" style={{ gap: 34 }}>
+      <div className="flex items-stretch text-left" style={{ gap: px(20) }}>
         {/* The ranked list. */}
-        <div className="flex flex-col" style={{ flex: '1 1 auto', gap: compact ? 20 : 13 }}>
+        <div className="flex flex-col" style={{ flex: '1 1 auto', gap: compact ? 20 : px(8) }}>
           {rows.map((q) => (
             <div
               key={q.rank}
-              className="relative overflow-hidden border border-neutral-200/80 bg-white"
+              className="relative overflow-hidden"
               style={{
-                borderRadius: compact ? 30 : 20,
-                padding: compact ? '30px 34px' : '22px 30px',
-                boxShadow: '0 2px 10px -4px rgba(23,23,23,0.12)',
+                ...CARD,
+                borderRadius: compact ? 30 : px(12),
+                padding: compact ? '30px 34px' : `${px(12)}px ${px(16)}px`,
               }}
             >
               {/* The share, drawn as the row's own fill rather than as a
@@ -467,54 +530,60 @@ export function FinaleQuestionsSlide({
                 style={{
                   width: `${q.share * 5.4}%`,
                   background:
-                    'linear-gradient(90deg, rgba(63,116,224,0.14), rgba(63,116,224,0.02))',
+                    'linear-gradient(90deg, rgba(61, 111, 245, 0.14), rgba(61, 111, 245, 0.02))',
                 }}
                 aria-hidden="true"
               />
-              <div className="relative flex items-center" style={{ gap: compact ? 26 : 24 }}>
+              <div className="relative flex items-center" style={{ gap: compact ? 26 : px(12) }}>
+                {/* Code/Default. */}
                 <span
                   style={{
-                    width: compact ? 70 : 40,
-                    fontSize: compact ? 36 : 20,
-                    fontWeight: 700,
-                    color: q.rank <= 2 ? ACCENT : '#a3a3a3',
-                    fontVariantNumeric: 'tabular-nums',
+                    width: compact ? 70 : px(24),
+                    fontFamily: FONT_CODE,
+                    fontSize: compact ? 36 : px(14),
+                    lineHeight: compact ? 1 : `${px(20)}px`,
+                    color: q.rank <= 2 ? light.textBrand : light.textTertiary,
                   }}
                 >
                   {String(q.rank).padStart(2, '0')}
                 </span>
+                {/* Body/Default Bold. */}
                 <span
-                  className="text-neutral-900"
                   style={{
                     flex: '1 1 auto',
-                    fontSize: compact ? 50 : 27,
-                    fontWeight: 560,
-                    letterSpacing: '-0.015em',
+                    fontSize: compact ? 50 : px(16),
+                    lineHeight: compact ? 1.3 : `${px(24)}px`,
+                    fontWeight: 600,
+                    color: light.textPrimary,
                   }}
                 >
                   &ldquo;{q.text}&rdquo;
                 </span>
+                {/* Heading/H5. */}
                 <span
-                  className="text-neutral-900"
                   style={{
-                    fontSize: compact ? 46 : 25,
-                    fontWeight: 660,
+                    fontSize: compact ? 46 : px(18),
+                    lineHeight: compact ? 1.3 : `${px(26)}px`,
+                    fontWeight: 600,
+                    letterSpacing: px(-0.1),
                     fontVariantNumeric: 'tabular-nums',
-                    minWidth: compact ? 190 : 112,
+                    minWidth: compact ? 190 : px(64),
                     textAlign: 'right',
-                    fontVariationSettings: '"opsz" 32',
+                    color: light.textPrimary,
                   }}
                 >
                   {q.asks.toLocaleString()}
                 </span>
+                {/* Body/Small. */}
                 {!compact && (
                   <span
-                    className="text-neutral-400"
                     style={{
-                      fontSize: 19,
+                      fontSize: px(14),
+                      lineHeight: `${px(20)}px`,
                       fontVariantNumeric: 'tabular-nums',
-                      minWidth: 80,
+                      minWidth: px(48),
                       textAlign: 'right',
+                      color: light.textTertiary,
                     }}
                   >
                     {q.share}%
@@ -530,43 +599,51 @@ export function FinaleQuestionsSlide({
             the point. */}
         {!compact && (
         <div
-          className="flex flex-col border border-neutral-200/80 bg-white"
+          className="flex flex-col"
           style={{
-            flex: '0 0 520px',
-            borderRadius: 26,
-            padding: '34px 38px',
-            boxShadow: '0 2px 10px -4px rgba(23,23,23,0.12)',
+            ...CARD,
+            flex: `0 0 ${px(308)}px`,
+            borderRadius: px(12),
+            padding: `${px(20)}px ${px(20)}px`,
           }}
         >
-          <span className="deck-caption text-neutral-400" style={{ fontSize: 14.5 }}>
-            What they care about
-          </span>
+          <span style={labelSmall()}>What they care about</span>
 
-          <div className="flex flex-col" style={{ marginTop: 30, gap: 24 }}>
+          <div className="flex flex-col" style={{ marginTop: px(16), gap: px(14) }}>
             {CATEGORIES.map((c, i) => (
               <div key={c.name}>
-                <div className="flex items-baseline justify-between" style={{ marginBottom: 11 }}>
-                  <span className="text-neutral-800" style={{ fontSize: 22, fontWeight: 560 }}>
-                    {c.name}
-                  </span>
+                <div className="flex items-baseline justify-between" style={{ marginBottom: px(6) }}>
+                  {/* Body/Default. */}
                   <span
                     style={{
-                      fontSize: 21,
-                      fontWeight: 660,
-                      color: i === 0 ? ACCENT : '#737373',
+                      fontSize: px(16),
+                      lineHeight: `${px(24)}px`,
+                      fontWeight: 400,
+                      color: light.textSecondary,
+                    }}
+                  >
+                    {c.name}
+                  </span>
+                  {/* Body/Default Bold. */}
+                  <span
+                    style={{
+                      fontSize: px(16),
+                      lineHeight: `${px(24)}px`,
+                      fontWeight: 600,
+                      color: i === 0 ? light.textBrand : light.textTertiary,
                       fontVariantNumeric: 'tabular-nums',
                     }}
                   >
                     {c.share}%
                   </span>
                 </div>
-                <div style={{ height: 8, borderRadius: 99, background: 'rgba(23,23,23,0.07)' }}>
+                <div style={{ height: px(4), borderRadius: 9999, background: light.bgTertiary }}>
                   <div
                     style={{
                       width: `${c.share * 2.4}%`,
                       height: '100%',
-                      borderRadius: 99,
-                      background: i === 0 ? ACCENT : 'rgba(115,115,115,0.4)',
+                      borderRadius: 9999,
+                      background: i === 0 ? ACCENT : light.borderStrong,
                     }}
                   />
                 </div>
@@ -577,21 +654,26 @@ export function FinaleQuestionsSlide({
           {/*
             The payoff for the opening deck's third slide, which is the one
             that complained there was no way to hear any of this: 30,000
-            brochures out, nothing back.
+            brochures out, nothing back. Body/Small.
           */}
           <div
-            style={{ marginTop: 'auto', paddingTop: 30, borderTop: '1px solid rgba(23,23,23,0.1)' }}
+            style={{
+              marginTop: 'auto',
+              paddingTop: px(16),
+              borderTop: `1px solid ${light.borderDefault}`,
+              fontSize: px(14),
+              lineHeight: `${px(20)}px`,
+              color: light.textSecondary,
+            }}
           >
-            <div className="text-neutral-500" style={{ fontSize: 20, lineHeight: 1.5 }}>
-              Captured from <span className="font-bold text-neutral-900">12,480</span> live
+            <div>
+              Captured from{' '}
+              <span style={{ fontWeight: 600, color: light.textPrimary }}>12,480</span> live
               briefings.
             </div>
-            <div
-              className="text-neutral-500"
-              style={{ fontSize: 20, lineHeight: 1.5, marginTop: 6 }}
-            >
+            <div style={{ marginTop: px(4) }}>
               A brochure would have returned{' '}
-              <span style={{ color: ACCENT, fontWeight: 700 }}>nothing</span>.
+              <span style={{ fontWeight: 600, color: light.textBrand }}>nothing</span>.
             </div>
           </div>
         </div>

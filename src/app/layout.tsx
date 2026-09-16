@@ -6,6 +6,7 @@ import InteractiveDemoModal from "@/components/InteractiveDemoModal";
 import "./globals.css";
 
 import { Inter } from "next/font/google";
+import { designFontVariables } from "@/design/fonts";
 
 // Inter v4 carries an optical-size axis, and "Inter Display" is this same
 // family at the top of that axis — tighter spacing and finer detail, drawn
@@ -28,7 +29,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html
       lang="en"
-      className={`${inter.variable} antialiased`}
+      className={`${inter.variable} ${designFontVariables} antialiased`}
     >
       <head>
         <Script

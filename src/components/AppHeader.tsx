@@ -78,11 +78,10 @@ export default function AppHeader() {
         <button
           onClick={openModal}
           type="button"
-          className="group relative px-3.5 sm:px-4 md:px-6 py-2 sm:py-2 md:py-2.5 bg-white/10 hover:bg-white/15 active:bg-white/20 backdrop-blur-lg border border-white/20 rounded-full text-white text-[11px] sm:text-xs md:text-sm tracking-wide font-medium transition-all duration-300 shadow-[0_0_20px_rgba(255,255,255,0.05)] hover:shadow-[0_0_30px_rgba(255,255,255,0.1)] overflow-hidden cursor-pointer touch-manipulation"
-          style={{ fontFamily: 'var(--font-inter)' }}
+          /* The site's call to action: design.md's primary button. */
+          className="btn btn-primary btn-sm md:btn-md"
         >
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-[150%] group-hover:animate-[shimmer_1.5s_infinite] pointer-events-none" />
-          <span className="relative z-10 whitespace-nowrap">Try the Platform</span>
+          Try the Platform
         </button>
 
         <div className="relative">
@@ -92,12 +91,12 @@ export default function AppHeader() {
             aria-expanded={open}
             aria-haspopup="menu"
             aria-label={open ? 'Close menu' : 'Open menu'}
-            className="relative flex h-9 w-9 sm:h-9 sm:w-9 md:h-10 md:w-10 min-w-[36px] min-h-[36px] flex-col items-center justify-center gap-[4px] sm:gap-[5px] rounded-full border border-white/20 bg-white/10 backdrop-blur-lg transition-all duration-300 hover:bg-white/15 active:bg-white/20 cursor-pointer shrink-0 touch-manipulation before:absolute before:-inset-2 before:content-['']"
+            className="relative flex h-9 w-9 sm:h-9 sm:w-9 md:h-10 md:w-10 min-w-[36px] min-h-[36px] flex-col items-center justify-center gap-[4px] sm:gap-[5px] rounded-full border btn-secondary transition-all duration-300 cursor-pointer shrink-0 touch-manipulation before:absolute before:-inset-2 before:content-['']"
           >
             {[0, 1, 2].map((i) => (
               <span
                 key={i}
-                className="block h-[1.5px] w-4 rounded-full bg-white transition-all duration-300 pointer-events-none"
+                className="block h-[1.5px] w-4 rounded-full bg-[var(--text-primary)] transition-all duration-300 pointer-events-none"
                 style={{
                   transform: open
                     ? i === 0
@@ -113,7 +112,7 @@ export default function AppHeader() {
           </button>
 
           <nav
-            className="absolute right-0 top-[calc(100%+0.75rem)] w-56 origin-top-right overflow-hidden rounded-2xl border border-white/12 bg-[#0b0f19]/95 backdrop-blur-2xl shadow-[0_24px_60px_rgba(0,0,0,0.7)] transition-all duration-300 z-[310]"
+            className="absolute right-0 top-[calc(100%+0.75rem)] w-56 origin-top-right overflow-hidden rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)]/95 backdrop-blur-2xl shadow-[0_24px_60px_rgba(0,0,0,0.7)] transition-all duration-300 z-[310]"
             style={{
               opacity: open ? 1 : 0,
               transform: open ? 'translateY(0) scale(1)' : 'translateY(-8px) scale(0.97)',
@@ -130,7 +129,7 @@ export default function AppHeader() {
                 onClick={() => {
                   setTimeout(() => setOpen(false), 200);
                 }}
-                className="group flex items-center justify-between gap-3 border-b border-white/6 px-5 py-3.5 text-sm text-white/80 transition-colors last:border-b-0 hover:bg-white/10 active:bg-white/15 hover:text-white cursor-pointer touch-manipulation"
+                className="group flex items-center justify-between gap-3 border-b border-[var(--border-default)] px-5 py-3.5 text-sm text-[var(--text-secondary)] transition-colors last:border-b-0 hover:bg-[var(--bg-hover)] active:bg-[var(--bg-pressed)] hover:text-[var(--text-primary)] cursor-pointer touch-manipulation"
                 style={{ fontFamily: 'var(--font-inter)' }}
               >
                 <span>{link.label}</span>
@@ -141,7 +140,7 @@ export default function AppHeader() {
                   as a distinction — and the distinction is already carried by
                   the link opening in a new tab.
                 */}
-                <span className="text-[#568DFF] opacity-75 transition-all duration-200 group-hover:translate-x-0.5 group-hover:opacity-100">
+                <span className="text-[var(--text-link)] opacity-75 transition-all duration-200 group-hover:translate-x-0.5 group-hover:opacity-100">
                   →
                 </span>
               </a>

@@ -45,23 +45,23 @@ export const ORB_PATH: Keyframe[] = [
     ease: 'inOut',
     note: 'K0 — centred above the headline. Text staggers away, the orb stays.',
   },
+  /*
+   * One waypoint between the headline and the credenza, not three.
+   *
+   * The dive used to zigzag — out to the window, down onto the near end of
+   * the table, back up its centreline — and packed all of that into under two
+   * seconds of footage played at 2.4x, so the orb raced the camera here when
+   * everywhere else it keeps pace with it. With a single waypoint roughly
+   * halfway along the distance and halfway through the shot, the orb covers
+   * the room at an even speed: 'in' then 'out' meet at the same velocity, so
+   * it never lurches at the waypoint either. It sits at 6.0s so it lands just
+   * before the screen's exclusion window opens.
+   */
   {
-    anchor: { clip: 'scene1-3', t: 5.0 },
-    x: 40, y: 48, scale: 0.5, opacity: 0.9, blur: 0,
+    anchor: { clip: 'scene1-3', t: 6.0 },
+    x: 46, y: 60, scale: 0.5, opacity: 0.9, blur: 0,
     ease: 'in',
-    note: 'K1 — at the lit boardroom window while the camera is still outside the glass.',
-  },
-  {
-    anchor: { clip: 'scene1-3', t: 6.6 },
-    x: 55, y: 80, scale: 0.58, opacity: 0.95, blur: 0,
-    ease: 'out',
-    note: 'K2 — through the glass, low, touching down on the near end of the table.',
-  },
-  {
-    anchor: { clip: 'scene1-3', t: 8.5 },
-    x: 58, y: 74, scale: 0.4, opacity: 0.9, blur: 0,
-    ease: 'inOut',
-    note: 'K3 — sliding up the table centreline, shrinking along its vanishing line.',
+    note: 'K1 — following the camera through the glass and down into the room.',
   },
   {
     anchor: { clip: 'scene1-3', t: 11.0 },
@@ -107,6 +107,8 @@ export const ORB_PATH: Keyframe[] = [
   {
     anchor: { clip: 'transit-b', t: 16.8 },
     pulse: true,
+    // Desktop measures its pose off the answer column instead (OrbStage).
+    brokerDock: true,
     // Stacked, the live app sits centre screen; 23% lands on it.
     portrait: { x: 84, y: 20, scale: 0.5 },
     /*
