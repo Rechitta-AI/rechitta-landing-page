@@ -471,9 +471,9 @@ export default function FinaleWorldMapPresentation({
             v.style.transition = 'none';
             v.style.objectPosition = `calc(50% + ${shiftX}px) 50%`;
           } else if (flat && isDeparted) {
-            // Smoothly glide to 43% 50% matching the horizontal framing of mobile-seq1-2 opening shot
+            // Only when departing the presentation to fly to the wide horizon, smoothly glide back to 50% 50%
             v.style.transition = 'object-position 1.2s cubic-bezier(0.16, 1, 0.3, 1)';
-            v.style.objectPosition = '43% 50%';
+            v.style.objectPosition = '50% 50%';
           } else {
             v.style.transition = 'none';
             v.style.objectPosition = '50% 50%';
@@ -603,57 +603,6 @@ export default function FinaleWorldMapPresentation({
     // isDissolving only ever changes alongside isVisible.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isVisible]);
-
-  /**
-   * Handshake with FilmStage: when scroll triggers move from finale-screen,
-   * FilmStage dispatches `rechitta:finale-release` and waits for `rechitta:release`.
-   * We smoothly fade out all contents first over 0.35s, and only then dispatch `rechitta:release`.
-   */
-  useEffect(() => {
-    const onFinaleRelease = () => {
-      const el = containerRef.current;
-      const panels = [
-        el,
-        reelRef.current,
-        rightReelRef.current,
-        marqueeRef.current,
-        dockRef.current,
-      ].filter(Boolean);
-
-      if (!panels.length || (!isVisible && !isDissolving)) {
-        window.dispatchEvent(new CustomEvent('rechitta:release'));
-        return;
-      }
-
-      const marqueeEl = marqueeRef.current;
-      if (marqueeEl) {
-        gsap.killTweensOf(marqueeEl.querySelectorAll('.finale-stagger-item'));
-        gsap.to(marqueeEl.querySelectorAll('.finale-stagger-item'), {
-          opacity: 0,
-          y: -8,
-          duration: 0.22,
-          stagger: 0.015,
-          ease: 'power2.in',
-          clearProps: 'filter',
-        });
-      }
-
-      gsap.killTweensOf(panels);
-      gsap.to(panels, {
-        opacity: 0,
-        duration: 0.35,
-        ease: 'power2.inOut',
-        onComplete: () => {
-          gsap.set(panels, { display: 'none' });
-          setActiveSlide(0);
-          window.dispatchEvent(new CustomEvent('rechitta:release'));
-        },
-      });
-    };
-
-    window.addEventListener('rechitta:finale-release', onFinaleRelease);
-    return () => window.removeEventListener('rechitta:finale-release', onFinaleRelease);
-  }, [isVisible, isDissolving]);
 
   if (!mounted) return null;
 

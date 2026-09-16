@@ -166,7 +166,7 @@ export default function FilmStage({
       if (typeof window !== 'undefined' && window.innerHeight > window.innerWidth) {
         if (beatId === 'finale') {
           v.style.transition = 'none';
-          v.style.objectPosition = '43% 50%';
+          v.style.objectPosition = '50% 50%';
         } else {
           const shiftX = Math.round(coverRect(window.innerWidth, window.innerHeight).width * (21.5 / 1920));
           v.style.transition = 'none';
@@ -523,83 +523,6 @@ export default function FilmStage({
         );
       });
 
-    /**
-     * Infinity Loop Transition:
-     * Seamless backward camera pull-back cross-dissolve from the wide horizon (beat 10)
-     * to the opening dawn skyline (beat 0) without any harsh white flash.
-     */
-    const runInfinityLoopTransition = async (
-      source: Beat,
-      target: Beat,
-      to: number,
-    ) => {
-      const portrait = isPortrait();
-      const targetClip = getBeatClip(target, portrait);
-      const sourceClip = getBeatClip(source, portrait);
-      if (!targetClip || !sourceClip) return;
-
-      const incoming = acquire(targetClip);
-      const outgoing = acquire(sourceClip);
-
-      const targetParkTime = getBeatPark(target, portrait);
-      await park(incoming, targetParkTime);
-      if (disposed) return;
-
-      const DURATION = 800;
-
-      // Position incoming video to start invisible and slightly zoomed in
-      incoming.style.transition = 'none';
-      incoming.style.opacity = '0';
-      incoming.style.transform = portrait ? 'scale(1.05)' : 'scale(1.025)';
-      incoming.style.zIndex = '2';
-      outgoing.style.zIndex = '1';
-
-      // Force layout reflow before starting CSS transition
-      void incoming.offsetHeight;
-
-      // Animate cross-dissolve: outgoing shrinks back into the sky, incoming lands smoothly
-      const ease = 'cubic-bezier(0.25, 1, 0.5, 1)';
-      incoming.style.transition = `opacity ${DURATION}ms ${ease}, transform ${DURATION}ms ${ease}`;
-      outgoing.style.transition = `opacity ${DURATION}ms ${ease}, transform ${DURATION}ms ${ease}`;
-
-      incoming.style.opacity = '1';
-      incoming.style.transform = 'scale(1)';
-      outgoing.style.opacity = '0';
-      outgoing.style.transform = portrait ? 'scale(0.95)' : 'scale(0.975)';
-
-      // Notify chapter and beat so overlays transition seamlessly
-      if (target.chapter !== currentChapter) {
-        currentChapter = target.chapter;
-        callbacks.current.onChapter?.(target.chapter);
-      }
-      callbacks.current.onBeat?.(target, to);
-
-      // Smoothly animate progress indicator from 1.0 back to 0.0
-      const started = performance.now();
-      await new Promise<void>((resolve) => {
-        const step = (now: number) => {
-          if (disposed) return resolve();
-          const t = Math.min(1, (now - started) / DURATION);
-          const e = t * t * (3 - 2 * t);
-          publish(1 - e);
-          if (t >= 1) return resolve();
-          requestAnimationFrame(step);
-        };
-        requestAnimationFrame(step);
-      });
-
-      if (disposed) return;
-
-      incoming.style.transform = 'none';
-      outgoing.style.transform = 'none';
-      incoming.style.zIndex = '';
-      outgoing.style.zIndex = '';
-      shown = incoming;
-      publish(0);
-      if (playheadRef) playheadRef.current = { clip: targetClip, t: targetParkTime };
-      if (beatPositionRef) beatPositionRef.current = 0;
-    };
-
     // ── The move ─────────────────────────────────────────────────────
 
     const runMove = async (from: number, to: number, dir: 1 | -1) => {
@@ -640,14 +563,11 @@ export default function FilmStage({
       }
 
       if (chapterChange) {
-        const isLoopBoundary = dir === 1 && source.chapter === 'finale' && target.chapter === 'intro';
         const isCitiesFinaleBoundary =
           (source.chapter === 'cities' && target.chapter === 'finale') ||
           (source.chapter === 'finale' && target.chapter === 'cities');
 
-        if (isLoopBoundary) {
-          await runInfinityLoopTransition(source, target, to);
-        } else if (isCitiesFinaleBoundary) {
+        if (isCitiesFinaleBoundary) {
           await runFocusPullTransition(dir, async () => {
             if (target.chapter === 'cities') {
               setLayerVisible(false);

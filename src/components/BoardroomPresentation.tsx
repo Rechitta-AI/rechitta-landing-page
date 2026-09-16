@@ -95,7 +95,6 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
    * on the same cues instead.
    */
   const reelRef = useRef<HTMLDivElement>(null);
-  const controlsRef = useRef<HTMLDivElement>(null);
 
   const isVisibleRef = useRef(false);
 
@@ -195,13 +194,13 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
    * Where the slide controls sit, measured from the top of the screen area.
    */
   /*
-   * Always compact on mobile portrait to ensure full clearance for the orb,
-   * which rests at a fixed 90% down the screen.
+   * On shorter phones the logo block has to clear the orb, which rests at a
+   * fixed 90% down the screen, so everything under the display packs tighter.
    */
-  const compactDock = isPortrait;
+  const compactDock = isPortrait && viewport.height < 760;
 
   const controlsTop = isPortrait
-    ? screenHeight + 12
+    ? screenHeight + (compactDock ? 12 : 22)
     : screenHeight + rect.height * 0.035;
 
   /*
@@ -257,43 +256,11 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
   const tilt = `rotateY(${ROTATE_Y}deg) rotateX(${ROTATE_X}deg) rotateZ(${ROTATE_Z}deg) scale(${SCALE})`;
   // ==========================================
 
-  /** Smoothly fades out all boardroom contents before triggering the video flight */
-  const fadeAndRelease = (releaseEvent = 'rechitta:release') => {
-    const leaving = [containerRef.current, reelRef.current, controlsRef.current].filter(Boolean);
-    const stageHost = document.getElementById('film-stage-host');
-    if (stageHost && isPortrait) {
-      gsap.to(stageHost, {
-        scale: 1,
-        transformOrigin: 'center 45%',
-        duration: 0.35,
-        ease: 'power2.inOut',
-      });
-    }
-    if (leaving.length && isVisibleRef.current) {
-      isVisibleRef.current = false;
-      gsap.killTweensOf(leaving);
-      gsap.to(leaving, {
-        opacity: 0,
-        scale: 0.95,
-        duration: 0.35,
-        ease: 'power2.inOut',
-        onComplete: () => {
-          gsap.set(leaving, { autoAlpha: 0 });
-          setActiveSlide(0);
-          window.dispatchEvent(new CustomEvent(releaseEvent));
-        },
-      });
-    } else {
-      isVisibleRef.current = false;
-      window.dispatchEvent(new CustomEvent(releaseEvent));
-    }
-  };
-
   /** Advance from Boardroom scene into the Broker phone scene */
   const handleUploadClick = () => {
     if (isUploading || isSynced) {
       // Already handed off. Let the film move rather than wait on us.
-      fadeAndRelease('rechitta:release');
+      window.dispatchEvent(new CustomEvent('rechitta:release'));
       return;
     }
     setIsUploading(true);
@@ -302,11 +269,37 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
     setTimeout(() => {
       setIsSynced(true);
 
-      // 2. 300ms pause after notification appears, fade out contents and initiate hardware video playback flight!
+      // 2. 350ms "sight pause" after notification appears, initiate native hardware video playback flight!
       setTimeout(() => {
-        fadeAndRelease('rechitta:start-flight');
-      }, 300);
-    }, 450);
+        // Immediately dissolve the boardroom slides so the hallway flight is 100% unobstructed
+        const leaving = [containerRef.current, reelRef.current].filter(Boolean);
+        const stageHost = document.getElementById('film-stage-host');
+        if (stageHost && isPortrait) {
+          gsap.to(stageHost, {
+            scale: 1,
+            transformOrigin: 'center 45%',
+            duration: 0.45,
+            ease: 'power2.inOut',
+          });
+        }
+        if (leaving.length) {
+          isVisibleRef.current = false;
+          gsap.killTweensOf(leaving);
+          gsap.to(leaving, {
+            opacity: 0,
+            scale: 0.95,
+            duration: 0.45,
+            ease: 'power2.inOut',
+            onComplete: () => {
+              gsap.set(leaving, { autoAlpha: 0 });
+              setActiveSlide(0);
+            },
+          });
+        }
+
+        window.dispatchEvent(new CustomEvent('rechitta:start-flight'));
+      }, 350);
+    }, 900);
   };
 
   const handleUploadClickRef = useRef(handleUploadClick);
@@ -396,8 +389,11 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
     };
 
     const onHandOff = () => {
-      // When scroll triggers forward movement, fade out contents first, then move
-      fadeAndRelease('rechitta:release');
+      if (!isVisibleRef.current) {
+        window.dispatchEvent(new CustomEvent('rechitta:release'));
+        return;
+      }
+      handleUploadClickRef.current();
     };
 
     window.addEventListener('rechitta:beat-step', onStep);
@@ -431,6 +427,9 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
    * beat is ready to be left; until the project is sent, this one is not.
    */
   const [nudgeCta, setNudgeCta] = useState(false);
+  useEffect(() => {
+    setHold('boardroom', !isUploading && !isSynced);
+  }, [isUploading, isSynced]);
 
   useEffect(() => {
     // Never leave the film held by an overlay that has gone away.
@@ -463,8 +462,8 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
 
       const { clipIndex } = holdData.current;
       const isNowVisible = clipIndex === 0;
-      // The deck, the reel and the controls arrive and leave together.
-      const panels = [containerRef.current, reelRef.current, controlsRef.current].filter(Boolean);
+      // The deck and the reel arrive and leave together.
+      const panels = [containerRef.current, reelRef.current].filter(Boolean);
 
       // Detect Entrance
       if (isNowVisible && !isVisibleRef.current) {
@@ -1024,7 +1023,6 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
         placed against the screen's painted height instead.
       */}
       <div
-        ref={controlsRef}
         className={`absolute flex flex-col items-center pointer-events-auto ${compactDock ? 'gap-2' : 'gap-3.5'}`}
         style={{
           top: `${controlsTop}px`,
