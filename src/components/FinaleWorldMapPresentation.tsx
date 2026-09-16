@@ -604,6 +604,57 @@ export default function FinaleWorldMapPresentation({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isVisible]);
 
+  /**
+   * Handshake with FilmStage: when scroll triggers move from finale-screen,
+   * FilmStage dispatches `rechitta:finale-release` and waits for `rechitta:release`.
+   * We smoothly fade out all contents first over 0.35s, and only then dispatch `rechitta:release`.
+   */
+  useEffect(() => {
+    const onFinaleRelease = () => {
+      const el = containerRef.current;
+      const panels = [
+        el,
+        reelRef.current,
+        rightReelRef.current,
+        marqueeRef.current,
+        dockRef.current,
+      ].filter(Boolean);
+
+      if (!panels.length || (!isVisible && !isDissolving)) {
+        window.dispatchEvent(new CustomEvent('rechitta:release'));
+        return;
+      }
+
+      const marqueeEl = marqueeRef.current;
+      if (marqueeEl) {
+        gsap.killTweensOf(marqueeEl.querySelectorAll('.finale-stagger-item'));
+        gsap.to(marqueeEl.querySelectorAll('.finale-stagger-item'), {
+          opacity: 0,
+          y: -8,
+          duration: 0.22,
+          stagger: 0.015,
+          ease: 'power2.in',
+          clearProps: 'filter',
+        });
+      }
+
+      gsap.killTweensOf(panels);
+      gsap.to(panels, {
+        opacity: 0,
+        duration: 0.35,
+        ease: 'power2.inOut',
+        onComplete: () => {
+          gsap.set(panels, { display: 'none' });
+          setActiveSlide(0);
+          window.dispatchEvent(new CustomEvent('rechitta:release'));
+        },
+      });
+    };
+
+    window.addEventListener('rechitta:finale-release', onFinaleRelease);
+    return () => window.removeEventListener('rechitta:finale-release', onFinaleRelease);
+  }, [isVisible, isDissolving]);
+
   if (!mounted) return null;
 
   return (

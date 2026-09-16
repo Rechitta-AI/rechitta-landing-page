@@ -299,6 +299,7 @@ export const BEATS: Beat[] = [
      * pulls back to the horizon.
      */
     steps: 3,
+    release: 'rechitta:finale-release',
     progress: 0.96,
     progressFrom: CITIES_SPAN.end,
   },
