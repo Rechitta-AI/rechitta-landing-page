@@ -177,10 +177,8 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
             const stageH = Math.round(Math.min(h * 0.67, h - 235));
             filmHost.style.bottom = 'auto';
             filmHost.style.height = `${stageH}px`;
-            filmHost.style.webkitMaskImage =
-              'linear-gradient(to bottom, #000 0%, #000 calc(100% - 60px), transparent 100%)';
-            filmHost.style.maskImage =
-              'linear-gradient(to bottom, #000 0%, #000 calc(100% - 60px), transparent 100%)';
+            filmHost.style.webkitMaskImage = 'none';
+            filmHost.style.maskImage = 'none';
           } else {
             filmHost.style.bottom = '0px';
             filmHost.style.height = '100%';
@@ -421,7 +419,6 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
       if (phoneRef.current) {
         gsap.to(phoneRef.current, {
           opacity: 0,
-          scale: 0.96,
           duration: 0.2,
           ease: 'power2.out',
           onComplete: () => {
@@ -509,10 +506,8 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
             filmHost.style.bottom = 'auto';
             filmHost.style.height = `${responsiveStageHeight}px`;
             filmHost.style.transform = 'none';
-            filmHost.style.webkitMaskImage =
-              'linear-gradient(to bottom, #000 0%, #000 calc(100% - 60px), transparent 100%)';
-            filmHost.style.maskImage =
-              'linear-gradient(to bottom, #000 0%, #000 calc(100% - 60px), transparent 100%)';
+            filmHost.style.webkitMaskImage = 'none';
+            filmHost.style.maskImage = 'none';
           }
 
           // Once the phone in the footage has completely settled at its final position (~650ms):
@@ -522,8 +517,8 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
             if (phoneRef.current) {
               gsap.fromTo(
                 phoneRef.current,
-                { opacity: 0, scale: 0.98 },
-                { opacity: 1, scale: 1, duration: 0.3, ease: 'power2.out' }
+                { opacity: 0 },
+                { opacity: 1, duration: 0.3, ease: 'power2.out' }
               );
             }
           }, 650);
@@ -714,6 +709,7 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
           zIndex: 50,
           pointerEvents: 'none',
           touchAction: 'manipulation',
+          isolation: 'isolate',
         }}
       >
         <div
@@ -730,14 +726,13 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
                   height: PHONE_HEIGHT,
                   transformOrigin: '0 0',
                   transform: desktopMatrix,
-                  borderRadius: `${BROKER_PHONE_RADIUS}px`,
-                  overflow: 'hidden',
-                  boxShadow:
-                    '0 30px 70px -10px rgba(0, 0, 0, 0.95), 0 0 35px rgba(6, 182, 212, 0.12), inset 0 0 0 1.5px rgba(255, 255, 255, 0.18)',
                   pointerEvents: 'auto',
                   touchAction: 'auto',
                   cursor: 'pointer',
-                  WebkitOverflowScrolling: 'touch',
+                  WebkitBackfaceVisibility: 'hidden',
+                  backfaceVisibility: 'hidden',
+                  transformStyle: 'flat',
+                  willChange: 'transform',
                 }
               : stacked
                 ? {
@@ -748,14 +743,13 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
                     height: PHONE_HEIGHT,
                     transformOrigin: '0 0',
                     transform: responsiveMatrix,
-                    borderRadius: `${BROKER_PHONE_RADIUS}px`,
-                    overflow: 'hidden',
-                    boxShadow:
-                      '0 30px 70px -10px rgba(0, 0, 0, 0.95), 0 0 35px rgba(6, 182, 212, 0.12), inset 0 0 0 1.5px rgba(255, 255, 255, 0.18)',
                     pointerEvents: 'auto',
                     touchAction: 'manipulation',
                     cursor: 'pointer',
-                    WebkitOverflowScrolling: 'touch',
+                    WebkitBackfaceVisibility: 'hidden',
+                    backfaceVisibility: 'hidden',
+                    transformStyle: 'flat',
+                    willChange: 'transform',
                   }
                 : {
                     position: 'absolute',
@@ -764,31 +758,47 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
                     left: '6%',
                     top: '50%',
                     transform: 'translateY(-50%)',
-                    borderRadius: `${Math.round(flatPhoneHeight * 0.055)}px`,
-                    overflow: 'hidden',
-                    boxShadow:
-                      '0 30px 70px -10px rgba(0, 0, 0, 0.95), 0 0 35px rgba(6, 182, 212, 0.12), inset 0 0 0 1.5px rgba(255, 255, 255, 0.18)',
                     pointerEvents: 'auto',
                     touchAction: 'manipulation',
                     cursor: 'pointer',
-                    WebkitOverflowScrolling: 'touch',
                   }
           }
         >
-          {iframeActive && (
-            <iframe
-              src={BROKER_APP_URL}
-              className="w-full h-full border-none relative z-10 pointer-events-auto cursor-pointer"
-              style={{
-                pointerEvents: 'auto',
-                touchAction: 'manipulation',
-                width: '100%',
-                height: '100%',
-              }}
-              title="Rechitta Live Broker Assistant"
-              allow="autoplay; fullscreen; microphone"
-            />
-          )}
+          {/* Inner chassis wrapper separating clipping/shadow from the 3D transform */}
+          <div
+            style={{
+              position: 'relative',
+              width: '100%',
+              height: '100%',
+              borderRadius:
+                composited || stacked
+                  ? `${BROKER_PHONE_RADIUS}px`
+                  : `${Math.round(flatPhoneHeight * 0.055)}px`,
+              overflow: 'hidden',
+              boxShadow:
+                '0 30px 70px -10px rgba(0, 0, 0, 0.95), 0 0 35px rgba(6, 182, 212, 0.12), inset 0 0 0 1.5px rgba(255, 255, 255, 0.18)',
+              WebkitTransform: 'translate3d(0, 0, 0)',
+              transform: 'translate3d(0, 0, 0)',
+              WebkitOverflowScrolling: 'touch',
+            }}
+          >
+            {iframeActive && (
+              <iframe
+                src={BROKER_APP_URL}
+                className="w-full h-full border-none relative z-10 pointer-events-auto cursor-pointer"
+                style={{
+                  pointerEvents: 'auto',
+                  touchAction: 'manipulation',
+                  width: '100%',
+                  height: '100%',
+                  WebkitBackfaceVisibility: 'hidden',
+                  backfaceVisibility: 'hidden',
+                }}
+                title="Rechitta Live Broker Assistant"
+                allow="autoplay; fullscreen; microphone"
+              />
+            )}
+          </div>
         </div>
       </div>
 
