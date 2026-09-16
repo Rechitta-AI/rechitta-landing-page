@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import gsap from 'gsap';
-import { coverRect, toViewport, matrix3dFor } from '@/screens/warp';
+import { coverRect, toViewport, matrix3dFor, affineMatrix3dFor } from '@/screens/warp';
 import { isPortraitFor, modeFor } from '@/hooks/useDeviceMode';
 import type { Quad } from '@/screens/types';
 import ClickPrompt from './ClickPrompt';
@@ -162,12 +162,27 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
   );
   const responsiveRect = coverRect(viewport.width, responsiveStageHeight);
   const responsiveViewportCorners: Quad = toViewport(BROKER_PHONE_CORNERS, responsiveRect);
-  const responsiveMatrix = matrix3dFor(PHONE_WIDTH, PHONE_HEIGHT, responsiveViewportCorners);
+  // Affine 2D homography (h31=0, h32=0) eliminates mobile GPU perspective texture invalidations
+  const responsiveMatrix = affineMatrix3dFor(PHONE_WIDTH, PHONE_HEIGHT, responsiveViewportCorners);
 
   useEffect(() => {
+    let lastW = window.innerWidth;
+    let lastH = window.innerHeight;
+
     const handleResize = () => {
       const w = window.innerWidth;
       const h = window.innerHeight;
+
+      // On mobile, ignore small vertical fluctuations caused by address bar collapse/expansion
+      const widthChanged = Math.abs(w - lastW) > 6;
+      const heightChangedSignificantly = Math.abs(h - lastH) > 120;
+
+      if (!widthChanged && !heightChangedSignificantly) {
+        return;
+      }
+
+      lastW = w;
+      lastH = h;
       setViewport({ width: w, height: h });
       if (isVisibleRef.current) {
         const filmHost = document.getElementById('film-stage-host');
@@ -770,6 +785,7 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
               position: 'relative',
               width: '100%',
               height: '100%',
+              backgroundColor: '#0B0F19',
               borderRadius:
                 composited || stacked
                   ? `${BROKER_PHONE_RADIUS}px`
@@ -791,6 +807,7 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
                   touchAction: 'manipulation',
                   width: '100%',
                   height: '100%',
+                  backgroundColor: '#0B0F19',
                   WebkitBackfaceVisibility: 'hidden',
                   backfaceVisibility: 'hidden',
                 }}
