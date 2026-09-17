@@ -226,7 +226,7 @@ export default function CityBackdrop({
       */}
       <div
         className="absolute z-[25] px-6 md:px-0
-                   left-0 right-0 top-[max(4.25rem,calc(50%-26.5dvh-54px))] text-center
+                   left-0 right-0 top-[calc(var(--ml-phone-top)-14px)] -translate-y-full text-center
                    md:left-auto md:right-[7%] md:top-1/2 md:-translate-y-1/2 md:text-right md:max-w-[46vw]"
       >
         {/*
@@ -275,7 +275,7 @@ export default function CityBackdrop({
         ensuring guaranteed non-overlapping clearance from the docked orb on every device.
       */}
       <div
-        className="md:hidden absolute z-[25] left-0 right-0 top-[calc(50%+26.5dvh+34px)]
+        className="md:hidden absolute z-[25] left-0 right-0 top-[calc(var(--ml-phone-top)+var(--ml-phone-h)+14px)]
                    flex items-baseline justify-center gap-x-2.5 px-4 text-center pointer-events-none"
       >
         <span className="font-mono text-[11px] tracking-[0.28em] text-[#8BB0FF] [text-shadow:0_1px_12px_rgba(10,10,9,0.85)]">

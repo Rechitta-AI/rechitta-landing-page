@@ -223,6 +223,13 @@ export const BEATS: Beat[] = [
     clip: 'transit-b',
     park: 16.9,
     enter: { from: 2.0, to: 16.9, rate: 3.6 },
+    /*
+     * 2.5x on a phone: 24fps footage at exactly 60 source frames a second, one
+     * per display refresh. At 3.6x a 60Hz screen shows 1.44 source frames per
+     * refresh, dropped unevenly, and in a portrait crop — a quarter of the
+     * frame's width — every uneven jump reads as a stutter.
+     */
+    portraitEnter: { from: 2.0, to: 16.9, rate: 2.5 },
     hold: 1,
     /*
      * The broker's four objections, walked the way the boardroom walks its

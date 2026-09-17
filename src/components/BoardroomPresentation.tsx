@@ -9,7 +9,7 @@ import ClickPrompt from './ClickPrompt';
 import d from './BoardroomDeck.module.css';
 import DeckDock from './DeckDock';
 import WallLogoReel, {
-  LogoCarousels,
+  LogoStrip,
   DEVELOPER_LOGOS,
   PROJECT_LOGOS,
 } from './BuilderCarousel';
@@ -197,6 +197,50 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
   const controlsTop = isPortrait
     ? screenHeight + (compactDock ? 12 : 22)
     : screenHeight + rect.height * 0.035;
+
+  /*
+   * Portrait: both logo strips stacked above the television, developers on
+   * top, leaving the space under the set to the slide controls and the orb.
+   *
+   * A screen too short to fit both between the header and the set (an SE in
+   * Chrome) keeps the projects strip below the controls instead, rather than
+   * run the pair up under the header.
+   *
+   * The bezel is measured off the same park frame as the face: the set's
+   * outer edge runs from 31.33% to 58.52% down the portrait footage, against
+   * a face of 32.65% to 58.30%.
+   */
+  const [dockHeight, setDockHeight] = useState(30);
+  const [stripHeight, setStripHeight] = useState(compactDock ? 44 : 58);
+  const dockRef = useRef<HTMLDivElement>(null);
+  const topStripRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!isPortrait) return;
+    const measure = () => {
+      if (dockRef.current) setDockHeight(dockRef.current.offsetHeight);
+      if (topStripRef.current) setStripHeight(topStripRef.current.offsetHeight);
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    if (dockRef.current) ro.observe(dockRef.current);
+    if (topStripRef.current) ro.observe(topStripRef.current);
+    return () => ro.disconnect();
+  }, [isPortrait]);
+
+  const bezelTop = ((32.65 - 31.33) / 100) * rect.height * containScale;
+  const bezelBottom = ((58.52 - 58.3) / 100) * rect.height * containScale;
+  /** Clear of the controls below the set. */
+  const stripGapBelow = controlsTop - screenHeight - bezelBottom + dockHeight + (compactDock ? 10 : 14);
+  /** What the header leaves above the set. */
+  const HEADER_CLEARANCE = 66;
+  /** Between the two strips when they stack. */
+  const STRIP_SPACING = compactDock ? 8 : 12;
+  const MIN_SET_GAP = 8;
+  const roomAbove = screenTop - bezelTop - HEADER_CLEARANCE;
+  const stackAbove = roomAbove >= stripHeight * 2 + STRIP_SPACING + MIN_SET_GAP;
+  const stripGapAbove = stackAbove
+    ? Math.min(compactDock ? 18 : 26, roomAbove - (stripHeight * 2 + STRIP_SPACING))
+    : Math.max(MIN_SET_GAP, Math.min(stripGapBelow, roomAbove - stripHeight));
 
   /*
    * The two wall panels the display is mounted between.
@@ -999,21 +1043,50 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
           zIndex: 100,
         }}
       >
-        <DeckDock
-          count={SLIDES.length}
-          active={activeSlide}
-          onStep={slideBy}
-          onPick={setActiveSlide}
-          backLabel={activeSlide === 0 ? 'Return to Dawn' : 'Previous slide'}
-          forwardLabel={activeSlide === SLIDES.length - 1 ? 'Enter Hallway' : 'Next slide'}
-        />
-
-        {isPortrait && (
-          <div className={`w-full px-2 sm:px-4 ${compactDock ? '' : 'mt-2'}`}>
-            <LogoCarousels compact={compactDock} />
-          </div>
-        )}
+        <div ref={dockRef}>
+          <DeckDock
+            count={SLIDES.length}
+            active={activeSlide}
+            onStep={slideBy}
+            onPick={setActiveSlide}
+            backLabel={activeSlide === 0 ? 'Return to Dawn' : 'Previous slide'}
+            forwardLabel={activeSlide === SLIDES.length - 1 ? 'Enter Hallway' : 'Next slide'}
+          />
+        </div>
       </div>
+
+      {isPortrait && (
+        <>
+          <div
+            className="absolute px-2 sm:px-4 pointer-events-none flex flex-col"
+            style={{
+              bottom: `calc(100% + ${bezelTop + stripGapAbove}px)`,
+              left: `${-screenLeft}px`,
+              width: `${viewport.width}px`,
+              gap: `${STRIP_SPACING}px`,
+              zIndex: 100,
+            }}
+          >
+            <div ref={topStripRef}>
+              <LogoStrip group="developers" compact={compactDock} />
+            </div>
+            {stackAbove && <LogoStrip group="projects" compact={compactDock} />}
+          </div>
+          {!stackAbove && (
+            <div
+              className="absolute px-2 sm:px-4 pointer-events-none"
+              style={{
+                top: `${screenHeight + bezelBottom + stripGapBelow}px`,
+                left: `${-screenLeft}px`,
+                width: `${viewport.width}px`,
+                zIndex: 100,
+              }}
+            >
+              <LogoStrip group="projects" compact={compactDock} />
+            </div>
+          )}
+        </>
+      )}
 
     </div>
     </>

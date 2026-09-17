@@ -112,7 +112,12 @@
    *   desktop  >= 1200    lg:
    *
    * `sm:` stays at 640 for splitting small phones from large ones.
+   *
+   * All four in px. With `sm` left at Tailwind's stock 40rem, the mixed units
+   * sorted its media queries after these, so on any element carrying both,
+   * `sm:` beat `md:` and `lg:` on tablet and desktop.
    */
+  --breakpoint-sm: 640px;
   --breakpoint-md: 810px;
   --breakpoint-lg: 1200px;
   --breakpoint-xl: 1200px;
@@ -857,4 +862,25 @@ p {
   font-weight: 500;
   letter-spacing: 1px;
   text-transform: uppercase;
+}
+/*
+ * The multilingual chapter on a phone, laid out as one column.
+ *
+ * The city name, the handset, the clock and the call to action used to be
+ * placed independently — the name and the clock off the handset's nominal
+ * 53dvh, the call to action off the bottom edge — so on a short viewport
+ * (Chrome on iOS leaves ~660px) the handset's 370px floor pushed the clock
+ * straight under the button. Here the bands above and below are reserved
+ * first, the handset takes what is left (up to its full size), and the name
+ * and clock hang off its actual edges. Spare height is split evenly above and
+ * below the group.
+ */
+#multilingual-chapter {
+  /* Header, gap, the city name row (its type size), gap. */
+  --ml-top: calc(max(0.85rem, env(safe-area-inset-top)) + 48px + 10px + clamp(2.15rem, 10vw, 3.25rem) + 14px);
+  /* The call to action's offset and height (page.tsx), gap, clock, gap. */
+  --ml-bottom: calc(max(1rem, env(safe-area-inset-bottom)) + 3.85rem + 36px + 14px + 16px + 16px);
+  --ml-avail: calc(100dvh - var(--ml-top) - var(--ml-bottom));
+  --ml-phone-h: min(490px, max(220px, var(--ml-avail)));
+  --ml-phone-top: calc(var(--ml-top) + max(0px, var(--ml-avail) - var(--ml-phone-h)) / 2);
 }

@@ -263,8 +263,8 @@ export default function ExperiencePage() {
             <div
               id="multilingual-phone"
               className="absolute pointer-events-none
-                         left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2
-                         h-[clamp(370px,53dvh,490px)]
+                         left-1/2 -translate-x-1/2 top-[var(--ml-phone-top)] translate-y-0
+                         h-[var(--ml-phone-h)]
                          md:left-[40%] md:top-1/2 md:-translate-y-1/2 md:h-[min(78vh,780px)]"
             >
               <div className="relative h-full aspect-[388/800]">

@@ -121,8 +121,61 @@ function stackedStageHeight(viewportHeight: number): number {
   );
 }
 
+/**
+ * Resizes the film stage between the full viewport and the stacked stage
+ * without animating layout.
+ *
+ * Tweening `height` re-laid out the stage and re-cropped every video in it on
+ * each frame, which on a phone is what made the arrival stutter. Instead the
+ * new height is applied at once, a transform puts the picture back exactly
+ * where it was, and only that transform is animated, on the compositor.
+ *
+ * On a portrait screen the footage covers by height, so scaling the stage by
+ * the ratio of the two heights reproduces the old framing exactly.
+ */
+function resizeFilmHost(
+  filmHost: HTMLElement,
+  to: 'stacked' | 'full',
+  duration: number,
+  ease: string,
+) {
+  gsap.killTweensOf(filmHost);
+  gsap.set(filmHost, { clearProps: 'transform' });
+  filmHost.style.transition = 'none';
+  filmHost.style.webkitMaskImage = 'none';
+  filmHost.style.maskImage = 'none';
+
+  const fromH = filmHost.getBoundingClientRect().height || window.innerHeight;
+  const toH = to === 'stacked' ? stackedStageHeight(window.innerHeight) : window.innerHeight;
+
+  if (to === 'stacked') {
+    filmHost.style.bottom = 'auto';
+    filmHost.style.height = `${toH}px`;
+  } else {
+    filmHost.style.bottom = '0px';
+    filmHost.style.height = '100%';
+  }
+
+  if (Math.abs(fromH - toH) < 1) return;
+  gsap.fromTo(
+    filmHost,
+    { y: (fromH - toH) / 2, scale: fromH / toH, transformOrigin: '50% 50%', force3D: true },
+    {
+      y: 0,
+      scale: 1,
+      duration,
+      ease,
+      onComplete: () => {
+        gsap.set(filmHost, { clearProps: 'transform' });
+      },
+    },
+  );
+}
+
 export default function BrokerPresentation({ holdData }: BrokerPresentationProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  /** The stacked layout's scrim and glow, faded in with the stage settling. */
+  const scrimRef = useRef<HTMLDivElement>(null);
   const phoneRef = useRef<HTMLDivElement>(null);
   const hudContentRef = useRef<HTMLDivElement>(null);
   const isVisibleRef = useRef(false);
@@ -434,24 +487,9 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
             // Step 2: Only after the iframe has completely faded out, continue with movement!
             setIframeActive(false);
 
-            // Reset film stage host height back to 100%
+            // Film stage back to the full viewport.
             const filmHost = document.getElementById('film-stage-host');
-            if (filmHost) {
-              gsap.killTweensOf(filmHost);
-              filmHost.style.transition = 'none';
-              gsap.to(filmHost, {
-                height: window.innerHeight,
-                duration: 0.55,
-                ease: 'power3.inOut',
-                onComplete: () => {
-                  filmHost.style.bottom = '0px';
-                  filmHost.style.height = '100%';
-                  filmHost.style.transform = 'none';
-                  filmHost.style.webkitMaskImage = 'none';
-                  filmHost.style.maskImage = 'none';
-                },
-              });
-            }
+            if (filmHost) resizeFilmHost(filmHost, 'full', 0.55, 'power3.inOut');
 
             // Dissolve the rest of the Broker HUD UI
             if (containerRef.current) {
@@ -546,23 +584,15 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
           if (phoneRef.current) gsap.set(phoneRef.current, { opacity: 0 });
 
           const filmHost = document.getElementById('film-stage-host');
-          if (filmHost) {
-            const startH = filmHost.getBoundingClientRect().height || window.innerHeight;
-            gsap.killTweensOf(filmHost);
-            filmHost.style.transition = 'none';
-            filmHost.style.bottom = 'auto';
-            filmHost.style.transform = 'none';
-            filmHost.style.webkitMaskImage = 'none';
-            filmHost.style.maskImage = 'none';
-            gsap.fromTo(
-              filmHost,
-              { height: startH },
-              {
-                height: stackedStageHeight(window.innerHeight),
-                duration: 0.65,
-                ease: 'power3.out',
-              }
-            );
+          if (filmHost) resizeFilmHost(filmHost, 'stacked', 0.65, 'power3.out');
+          // The scrim sits at the stage's final edge. Shown at full strength
+          // on the first frame it cut a black band across the picture before
+          // the picture had settled up into place.
+          if (scrimRef.current) {
+            // `from`, so each layer returns to its own opacity (the glow is 0.2).
+            gsap.killTweensOf(scrimRef.current.children);
+            gsap.set(scrimRef.current.children, { clearProps: 'opacity' });
+            gsap.from(scrimRef.current.children, { opacity: 0, duration: 0.65, ease: 'power2.out' });
           }
 
           // Once the phone in the footage has completely settled at its final position (~650ms):
@@ -576,7 +606,10 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
                 { opacity: 1, duration: 0.3, ease: 'power2.out' }
               );
             }
-          }, 650);
+            // After the panel has cascaded in. The live app is a whole page
+            // loading in-process, and mounted at 650ms it landed in the middle
+            // of the stage settling and the cascade, stalling both.
+          }, 1250);
         } else {
           setIframeActive(true);
         }
@@ -689,20 +722,7 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
         const filmHost = document.getElementById('film-stage-host');
         if (filmHost) {
           if (stacked) {
-            gsap.killTweensOf(filmHost);
-            filmHost.style.transition = 'none';
-            gsap.to(filmHost, {
-              height: window.innerHeight,
-              duration: 0.55,
-              ease: 'power3.inOut',
-              onComplete: () => {
-                filmHost.style.bottom = '0px';
-                filmHost.style.height = '100%';
-                filmHost.style.transform = 'none';
-                filmHost.style.webkitMaskImage = 'none';
-                filmHost.style.maskImage = 'none';
-              },
-            });
+            resizeFilmHost(filmHost, 'full', 0.55, 'power3.inOut');
           } else {
             gsap.killTweensOf(filmHost);
             filmHost.style.transition = 'none';
@@ -914,7 +934,7 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
         into deep obsidian base with zero harsh cuts, paired with soft ambient brand light.
       */}
       {stacked && (
-        <>
+        <div ref={scrimRef} className="contents">
           <div
             className="fixed left-0 right-0 bottom-0 pointer-events-none z-20"
             style={{
@@ -935,7 +955,7 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
             }}
             aria-hidden="true"
           />
-        </>
+        </div>
       )}
 
       {/* ===================================================================

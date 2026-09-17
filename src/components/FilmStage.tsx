@@ -51,6 +51,8 @@ const FADE_MS = 420;
 /** The white flash that separates chapters, in and out, ms. */
 const FLASH_IN_MS = 260;
 const FLASH_OUT_MS = 420;
+/** The longest the flash may stay up waiting on the incoming clip, ms. */
+const MAX_FLASH_HOLD_MS = 900;
 
 /** How long the film waits for an overlay's hand-off before moving anyway. */
 const RELEASE_TIMEOUT_MS = 4000;
@@ -506,7 +508,9 @@ export default function FilmStage({
       flash(1, FLASH_IN_MS);
       await sleep(FLASH_IN_MS);
       if (disposed) return;
-      await swap();
+      // The flash is a cut, not a loading screen. A clip slow to park finishes
+      // behind the lifted flash rather than holding the viewer on white.
+      await Promise.race([swap(), sleep(MAX_FLASH_HOLD_MS)]);
       if (disposed) return;
       // A beat to let the incoming layer paint before the flash lifts.
       await sleep(80);
@@ -569,9 +573,13 @@ export default function FilmStage({
         show(null, 0);
       } else {
         setLayerVisible(true);
-        if (target.clip) {
-          const v = acquire(target.clip);
-          if (target.clip === 'last') alignFinaleClip(v, target.id);
+        // The portrait cut where there is one. Reading `target.clip` directly
+        // had a phone looping from the finale back to the hero fetch the
+        // desktop footage from scratch, under a white flash, for seconds.
+        const targetClip = getBeatClip(target, isPortrait());
+        if (targetClip) {
+          const v = acquire(targetClip);
+          if (targetClip === 'last') alignFinaleClip(v, target.id);
           const enterConf = getBeatEnter(target, isPortrait());
           await park(
             v,
@@ -654,12 +662,14 @@ export default function FilmStage({
       // Footage that belongs to the chapter being left has to play before the
       // flash, not after it — the flight into the clouds is the way out of the
       // buyer's phone, so it runs while the film layer is still up.
+      const targetEnter = getBeatEnter(target, isPortrait());
+      const targetClip = getBeatClip(target, isPortrait());
       const playsOut =
         dir === 1 &&
         chapterChange &&
-        Boolean(target.enter) &&
-        Boolean(target.clip) &&
-        progressForClipTime(timing, target.clip!, target.enter!.from) !== null;
+        Boolean(targetEnter) &&
+        Boolean(targetClip) &&
+        progressForClipTime(timing, targetClip!, targetEnter!.from) !== null;
 
       if (playsOut) {
         await playForward(target, from, to);

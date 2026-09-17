@@ -29,6 +29,15 @@
   z-index: 131;
 }
 
+/* A full-viewport blend layer costs a blend over the whole film on every
+   frame the orb moves. Over dark footage plain compositing looks the same,
+   and phones are where that cost shows. */
+@media (hover: none) and (pointer: coarse) {
+  .trailLayer {
+    mix-blend-mode: normal;
+  }
+}
+
 .trailDot {
   position: absolute;
   width: 26px;

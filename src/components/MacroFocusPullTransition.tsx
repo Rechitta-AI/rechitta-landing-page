@@ -296,10 +296,22 @@ export default function MacroFocusPullTransition() {
         />
       </div>
 
+      {/*
+        Placement and animation live on separate elements from here down.
+
+        GSAP owns the transform of everything it animates, and it folds any
+        CSS `translate` it finds into that transform — measured when it first
+        touches the element, which is at mount, while the overlay is still
+        display: none. The -50% centring came out wrong there, and on a phone
+        the title card slid off the left edge. So the wrappers centre, never
+        animate, and GSAP only ever scales what is inside them.
+      */}
+
       {/* 3. Multi-Layered Cinema Anamorphic Streak (Hot White Core + Gold & Sapphire Halo) */}
+      <div className="absolute top-[46%] left-0 right-0 h-[2px] -translate-y-1/2 pointer-events-none">
       <div
         ref={flareRef}
-        className="absolute top-[46%] left-0 right-0 h-[2px] -translate-y-1/2 pointer-events-none opacity-0 flex items-center justify-center"
+        className="absolute inset-0 opacity-0 flex items-center justify-center"
         style={{ willChange: 'opacity, transform' }}
       >
         {/* Outer Sapphire Gradient Flare */}
@@ -321,11 +333,13 @@ export default function MacroFocusPullTransition() {
           }}
         />
       </div>
+      </div>
 
       {/* 4. Vertical Optical Glint Spike (Cylindrical Anamorphic Lens Refraction) */}
+      <div className="absolute top-[46%] left-0 right-0 -translate-y-1/2 flex justify-center pointer-events-none">
       <div
         ref={glintRef}
-        className="absolute top-[46%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1px] h-[48px] pointer-events-none opacity-0"
+        className="w-[1px] h-[48px] md:h-[64px] lg:h-[80px] opacity-0"
         style={{
           background:
             'linear-gradient(180deg, transparent 0%, rgba(221, 187, 115, 0.5) 25%, #FFFFFF 50%, rgba(221, 187, 115, 0.5) 75%, transparent 100%)',
@@ -333,36 +347,44 @@ export default function MacroFocusPullTransition() {
           willChange: 'opacity, transform',
         }}
       />
+      </div>
 
       {/* 5. Pure Floating Cinema Typography — Zero Pills, Zero Boxes */}
+      {/*
+        Sized up a step at tablet and again at desktop. On a phone the
+        tracking tightens and every line may wrap, so no title is ever wider
+        than the screen.
+      */}
+      <div className="absolute top-[46%] left-0 right-0 -translate-y-1/2 z-10 flex justify-center px-5 sm:px-8 pointer-events-none">
       <div
         ref={typographyRef}
-        className="absolute top-[46%] left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none opacity-0 z-10 flex flex-col items-center justify-center text-center px-6 w-full max-w-2xl"
+        className="opacity-0 flex flex-col items-center justify-center text-center w-full max-w-[min(100%,48rem)]"
         style={{ willChange: 'opacity, transform, filter' }}
       >
         {/* Delicate Gold Status Eyebrow (Above Beam) */}
-        <div className="flex items-center gap-2 mb-3.5">
-          <span className="w-1.5 h-1.5 rounded-full bg-[#DDBB73] animate-ping" />
-          <span className="text-[9.5px] sm:text-[10.5px] font-mono tracking-[0.38em] text-[#DDBB73] font-semibold uppercase drop-shadow-[0_0_10px_rgba(221,187,115,0.6)]">
+        <div className="flex items-center justify-center gap-2 mb-3.5 md:mb-5 max-w-full">
+          <span className="w-1.5 h-1.5 shrink-0 rounded-full bg-[#DDBB73] animate-ping" />
+          <span className="text-[9.5px] sm:text-[10.5px] md:text-xs lg:text-[13px] font-mono tracking-[0.24em] sm:tracking-[0.38em] text-[#DDBB73] font-semibold uppercase text-balance drop-shadow-[0_0_10px_rgba(221,187,115,0.6)]">
             04:11 UTC · GLOBAL PROTOCOL
           </span>
         </div>
 
         {/* Main Cinematic Chapter Titles (Below Beam) */}
-        <div className="flex flex-col items-center text-center mt-3.5">
+        <div className="flex flex-col items-center text-center mt-3.5 md:mt-5 max-w-full">
           <h2
             ref={titleRef}
-            className="text-xs sm:text-sm font-mono tracking-[0.32em] text-white/95 font-semibold uppercase drop-shadow-[0_2px_14px_rgba(0,0,0,0.9)]"
+            className="text-xs sm:text-sm md:text-base lg:text-lg font-mono tracking-[0.2em] sm:tracking-[0.32em] text-white/95 font-semibold uppercase text-balance drop-shadow-[0_2px_14px_rgba(0,0,0,0.9)]"
           >
             DISPATCHING BRIEFING
           </h2>
           <span
             ref={subtitleRef}
-            className="text-[10px] sm:text-[11px] font-mono tracking-[0.28em] text-[#8FB4FF] uppercase mt-1.5 drop-shadow-[0_0_12px_rgba(61,111,245,0.5)]"
+            className="text-[10px] sm:text-[11px] md:text-xs lg:text-sm font-mono tracking-[0.2em] sm:tracking-[0.28em] text-[#8FB4FF] uppercase text-balance mt-1.5 md:mt-2.5 drop-shadow-[0_0_12px_rgba(61,111,245,0.5)]"
           >
             6 GLOBAL HUBS
           </span>
         </div>
+      </div>
       </div>
     </div>
   );

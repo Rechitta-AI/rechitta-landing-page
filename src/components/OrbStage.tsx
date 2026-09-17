@@ -403,6 +403,7 @@ export default function OrbStage({
 
       const vw = window.innerWidth;
       const vh = window.innerHeight;
+      const portrait = isPortraitFor(vw, vh);
       const scale = pose.scale * (1 + breath + flare * 0.22);
 
       /*
@@ -425,7 +426,10 @@ export default function OrbStage({
       if (holderRef.current) {
         holderRef.current.style.transform = `translate(${px}px, ${py}px) scale(${scale})`;
         holderRef.current.style.opacity = String(Math.min(1, pose.opacity + flare * 0.3) * fade);
-        holderRef.current.style.filter = pose.blur > 0.05 ? `blur(${pose.blur}px)` : '';
+        // No depth blur on a phone: a filter over the orb's WebGL iframe is
+        // re-rasterised every frame it moves, and switching it on and off
+        // mid-shot is a visible hitch on iOS.
+        holderRef.current.style.filter = pose.blur > 0.05 && !portrait ? `blur(${pose.blur}px)` : '';
       }
 
 

@@ -82,7 +82,7 @@ describe('intro responsive sequence 1 & 2', () => {
     const broker = BEATS.find((b) => b.id === 'broker')!;
     expect(getBeatClip(broker, true)).toBe('transit-b');
     expect(getBeatPark(broker, true)).toBe(16.9);
-    expect(getBeatEnter(broker, true)).toEqual({ from: 2.0, to: 16.9, rate: 3.6 });
+    expect(getBeatEnter(broker, true)).toEqual({ from: 2.0, to: 16.9, rate: 2.5 });
   });
 });
 

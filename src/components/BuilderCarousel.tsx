@@ -210,28 +210,41 @@ export function LogoCarousels({
   /** Shorter strips and tighter gaps, for phones where the orb docks close below. */
   compact?: boolean;
 }) {
-  const groups = [
-    { title: 'Developers on Rechitta', logos: DEVELOPER_LOGOS, reverse: false },
-    { title: 'Projects being briefed', logos: PROJECT_LOGOS, reverse: true },
-  ];
   return (
     <div className={`w-full flex flex-col ${compact ? 'gap-2' : 'gap-3'}`}>
-      {groups.map((g) => (
-        <div
-          key={g.title}
-          className={`w-full flex flex-col ${compact ? 'gap-1' : 'gap-1.5'} ${itemClassName}`}
-        >
-          <p
-            className={`text-center font-semibold text-white/60 tracking-[0.02em] ${
-              compact ? 'text-[10.5px]' : 'text-[11px]'
-            }`}
-            style={{ fontFamily: 'var(--font-inter)' }}
-          >
-            {g.title}
-          </p>
-          <BuilderMarquee logos={g.logos} reverse={g.reverse} compact={compact} />
-        </div>
-      ))}
+      <LogoStrip group="developers" compact={compact} className={itemClassName} />
+      <LogoStrip group="projects" compact={compact} className={itemClassName} />
+    </div>
+  );
+}
+
+const LOGO_GROUPS = {
+  developers: { title: 'Developers on Rechitta', logos: DEVELOPER_LOGOS, reverse: false },
+  projects: { title: 'Projects being briefed', logos: PROJECT_LOGOS, reverse: true },
+};
+
+/** One of the two titled strips, for layouts that place them apart. */
+export function LogoStrip({
+  group,
+  compact = false,
+  className = '',
+}: {
+  group: keyof typeof LOGO_GROUPS;
+  compact?: boolean;
+  className?: string;
+}) {
+  const g = LOGO_GROUPS[group];
+  return (
+    <div className={`w-full flex flex-col ${compact ? 'gap-1' : 'gap-1.5'} ${className}`}>
+      <p
+        className={`text-center font-semibold text-white/60 tracking-[0.02em] ${
+          compact ? 'text-[10.5px]' : 'text-[11px]'
+        }`}
+        style={{ fontFamily: 'var(--font-inter)' }}
+      >
+        {g.title}
+      </p>
+      <BuilderMarquee logos={g.logos} reverse={g.reverse} compact={compact} />
     </div>
   );
 }
