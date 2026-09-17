@@ -29,13 +29,16 @@ import {
 import { buildTiming, progressForClipTime } from '@/film/timing';
 import {
   acquire,
+  hasPainted,
   keepOnly,
+  onAnyPaint,
   park,
   preloadBlobUrl,
   preloadInBackground,
   poolReport,
   preloadSpan,
   setMediaHost,
+  startPlayback,
 } from '@/film/media';
 import { isHeld } from '@/film/holds';
 import { registerLoadTask, setLoadProgress } from '@/utils/loadProgress';
@@ -111,6 +114,12 @@ export type FilmStageProps = {
   onCity?: (index: number) => void;
   /** A gated beat refused to advance — the overlay should say so. */
   onNudge?: (beat: Beat) => void;
+  /**
+   * The first time any clip has genuinely painted a frame. Until then the
+   * page keeps its still underlay up: on a phone in Low Power Mode nothing
+   * paints before the viewer's first touch.
+   */
+  onFirstFrame?: () => void;
 };
 
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
@@ -127,19 +136,20 @@ export default function FilmStage({
   onCity,
   onNudge,
   onMoveStart,
+  onFirstFrame,
 }: FilmStageProps) {
   const hostRef = useRef<HTMLDivElement>(null);
   const flashRef = useRef<HTMLDivElement>(null);
 
   // Read inside long-lived listeners; kept current without rebuilding them.
   const enabledRef = useRef(enabled);
-  const callbacks = useRef({ onChapter, onBeat, onCity, onNudge, onMoveStart });
+  const callbacks = useRef({ onChapter, onBeat, onCity, onNudge, onMoveStart, onFirstFrame });
   useEffect(() => {
     enabledRef.current = enabled;
   }, [enabled]);
   useEffect(() => {
-    callbacks.current = { onChapter, onBeat, onCity, onNudge, onMoveStart };
-  }, [onChapter, onBeat, onCity, onNudge, onMoveStart]);
+    callbacks.current = { onChapter, onBeat, onCity, onNudge, onMoveStart, onFirstFrame };
+  }, [onChapter, onBeat, onCity, onNudge, onMoveStart, onFirstFrame]);
 
   useEffect(() => {
     const host = hostRef.current;
@@ -347,11 +357,14 @@ export default function FilmStage({
       if (disposed) return;
 
       v.playbackRate = rate;
-      try {
-        await v.play();
-      } catch {
-        // Autoplay refused: fall through and let the watcher park the frame.
-      }
+      // Refused outright (Low Power Mode with no gesture to lift it): cut to
+      // the end rather than sit frozen on the first frame until the deadline.
+      const started = await startPlayback(v);
+      if (disposed) return;
+      const running = started !== false;
+      // Waited on the viewer's touch: the rest of that same swipe is not a
+      // request to skip a shot that has only just started.
+      if (started === 'after-gesture') skipRequested = false;
 
       const startProgress =
         getBeatProgressFrom(beat, portrait) ??
@@ -365,9 +378,9 @@ export default function FilmStage({
       const deadline =
         startedAt + Math.min(naturalMs * OVERRUN_FACTOR + OVERRUN_GRACE_MS, MAX_SHOT_MS);
       let rateChecked = false;
-      let cutShort = false;
+      let cutShort = !running;
 
-      await new Promise<void>((resolve) => {
+      if (running) await new Promise<void>((resolve) => {
         const watch = (now: number) => {
           if (disposed) return resolve();
 
@@ -875,6 +888,12 @@ export default function FilmStage({
     // Everything past it streams in afterwards, one clip at a time, in the
     // order the film needs them.
 
+    let disposeHeroWait = () => {};
+    const stopFirstFrame = onAnyPaint(() => {
+      stopFirstFrame();
+      callbacks.current.onFirstFrame?.();
+    });
+
     registerLoadTask('film');
     let stopBackground = () => {};
 
@@ -907,8 +926,20 @@ export default function FilmStage({
       if (firstClip) {
         const v = acquire(firstClip);
         const target = initialPark;
+        // Only once it has a frame to show. Before that the page's still
+        // underlay carries the shot, which beats a black stage.
         const reveal = () => {
-          if (!disposed) show(v, 400);
+          if (disposed) return;
+          if (hasPainted(v)) {
+            show(v, 400);
+            return;
+          }
+          const stop = onAnyPaint(() => {
+            if (!hasPainted(v)) return;
+            stop();
+            if (!disposed && state.index === 0 && shown === null) show(v, 400);
+          });
+          disposeHeroWait = stop;
         };
 
         if (
@@ -959,6 +990,8 @@ export default function FilmStage({
     return () => {
       disposed = true;
       stopBackground();
+      disposeHeroWait();
+      stopFirstFrame();
       window.removeEventListener('wheel', onWheel);
       window.removeEventListener('touchstart', onTouchStart);
       window.removeEventListener('touchmove', onTouchMove);

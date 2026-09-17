@@ -140,20 +140,23 @@ export default function OrbStage({
   };
 
   /**
-   * Measures the broker scene's orb anchor, above the answer column. Only
-   * rendered on a composited desktop layout, so anywhere else this is null and
-   * the authored pose stands.
+   * Measures where the orb rests in the broker scene: its right edge flush
+   * with the answer column's. Desktop reads `#broker-orb-anchor`, which sits
+   * above the column's top right corner; a stacked phone layout has no room
+   * above its panel, so it keeps the authored height and takes only the right
+   * edge from `#broker-copy-column`. The x is resolved later, once the beat's
+   * scale is known.
    */
-  const measureBrokerPose = (): { x: number; y: number } | null => {
+  const measureBrokerPose = (portrait: boolean): { right: number; y: number | null } | null => {
     if (typeof window === 'undefined') return null;
-    const target = document.getElementById('broker-orb-anchor');
+    const target = document.getElementById(portrait ? 'broker-copy-column' : 'broker-orb-anchor');
     if (!target) return null;
     const rect = target.getBoundingClientRect();
     if (rect.width === 0 && rect.height === 0) return null;
     return {
-      x: ((rect.left + rect.width / 2) / window.innerWidth) * 100,
+      right: rect.right,
       // Kept clear of the header along the top.
-      y: Math.max(14, ((rect.top + rect.height / 2) / window.innerHeight) * 100),
+      y: portrait ? null : Math.max(14, ((rect.top + rect.height / 2) / window.innerHeight) * 100),
     };
   };
 
@@ -167,7 +170,9 @@ export default function OrbStage({
     const portrait = typeof window !== 'undefined' ? isPortraitFor(window.innerWidth, window.innerHeight) : false;
     const dock = portrait ? (dockPoseRef.current ?? measureDockPose()) : null;
     const finaleDock = finaleDockPoseRef.current ?? measureFinaleDockPose();
-    const brokerDock = portrait ? null : measureBrokerPose();
+    const brokerDock = measureBrokerPose(portrait);
+    const heroScale = hero?.scale ?? (portrait ? 0.75 : 1.2);
+    const minScale = heroScale * MIN_SCALE_FRACTION;
 
     const path: Keyframe[] = hero || dock || finaleDock || brokerDock
       ? ORB_PATH.map((k) => {
@@ -186,7 +191,16 @@ export default function OrbStage({
             };
           }
           if (brokerDock && k.brokerDock) {
-            next = { ...next, x: +brokerDock.x.toFixed(2), y: +brokerDock.y.toFixed(2) };
+            // Right-aligned: the core's right edge on the column's, at the
+            // scale this beat actually resolves to.
+            const scale = Math.max(portrait ? (next.portrait?.scale ?? next.scale) : next.scale, minScale);
+            const radius = (coreSizeFor(window.innerWidth) / 2) * scale;
+            const x = +(((brokerDock.right - radius) / window.innerWidth) * 100).toFixed(2);
+            if (portrait) {
+              next = { ...next, portrait: { ...next.portrait, x } };
+            } else {
+              next = { ...next, x, y: +brokerDock.y!.toFixed(2) };
+            }
           }
           if (finaleDock && k.finaleDock) {
             next = {
@@ -208,8 +222,7 @@ export default function OrbStage({
       `#hero-o-anchor`, so on a portrait screen it is a different size and the
       floor has to follow it.
     */
-    const heroScale = hero?.scale ?? (portrait ? 0.75 : 1.2);
-    const resolved = resolvePath(path, timing, portrait, heroScale * MIN_SCALE_FRACTION);
+    const resolved = resolvePath(path, timing, portrait, minScale);
     resolvedRef.current = resolved;
     lastTimingRef.current = timing;
 

@@ -92,24 +92,32 @@ export const ORB_PATH: Keyframe[] = [
     ease: 'out',
     note: 'K6 — out through the facade ahead of the camera. Longest trail in the film.',
   },
+  /*
+   * Straight from the facade to its dock over the answer column.
+   *
+   * It used to arc down onto the terrace and hover over the broker's hands
+   * first — which is where the phone mockup appears — and then jump up to the
+   * dock at the very end of the shot. Now it glides there directly, arrives
+   * with a few seconds of footage to spare, and waits for the flare.
+   *
+   * 11.0s resolves to 0.41 of the film, just short of the 0.42 a portrait
+   * screen parks the broker beat at, so a phone settles onto the dock too.
+   */
   {
-    anchor: { clip: 'transit-b', t: 9.0 },
-    x: 58, y: 44, scale: 0.5, opacity: 0.9, blur: 0,
-    ease: 'inOut',
-    note: 'K7 — on the terrace, arcing down toward the small figure.',
-  },
-  {
-    anchor: { clip: 'transit-b', t: 13.0 },
-    x: 57, y: 62, scale: 0.42, opacity: 0.9, blur: 0,
-    ease: 'out',
-    note: 'K8 — hovering above his hands. Slows to almost nothing.',
-  },
-  {
-    anchor: { clip: 'transit-b', t: 16.8 },
-    pulse: true,
-    // Desktop measures its pose off the answer column instead (OrbStage).
+    anchor: { clip: 'transit-b', t: 11.0 },
     brokerDock: true,
-    // Stacked, the live app sits centre screen; 23% lands on it.
+    portrait: { x: 84, y: 20, scale: 0.5 },
+    x: 23, y: 25, scale: 0.6, opacity: 1, blur: 0,
+    ease: 'inOut',
+    note: 'K7 — glides up and right, clear of the phone, onto the answer column.',
+  },
+  {
+    // The shot's last frame, where the broker beat parks. At 16.8 the parked
+    // orb sat a hair past it and drifted off toward the focus pull.
+    anchor: { clip: 'transit-b', t: 16.9 },
+    pulse: true,
+    // Measured off the answer column's right edge (OrbStage), portrait too.
+    brokerDock: true,
     portrait: { x: 84, y: 20, scale: 0.5 },
     /*
      * Raised from 33. The objections now run down this side of the frame, and
@@ -163,14 +171,20 @@ export const ORB_PATH: Keyframe[] = [
    */
 
   // ── Act III — Focus pull into the multilingual chapter ─────────────
+  /*
+   * In the gap between the broker (the intro ends at 0.50) and the first city
+   * (0.52), which is where the focus pull actually runs. These sat at 0.47 and
+   * 0.495, inside the broker's own shot, and pulled the orb back to the middle
+   * of the phone on its way to the dock.
+   */
   {
-    anchor: { progress: 0.47 },
+    anchor: { progress: 0.505 },
     x: 50, y: 50, scale: 0.65, opacity: 1, blur: 0,
     ease: 'inOut',
     note: 'K11 — glides to the center optical focus line.',
   },
   {
-    anchor: { progress: 0.495 },
+    anchor: { progress: 0.515 },
     pulse: true,
     x: 50, y: 50, scale: 1.1, opacity: 1, blur: 0,
     ease: 'inOut',

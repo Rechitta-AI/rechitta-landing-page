@@ -23,6 +23,7 @@ const FinaleWorldMapPresentation = dynamic(
 import type { FilmTiming } from '@/orb/types';
 import type { Playhead } from '@/screens/types';
 import { CITIES, type Beat, type Chapter } from '@/film/score';
+import { useDeviceMode } from '@/hooks/useDeviceMode';
 
 type HeroCopy = 'all' | 'heading' | 'none';
 
@@ -55,6 +56,10 @@ export default function ExperiencePage() {
   // Cinematic intro choreography.
   const [introPhase, setIntroPhase] = useState<'loading' | 'moving' | 'revealing' | 'done'>('loading');
   const [orbReady, setOrbReady] = useState(false);
+  /** A clip has painted a real frame, so the still underlay can go. */
+  const [filmPainted, setFilmPainted] = useState(false);
+  const handleFirstFrame = useCallback(() => setFilmPainted(true), []);
+  const { portrait } = useDeviceMode();
   const revealTextRef = useRef<HTMLDivElement>(null);
 
   const scrollData = useRef({ progress: 0 });
@@ -342,12 +347,19 @@ export default function ExperiencePage() {
 
           {/* The film itself, plus the overlays that ride specific frames. */}
           <div className="absolute inset-0 z-10 w-full h-full pointer-events-none">
-            {/* Instant 0ms visual underlay for Dawn scene (exact frame 120 at 60fps / t=2.0s) for iOS/mobile resilience */}
-            {introPhase !== 'done' && (
+            {/*
+              The opening frame as a still, under the film. It stays until a
+              clip has genuinely painted: an iPhone in Low Power Mode paints no
+              video at all before the viewer's first touch, and without this
+              the hero would sit on black.
+            */}
+            {(introPhase !== 'done' || (!filmPainted && chapter === 'intro')) && (
               <div
                 className="absolute inset-0 -z-10 w-full h-full bg-cover bg-center pointer-events-none"
                 style={{
-                  backgroundImage: "url('/film/frames/scene1-3/f_120.webp')",
+                  backgroundImage: portrait
+                    ? "url('/film/frames/mobile-seq1-2/poster.webp')"
+                    : "url('/film/frames/scene1-3/f_120.webp')",
                 }}
                 aria-hidden="true"
               />
@@ -371,6 +383,7 @@ export default function ExperiencePage() {
               onBeat={handleBeat}
               onMoveStart={handleMoveStart}
               onCity={handleCity}
+              onFirstFrame={handleFirstFrame}
             />
           </div>
         </div>

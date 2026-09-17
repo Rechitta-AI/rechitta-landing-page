@@ -80,6 +80,7 @@ export async function preloadBlobUrl(
         const currentTime = existing.currentTime;
         const paused = existing.paused;
         existing.src = blobUrl;
+        painted.delete(existing);
         existing.currentTime = currentTime;
         if (!paused) existing.play().catch(() => { });
       }
@@ -112,8 +113,182 @@ let host: HTMLElement | null = null;
  */
 const pinned = new Set<string>();
 
+/**
+ * Elements that have spent a decoder on a real frame.
+ *
+ * iOS WebKit only paints a frame for an element that has been allowed to
+ * play. In Low Power Mode it refuses every play() that is not inside a user
+ * gesture, so a clip can be loaded, seeked and "parked" and still draw
+ * nothing but black. Anything that wants to put footage on screen for the
+ * first time asks here rather than trusting readyState.
+ */
+const painted = new WeakSet<HTMLVideoElement>();
+const paintListeners = new Set<() => void>();
+
+/** iPhone and iPad, where frames only paint for an element allowed to play. */
+const paintsOnlyAfterPlay = () =>
+  typeof navigator !== 'undefined' &&
+  /AppleWebKit/.test(navigator.userAgent) &&
+  navigator.maxTouchPoints > 0;
+
+function markPainted(v: HTMLVideoElement) {
+  if (painted.has(v)) return;
+  painted.add(v);
+  paintListeners.forEach((cb) => cb());
+}
+
+export function hasPainted(v: HTMLVideoElement): boolean {
+  return painted.has(v);
+}
+
+/** Calls back each time any clip paints its first frame. */
+export function onAnyPaint(cb: () => void): () => void {
+  paintListeners.add(cb);
+  return () => paintListeners.delete(cb);
+}
+
+/**
+ * Low Power Mode, and the gesture that lifts it.
+ *
+ * WebKit lifts the restriction per element, for good, the first time play()
+ * is called on it inside a user gesture. So every gesture primes whatever the
+ * pool holds, released elements are kept and reused rather than thrown away,
+ * and a few blank ones are primed ahead of the clips that will need them.
+ */
+const spares: HTMLVideoElement[] = [];
+const MAX_SPARES = 6;
+/** Pool plus spares worth of elements to have unlocked before they are needed. */
+const PRIMED_ELEMENTS = 5;
+const primed = new WeakSet<HTMLVideoElement>();
+/** Any extra elements outside the pool that should be unlocked too. */
+const extras = new Set<HTMLVideoElement>();
+const unlockListeners = new Set<() => void>();
+
+export function registerVideo(v: HTMLVideoElement): () => void {
+  extras.add(v);
+  return () => extras.delete(v);
+}
+
+function blankElement(): HTMLVideoElement {
+  const v = document.createElement('video');
+  v.muted = true;
+  v.defaultMuted = true;
+  v.playsInline = true;
+  v.setAttribute('playsinline', '');
+  v.setAttribute('webkit-playsinline', '');
+  v.addEventListener('playing', () => markPainted(v));
+  v.addEventListener('loadeddata', () => {
+    if (!paintsOnlyAfterPlay()) markPainted(v);
+  });
+  return v;
+}
+
+function prime(v: HTMLVideoElement) {
+  if (primed.has(v)) return;
+  primed.add(v);
+  if (!v.getAttribute('src')) {
+    // Nothing to paint: the call is only for the permission. Paused straight
+    // away, or the element would start playing the moment it is given a src.
+    v.play().catch(() => {});
+    v.pause();
+    return;
+  }
+  // Already playing (or asked to), so the gesture is all it needed.
+  if (!v.paused || v.dataset.playing === '1') {
+    v.play().catch(() => {});
+    return;
+  }
+  const t = v.currentTime;
+  v.play()
+    .then(() => {
+      markPainted(v);
+      // Someone started this clip for real in the meantime; leave it running.
+      if (v.dataset.playing === '1') return;
+      v.pause();
+      if (Math.abs(v.currentTime - t) > 0.001) v.currentTime = t;
+    })
+    .catch((err: unknown) => {
+      // Refused: try again on the next gesture.
+      if (err instanceof DOMException && err.name === 'NotAllowedError') primed.delete(v);
+    });
+}
+
+function onGesture() {
+  while (pool.size + spares.length < PRIMED_ELEMENTS) spares.push(blankElement());
+  pool.forEach(prime);
+  spares.forEach(prime);
+  extras.forEach(prime);
+  unlockListeners.forEach((cb) => cb());
+}
+
+const GESTURE_EVENTS = ['touchend', 'click', 'keydown', 'pointerup'] as const;
+
+function listenForGestures(on: boolean) {
+  if (typeof window === 'undefined') return;
+  GESTURE_EVENTS.forEach((e) =>
+    on
+      ? window.addEventListener(e, onGesture, { capture: true, passive: true })
+      : window.removeEventListener(e, onGesture, { capture: true }),
+  );
+}
+
+/**
+ * play(), surviving Low Power Mode.
+ *
+ * A refused play() waits for the next gesture — on a phone that is the
+ * touchend of the very swipe that asked for the shot — and tries again,
+ * instead of leaving the transition frozen on its first frame. Resolves with
+ * 'playing' when play() went straight through, 'after-gesture' when it had to
+ * wait for one, and false when it never started.
+ */
+export type PlaybackStart = 'playing' | 'after-gesture' | false;
+
+export function startPlayback(v: HTMLVideoElement, waitMs = 1500): Promise<PlaybackStart> {
+  v.dataset.playing = '1';
+  const onPause = () => {
+    delete v.dataset.playing;
+  };
+  const running = () => {
+    v.addEventListener('pause', onPause, { once: true });
+    markPainted(v);
+  };
+  return v.play().then((): PlaybackStart => {
+    running();
+    return 'playing';
+  }, (err: unknown) => {
+    if (!(err instanceof DOMException && err.name === 'NotAllowedError')) {
+      onPause();
+      return false;
+    }
+    return new Promise<PlaybackStart>((resolve) => {
+      let settled = false;
+      const done = (ok: PlaybackStart) => {
+        if (settled) return;
+        settled = true;
+        window.clearTimeout(timer);
+        unlockListeners.delete(retry);
+        if (!ok) onPause();
+        resolve(ok);
+      };
+      // The gesture has arrived: the retried play() decides, not the clock. A
+      // clip that needs a moment to start must not be cut for it.
+      const retry = () => {
+        window.clearTimeout(timer);
+        unlockListeners.delete(retry);
+        v.play().then(() => {
+          running();
+          done('after-gesture');
+        }, () => done(false));
+      };
+      const timer = window.setTimeout(() => done(false), waitMs);
+      unlockListeners.add(retry);
+    });
+  });
+}
+
 export function setMediaHost(el: HTMLElement | null) {
   host = el;
+  listenForGestures(Boolean(el));
   if (!el) return;
   pool.forEach((v) => {
     if (v.parentElement !== el) el.append(v);
@@ -121,14 +296,14 @@ export function setMediaHost(el: HTMLElement | null) {
 }
 
 function create(key: string): HTMLVideoElement {
-  const v = document.createElement('video');
+  // A released element keeps any permission a gesture gave it.
+  const v = spares.pop() ?? blankElement();
+  painted.delete(v);
+  delete v.dataset.playing;
+  v.removeAttribute('poster');
+  v.style.cssText = '';
   const blob = blobCache.get(key);
   v.src = blob ?? fullUrl(key);
-  v.muted = true;
-  v.defaultMuted = true;
-  v.playsInline = true;
-  v.setAttribute('playsinline', '');
-  v.setAttribute('webkit-playsinline', '');
   v.preload = 'auto';
   v.setAttribute('aria-hidden', 'true');
   v.dataset.clip = key;
@@ -178,6 +353,8 @@ export function releaseClip(key: string) {
   v.removeAttribute('src');
   v.load();
   v.remove();
+  painted.delete(v);
+  if (spares.length < MAX_SPARES) spares.push(v);
 }
 
 /** Drops every decoder except the ones named, and whatever is streaming. */
@@ -270,17 +447,20 @@ export function park(v: HTMLVideoElement, time: number): Promise<void> {
         if (p && typeof p.then === 'function') {
           // A play() that never settles (a stalled network) must not hang the
           // park either.
-          let primed = false;
+          let primeSettled = false;
           const giveUp = window.setTimeout(() => {
-            if (primed) return;
-            primed = true;
-            v.pause();
+            if (primeSettled) return;
+            primeSettled = true;
+            if (v.dataset.playing !== '1') v.pause();
             resolve();
           }, PLAY_PRIME_TIMEOUT_MS);
           p.then(() => {
-            if (primed) return;
-            primed = true;
+            if (primeSettled) return;
+            primeSettled = true;
             window.clearTimeout(giveUp);
+            markPainted(v);
+            // A gesture may have started this clip for real meanwhile.
+            if (v.dataset.playing === '1') return resolve();
             v.pause();
             const onReseek = () => {
               v.removeEventListener('seeked', onReseek);
@@ -291,8 +471,8 @@ export function park(v: HTMLVideoElement, time: number): Promise<void> {
             v.addEventListener('seeked', onReseek);
             v.currentTime = target;
           }).catch(() => {
-            if (primed) return;
-            primed = true;
+            if (primeSettled) return;
+            primeSettled = true;
             window.clearTimeout(giveUp);
             resolve();
           });

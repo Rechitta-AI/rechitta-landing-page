@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react';
 import { CITIES, cityTime } from '@/film/score';
 import CityNav, { BoardroomCta } from './CityNav';
+import { registerVideo } from '@/film/media';
 
 /**
  * The multilingual chapter's backdrop.
@@ -116,11 +117,14 @@ export default function CityBackdrop({
         if (i === index) {
           v.playbackRate = 0.85;
           v.loop = true;
+          // Tells a Low Power Mode unlock to leave this one running.
+          v.dataset.playing = '1';
           const p = v.play();
           if (p && typeof p.then === 'function') {
             p.catch(() => {});
           }
         } else {
+          delete v.dataset.playing;
           v.pause();
         }
       };
@@ -202,6 +206,7 @@ export default function CityBackdrop({
           <video
             ref={(el) => {
               videoRefs.current[i] = el;
+              if (el) return registerVideo(el);
             }}
             muted
             loop

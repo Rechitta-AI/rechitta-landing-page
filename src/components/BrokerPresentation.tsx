@@ -1008,6 +1008,7 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
          =================================================================== */}
       <div
         ref={hudContentRef}
+        id="broker-copy-column"
         onTouchStart={(e) => e.stopPropagation()}
         onTouchMove={(e) => e.stopPropagation()}
         onTouchEnd={(e) => e.stopPropagation()}
