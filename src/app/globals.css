@@ -769,6 +769,20 @@ p {
   will-change: transform;
 }
 
+/*
+ * The closing map's data streams. Global, not styled-jsx: styled-jsx renames
+ * keyframes to scope them, and the arcs reference this name from an inline
+ * style, so a scoped copy never matched and the streams sat still.
+ */
+@keyframes dashPureStream2k {
+  from {
+    stroke-dashoffset: 220;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
 /* The closing boardroom's map, kept laid out but hidden between visits. */
 #finale-world-map-screen[data-idle] * {
   animation-play-state: paused !important;

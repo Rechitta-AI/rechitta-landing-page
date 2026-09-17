@@ -104,7 +104,10 @@ export default function CityBackdrop({
       // Attach blob or direct clip with instant playback
       const assignSource = (srcUrl: string) => {
         if (cancelled) return;
-        if (!v.src || !v.src.includes(city.key)) {
+        // Blob URLs never contain the key, so compare against them directly —
+        // otherwise every step reloads the neighbours that are already warm.
+        const current = v.getAttribute('src');
+        if (!current || (current !== srcUrl && !current.includes(city.key))) {
           v.src = srcUrl;
           v.preload = 'auto';
           v.load();
@@ -161,7 +164,9 @@ export default function CityBackdrop({
   // Leaving the chapter frees active decoder buffers, while cityBlobCache
   // preserves the downloaded bytes in RAM so re-entering starts at 0ms.
   useEffect(() => {
-    if (!active) return;
+    // Only on the way out. Running this on entry tore down the clips the
+    // effect above had just attached, so the first city sat on its poster.
+    if (active) return;
     videoRefs.current.forEach((v) => {
       if (!v) return;
       v.pause();

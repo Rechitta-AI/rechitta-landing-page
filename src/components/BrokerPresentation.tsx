@@ -95,6 +95,32 @@ export const BROKER_PROBLEMS: BrokerProblem[] = [
 
 export const PROMPT_PILLS = BROKER_PROBLEMS;
 
+/*
+ * The handset gets the frame; the panel underneath gets what is left.
+ *
+ * The reserve below was 235px, sized for a panel that set its question at
+ * 16px and its answer at 13px with a 4-unit pad. Tightened a step (see the
+ * `stacked` sizes further down), the same content sits in 196 — and every
+ * point that frees goes to the phone, which is the one thing in this scene
+ * anybody is meant to be looking at.
+ */
+const PHONE_FOOT = 0.89882;   // the calibrated quad's lowest corner
+const RAIL_RESERVE = 78;      // the chapter rail, safe area included
+const PANEL_MIN = 172;        // what the compressed panel needs to not clip
+
+/** The film stage's height on a stacked (portrait) layout. */
+function stackedStageHeight(viewportHeight: number): number {
+  return Math.round(
+    Math.min(
+      viewportHeight * 0.73,
+      // The panel hangs off the handset's foot, not off the stage's bottom
+      // edge, so the budget is measured from there. A flat reserve looked fine
+      // at 844 and clipped the call to action at 667.
+      (viewportHeight - RAIL_RESERVE - PANEL_MIN - 8) / PHONE_FOOT,
+    ),
+  );
+}
+
 export default function BrokerPresentation({ holdData }: BrokerPresentationProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const phoneRef = useRef<HTMLDivElement>(null);
@@ -121,6 +147,7 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
   useEffect(() => () => {
     if (ctaHintTimerRef.current) clearTimeout(ctaHintTimerRef.current);
     if (iframeSettleTimerRef.current) clearTimeout(iframeSettleTimerRef.current);
+    if (promptTimeoutRef.current) clearTimeout(promptTimeoutRef.current);
   }, []);
 
   // Responsive viewport tracking for homography mapping & leader line positioning
@@ -139,27 +166,7 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
   const desktopMatrix = matrix3dFor(PHONE_WIDTH, PHONE_HEIGHT, desktopViewportCorners);
 
   // 2. Responsive Stage & Viewport Projection (Smart Content-Aware Split)
-  /*
-   * The handset gets the frame; the panel underneath gets what is left.
-   *
-   * The reserve below was 235px, sized for a panel that set its question at
-   * 16px and its answer at 13px with a 4-unit pad. Tightened a step (see the
-   * `stacked` sizes further down), the same content sits in 196 — and every
-   * point that frees goes to the phone, which is the one thing in this scene
-   * anybody is meant to be looking at.
-   */
-  const PHONE_FOOT = 0.89882;   // the calibrated quad's lowest corner
-  const RAIL_RESERVE = 78;      // the chapter rail, safe area included
-  const PANEL_MIN = 172;        // what the compressed panel needs to not clip
-  const responsiveStageHeight = Math.round(
-    Math.min(
-      viewport.height * 0.73,
-      // The panel hangs off the handset's foot, not off the stage's bottom
-      // edge, so the budget is measured from there. A flat reserve looked fine
-      // at 844 and clipped the call to action at 667.
-      (viewport.height - RAIL_RESERVE - PANEL_MIN - 8) / PHONE_FOOT,
-    ),
-  );
+  const responsiveStageHeight = stackedStageHeight(viewport.height);
   const responsiveRect = coverRect(viewport.width, responsiveStageHeight);
   const responsiveViewportCorners: Quad = toViewport(BROKER_PHONE_CORNERS, responsiveRect);
   const responsiveMatrix = matrix3dFor(PHONE_WIDTH, PHONE_HEIGHT, responsiveViewportCorners);
@@ -175,14 +182,8 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
           gsap.killTweensOf(filmHost);
           filmHost.style.transition = 'none';
           if (isPortraitFor(w, h)) {
-            const PHONE_FOOT = 0.89882;
-            const RAIL_RESERVE = 78;
-            const PANEL_MIN = 172;
-            const stageH = Math.round(
-              Math.min(h * 0.73, (h - RAIL_RESERVE - PANEL_MIN - 8) / PHONE_FOOT)
-            );
             filmHost.style.bottom = 'auto';
-            filmHost.style.height = `${stageH}px`;
+            filmHost.style.height = `${stackedStageHeight(h)}px`;
             filmHost.style.webkitMaskImage = 'none';
             filmHost.style.maskImage = 'none';
           } else {
@@ -249,7 +250,7 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
    * On mobile portrait, bottom clearance ensures all content floats safely above the ScrollRail progress bar.
    */
   // Exact physical bottom edge of the handset in mobile portrait
-  const phoneBottomY = Math.round(responsiveStageHeight * 0.89882 + 10);
+  const phoneBottomY = Math.round(responsiveStageHeight * PHONE_FOOT + 10);
 
   const hudStyle: React.CSSProperties = composited
     ? {
@@ -436,7 +437,6 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
             // Reset film stage host height back to 100%
             const filmHost = document.getElementById('film-stage-host');
             if (filmHost) {
-              const currentH = filmHost.getBoundingClientRect().height || responsiveStageHeight;
               gsap.killTweensOf(filmHost);
               filmHost.style.transition = 'none';
               gsap.to(filmHost, {
@@ -558,7 +558,7 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
               filmHost,
               { height: startH },
               {
-                height: responsiveStageHeight,
+                height: stackedStageHeight(window.innerHeight),
                 duration: 0.65,
                 ease: 'power3.out',
               }
@@ -689,7 +689,6 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
         const filmHost = document.getElementById('film-stage-host');
         if (filmHost) {
           if (stacked) {
-            const currentH = filmHost.getBoundingClientRect().height || responsiveStageHeight;
             gsap.killTweensOf(filmHost);
             filmHost.style.transition = 'none';
             gsap.to(filmHost, {
@@ -1132,9 +1131,7 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
           {/* Card Header: Category */}
           <div className="flex items-center justify-between gap-1.5">
             <span
-              className={`self-start rounded-full border border-[#3D6FF5]/30 bg-[#3D6FF5]/15 px-2.5 py-0.5 eyebrow-chip text-[#8BB0FF] ${
-                stacked ? 'text-[8.5px]' : 'text-[8.5px]'
-              }`}
+              className="self-start rounded-full border border-[#3D6FF5]/30 bg-[#3D6FF5]/15 px-2.5 py-0.5 eyebrow-chip text-[#8BB0FF] text-[8.5px]"
             >
               {activeProblem.category}
             </span>

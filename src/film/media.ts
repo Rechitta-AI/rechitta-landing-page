@@ -96,11 +96,11 @@ export async function preloadBlobUrl(
   return promise;
 }
 
-/** iPhone and iPad, including iPadOS reporting itself as a Mac. */
-const IS_IOS =
-  typeof navigator !== 'undefined' &&
-  (/iP(hone|ad|od)/.test(navigator.userAgent) ||
-    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1));
+/** How long `park` waits for a clip's metadata before giving up on it. */
+const METADATA_TIMEOUT_MS = 8000;
+
+/** How long `park` waits on the play() that primes the decoder after a seek. */
+const PLAY_PRIME_TIMEOUT_MS = 1500;
 
 /** The stage all pooled elements are appended into. */
 let host: HTMLElement | null = null;
@@ -224,11 +224,24 @@ export function bufferedSpan(v: HTMLVideoElement, from: number, to: number): num
 export function park(v: HTMLVideoElement, time: number): Promise<void> {
   return new Promise((resolve) => {
     if (v.readyState < HTMLMediaElement.HAVE_METADATA) {
-      const onMeta = () => {
+      // A clip that errors or never answers must not deadlock the film, and
+      // the loader waits on this too.
+      const stop = () => {
         v.removeEventListener('loadedmetadata', onMeta);
+        v.removeEventListener('error', onFail);
+        window.clearTimeout(metaTimer);
+      };
+      const onMeta = () => {
+        stop();
         park(v, time).then(resolve);
       };
+      const onFail = () => {
+        stop();
+        resolve();
+      };
+      const metaTimer = window.setTimeout(onFail, METADATA_TIMEOUT_MS);
       v.addEventListener('loadedmetadata', onMeta);
+      v.addEventListener('error', onFail);
       return;
     }
 
@@ -255,7 +268,19 @@ export function park(v: HTMLVideoElement, time: number): Promise<void> {
       if (!isNearEnd && v.paused && Math.abs(v.currentTime - target) < 0.25) {
         const p = v.play();
         if (p && typeof p.then === 'function') {
+          // A play() that never settles (a stalled network) must not hang the
+          // park either.
+          let primed = false;
+          const giveUp = window.setTimeout(() => {
+            if (primed) return;
+            primed = true;
+            v.pause();
+            resolve();
+          }, PLAY_PRIME_TIMEOUT_MS);
           p.then(() => {
+            if (primed) return;
+            primed = true;
+            window.clearTimeout(giveUp);
             v.pause();
             const onReseek = () => {
               v.removeEventListener('seeked', onReseek);
@@ -265,7 +290,12 @@ export function park(v: HTMLVideoElement, time: number): Promise<void> {
             const reseekTimer = window.setTimeout(onReseek, 400);
             v.addEventListener('seeked', onReseek);
             v.currentTime = target;
-          }).catch(() => resolve());
+          }).catch(() => {
+            if (primed) return;
+            primed = true;
+            window.clearTimeout(giveUp);
+            resolve();
+          });
           return;
         }
       }
@@ -306,6 +336,7 @@ export type PreloadOptions = {
 export function preloadSpan(span: ClipSpan, options: PreloadOptions = {}): Promise<number> {
   const { onProgress, timeoutMs = 20000, parkAt, readyIsEnough = false } = options;
   const v = acquire(span.key);
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 810;
 
   return new Promise((resolve) => {
     let settled = false;
@@ -327,7 +358,6 @@ export function preloadSpan(span: ClipSpan, options: PreloadOptions = {}): Promi
       }
       const fraction = bufferedSpan(v, span.from, span.to);
       onProgress?.(fraction);
-      const isMobile = typeof window !== 'undefined' && window.innerWidth < 810;
       const enough =
         v.readyState >= HTMLMediaElement.HAVE_ENOUGH_DATA ||
         (isMobile && v.readyState >= HTMLMediaElement.HAVE_METADATA);

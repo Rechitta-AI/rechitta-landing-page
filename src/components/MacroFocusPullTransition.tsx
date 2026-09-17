@@ -12,6 +12,10 @@ import gsap from 'gsap';
  * - Central vertical optical glint spike mimicking real cylindrical anamorphic cinema lenses.
  * - Sequential choreography with complete dissolution into solid black before DOM swap (zero ghosting).
  */
+/** How long the title card holds, fully legible, before it dissolves. */
+const HOLD = 1.6;
+const HOLD_END = 0.5 + HOLD;
+
 export default function MacroFocusPullTransition() {
   const containerRef = useRef<HTMLDivElement>(null);
   const curtainRef = useRef<HTMLDivElement>(null);
@@ -79,7 +83,8 @@ export default function MacroFocusPullTransition() {
       });
       timelineRef.current = tl;
 
-      // ── CINEMA ANAMORPHIC DUAL-PHASE CHOREOGRAPHY (1.85s total, swap at 1.20s) ────
+      // ── CINEMA ANAMORPHIC DUAL-PHASE CHOREOGRAPHY (~3.03s total, swap at 2.38s) ────
+      // The hold is long enough to read the title card; everything after it keys off HOLD_END.
       tl.set(container, { display: 'block' });
       tl.set(curtain, { opacity: 0 }); // Starts transparent so outgoing scene blurs & dissolves smoothly!
       tl.set([blurOverlay, bloomOverlay, flare, glint, typography], { opacity: 0 });
@@ -147,13 +152,13 @@ export default function MacroFocusPullTransition() {
         0.16,
       );
 
-      // Phase 2: 0.50s -> 0.92s — Cinema hold: subtle organic drift in pristine clarity
-      tl.to(typography, { scale: 1.015, duration: 0.42, ease: 'sine.inOut' }, 0.50);
-      tl.to(flare, { scaleX: 1.03, duration: 0.42, ease: 'sine.inOut' }, 0.50);
-      tl.to(glint, { opacity: 0.6, scaleY: 0.75, duration: 0.42, ease: 'sine.inOut' }, 0.50);
-      tl.to(bloomOverlay, { scale: 1.10, duration: 0.42, ease: 'sine.inOut' }, 0.50);
+      // Phase 2: 0.50s -> 2.10s — Cinema hold: subtle organic drift in pristine clarity
+      tl.to(typography, { scale: 1.015, duration: HOLD, ease: 'sine.inOut' }, 0.50);
+      tl.to(flare, { scaleX: 1.03, duration: HOLD, ease: 'sine.inOut' }, 0.50);
+      tl.to(glint, { opacity: 0.6, scaleY: 0.75, duration: HOLD, ease: 'sine.inOut' }, 0.50);
+      tl.to(bloomOverlay, { scale: 1.10, duration: HOLD, ease: 'sine.inOut' }, 0.50);
 
-      // Phase 3: 0.92s -> 1.16s — Pure dissolution of flare/typography into solid black curtain BEFORE swap!
+      // Phase 3: 2.10s -> 2.34s — Pure dissolution of flare/typography into solid black curtain BEFORE swap!
       tl.to(
         flare,
         {
@@ -162,7 +167,7 @@ export default function MacroFocusPullTransition() {
           duration: 0.22,
           ease: 'power2.in',
         },
-        0.92,
+        HOLD_END,
       );
       tl.to(
         glint,
@@ -172,7 +177,7 @@ export default function MacroFocusPullTransition() {
           duration: 0.18,
           ease: 'power2.in',
         },
-        0.94,
+        HOLD_END + 0.02,
       );
       tl.to(
         typography,
@@ -183,7 +188,7 @@ export default function MacroFocusPullTransition() {
           duration: 0.22,
           ease: 'power2.in',
         },
-        0.94,
+        HOLD_END + 0.02,
       );
       tl.to(
         bloomOverlay,
@@ -193,7 +198,7 @@ export default function MacroFocusPullTransition() {
           duration: 0.24,
           ease: 'power2.inOut',
         },
-        0.94,
+        HOLD_END + 0.02,
       );
       tl.to(
         blurOverlay,
@@ -202,10 +207,10 @@ export default function MacroFocusPullTransition() {
           duration: 0.24,
           ease: 'power2.inOut',
         },
-        0.94,
+        HOLD_END + 0.02,
       );
 
-      // Phase 4: at 1.20s — DOM swap under 100% clean black curtain (zero ghosting)
+      // Phase 4: at 2.38s — DOM swap under 100% clean black curtain (zero ghosting)
       tl.call(
         () => {
           if (swap) {
@@ -220,10 +225,10 @@ export default function MacroFocusPullTransition() {
           }
         },
         undefined,
-        1.20,
+        HOLD_END + 0.28,
       );
 
-      // Phase 5: 1.20s -> 1.85s — Solid black curtain dissolves smoothly, revealing incoming scene in full glory
+      // Phase 5: 2.38s -> 3.03s — Solid black curtain dissolves smoothly, revealing incoming scene in full glory
       tl.to(
         curtain,
         {
@@ -231,7 +236,7 @@ export default function MacroFocusPullTransition() {
           duration: 0.65,
           ease: 'power2.out',
         },
-        1.20,
+        HOLD_END + 0.28,
       );
     };
 

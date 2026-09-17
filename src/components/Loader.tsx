@@ -98,8 +98,9 @@ export default function Loader({ onDone, orbReady = true }: { onDone: () => void
       eased += (actual - eased) * (reduced ? 1 : isMobile ? 0.12 : 0.08);
       if (actual - eased < 0.001) eased = actual;
 
-      setShown(eased);
-      
+      // Re-render only when the readout would actually change, not every frame.
+      setShown((prev) => (Math.round(prev * 1000) === Math.round(eased * 1000) ? prev : eased));
+
       // Update SVG circle stroke-dashoffset (circumference = 282.743)
       if (fillRef.current) {
         const offset = 282.743 * (1 - Math.min(1, eased));

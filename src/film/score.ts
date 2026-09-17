@@ -24,11 +24,8 @@
  *   { key: 'transit-c', in: 0, out: 6.8, holdWeight: 6 },
  *   { key: 'transit-d', in: 0, out: 6.0, holdWeight: 0 },
  *
- * The cloud that carries the film into the multilingual chapter is transit-e's
- * opening instead. Neither retired shot has a frame of cloud without the beach
- * or the handset somewhere in it — the camera cranes back off the subject
- * rather than losing it — so trimming or cropping them could never show
- * "just the clouds". transit-e can: it opens inside one.
+ * The film now leaves the broker for the multilingual chapter through the
+ * focus-pull title card (MacroFocusPullTransition), not through footage.
  */
 export const CLIP_SEQUENCE = [
   { key: 'scene1-3', in: 2, out: 11, holdWeight: 8 },
@@ -152,8 +149,8 @@ export type Beat = {
 
   /**
    * How long the incoming footage takes to dissolve in over the frame being
-   * left, ms. Most shots cut in over 180ms; the cloud wants the broker to
-   * disappear into it.
+   * left, ms. Most shots cut in over 180ms; a longer dissolve lets the frame
+   * being left disappear into the new one.
    */
   enterFadeMs?: number;
   /**
@@ -188,27 +185,6 @@ export function getBeatProgressFrom(beat: Beat, isPortrait = false): number | un
     ? beat.portraitProgressFrom
     : beat.progressFrom;
 }
-
-/**
- * The cloud passage, in transit-e's source time.
- *
- * transit-e is the dawn descent into Dubai: it starts inside cloud and comes
- * out of it over the skyline. Only its first two seconds are used here, and
- * the out point is hard — the Burj's mast breaks the cloud line at 1.95, and
- * a tower has no business in the second before Mumbai.
- *
- * It opens at 1.2, a beat before the cloud's edge starts to roll at 1.35, so
- * the broker dissolves into a whiteout first and the sky then tears open
- * through it — the read of flying into a cloud, rather than a white frame
- * that happens to move. Played at 0.3x behind a 700ms dissolve and a slow
- * push-in, the passage lasts around three seconds where it used to last one
- * and a half, and it cannot be skipped by scrolling through it.
- */
-const CLOUD_IN = 1.2;
-const CLOUD_OUT = 1.92;
-const CLOUD_RATE = 0.3;
-const CLOUD_FADE_MS = 700;
-const CLOUD_PUSH = 1.12;
 
 const cityProgress = (i: number) =>
   CITIES_SPAN.start + (i / (CITIES.length - 1)) * (CITIES_SPAN.end - CITIES_SPAN.start);
@@ -280,9 +256,8 @@ export const BEATS: Beat[] = [
    * },
    */
   /*
-   * The World Chronometer luxury horology transition bridges Act III (The Broker)
-   * to Act IV (The Multilingual Cities), synchronizing the global 04:11 UTC
-   * briefing without unskippable cloud footage or harsh white flashes.
+   * The broker hands over to the multilingual cities through the focus-pull
+   * title card (MacroFocusPullTransition), not through footage.
    */
   ...CITIES.map((city, i) => ({
     id: `city-${city.key}`,

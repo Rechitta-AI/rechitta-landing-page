@@ -154,14 +154,8 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
   // Inner whiteboard face at Frame 120 (5.0s):
   // Leaves all 4 outer TV bezels (top: 31.33%, bottom: 58.52%, left: 11.67%, right: 88.61%) 100% exposed.
   const PORTRAIT_TOP = 32.65;
-  const PORTRAIT_LEFT = 13.35;
   const PORTRAIT_WIDTH = 73.5;
   const PORTRAIT_HEIGHT = 25.65;
-
-  const curTop = isPortrait ? PORTRAIT_TOP : TOP;
-  const curLeft = isPortrait ? PORTRAIT_LEFT : LEFT;
-  const curWidth = isPortrait ? PORTRAIT_WIDTH : WIDTH;
-  const curHeight = isPortrait ? PORTRAIT_HEIGHT : HEIGHT;
 
   // Where the footage actually lands in the viewport.
   // In portrait, the mobile unified footage is 9:16; in landscape, desktop footage is 16:9.
@@ -265,6 +259,32 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
 
   const isSolutionSlide = activeSlide === SLIDES.length - 1;
 
+  /*
+   * The entrance watcher below runs in a long-lived animation frame loop, so
+   * it reads the layout through a ref. Closing over the render values froze
+   * it on the first render's 1920x1080 default, and the portrait fit never ran.
+   */
+  const layoutRef = useRef({ isPortrait, containScale });
+  useEffect(() => {
+    layoutRef.current = { isPortrait, containScale };
+  }, [isPortrait, containScale]);
+
+  /** Timers the upload hand-off and the nudge schedule, cleared on unmount. */
+  const timersRef = useRef<number[]>([]);
+  const later = (fn: () => void, ms: number) => {
+    const id = window.setTimeout(() => {
+      timersRef.current = timersRef.current.filter((t) => t !== id);
+      fn();
+    }, ms);
+    timersRef.current.push(id);
+  };
+  useEffect(() => () => timersRef.current.forEach((id) => window.clearTimeout(id)), []);
+
+  const activeSlideRef = useRef(activeSlide);
+  useEffect(() => {
+    activeSlideRef.current = activeSlide;
+  }, [activeSlide]);
+
   const scaleRatio = screenWidth / BASE_W;
   const tilt = `rotateY(${ROTATE_Y}deg) rotateX(${ROTATE_X}deg) rotateZ(${ROTATE_Z}deg) scale(${SCALE})`;
   // ==========================================
@@ -279,11 +299,11 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
     setIsUploading(true);
 
     // 1. Simulate data indexing & packaging (micro-spinner)
-    setTimeout(() => {
+    later(() => {
       setIsSynced(true);
 
       // 2. 350ms "sight pause" after notification appears, initiate native hardware video playback flight!
-      setTimeout(() => {
+      later(() => {
         // Immediately dissolve the boardroom slides so the hallway flight is 100% unobstructed
         const leaving = [containerRef.current, reelRef.current].filter(Boolean);
         const stageHost = document.getElementById('film-stage-host');
@@ -456,7 +476,7 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
       if (detail?.beat !== 'boardroom') return;
       setActiveSlide(SLIDES.length - 1);
       setNudgeCta(true);
-      window.setTimeout(() => setNudgeCta(false), 1400);
+      later(() => setNudgeCta(false), 1400);
     };
     window.addEventListener('rechitta:blocked', onBlocked);
     return () => window.removeEventListener('rechitta:blocked', onBlocked);
@@ -478,9 +498,25 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
       // The deck and the reel arrive and leave together.
       const panels = [containerRef.current, reelRef.current].filter(Boolean);
 
+      const { isPortrait, containScale } = layoutRef.current;
+
       // Detect Entrance
       if (isNowVisible && !isVisibleRef.current) {
         isVisibleRef.current = true;
+
+        // Every visit asks for the project again. The hand-off state used to
+        // survive the film looping back round, leaving the button spent and
+        // the beat no longer held.
+        setIsUploading(false);
+        setIsSynced(false);
+        // Arriving backwards lands the film's step counter on the last slide;
+        // tell it which slide the deck is actually showing.
+        window.dispatchEvent(
+          new CustomEvent('rechitta:beat-sync', {
+            detail: { beat: 'boardroom', step: activeSlideRef.current },
+          }),
+        );
+
         gsap.killTweensOf(panels);
         gsap.set(panels, { autoAlpha: 1 });
 

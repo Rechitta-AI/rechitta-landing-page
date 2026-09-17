@@ -10,7 +10,7 @@ import { FinaleStatsSlide, FinaleQuestionsSlide } from './FinaleDeckSlides';
 import DeckDock from './DeckDock';
 import { FONT_BODY, FONT_CODE } from '@/design/fonts';
 import { BRAND_BLUE, BRAND_GOLD, NEUTRAL, SUCCESS_400, light } from '@/design/tokens';
-import { MONITOR_CORNERS, DEFAULT_CALIBRATION, sanitizeCalibration, type CalibrationCoords } from './MonitorCalibrator';
+import { DEFAULT_CALIBRATION, sanitizeCalibration, type CalibrationCoords } from './MonitorCalibrator';
 
 /**
  * 4-Corner 3D Calibrated Coordinates on mobile portrait (% of video cover rect)
@@ -174,11 +174,6 @@ export default function FinaleWorldMapPresentation({
     return DEFAULT_CALIBRATION;
   });
   const [isCalibrating, setIsCalibrating] = useState(false);
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   // Track viewport resize
   useEffect(() => {
@@ -262,15 +257,6 @@ export default function FinaleWorldMapPresentation({
 
   // Map onto the pristine 2000 x 1156 (1.73:1) uncompressed reference canvas
   const quadTransform = matrix3dFor(2000, 1156, [bledTl, bledTr, bledBr, bledBl]);
-
-  // Portrait phone fallback
-  const availableW = viewport.width * 0.94;
-  const availableH = viewport.height * 0.65;
-  const portraitScale = Math.min(availableW / 960, availableH / 555);
-  const portraitWidth = 960 * portraitScale;
-  const portraitHeight = 555 * portraitScale;
-  const portraitLeft = (viewport.width - portraitWidth) / 2;
-  const portraitTop = (viewport.height - portraitHeight) / 2;
 
   /*
    * The logo reels, on the walls either side of the presentation monitor.
@@ -402,7 +388,6 @@ export default function FinaleWorldMapPresentation({
    */
   const onPresentation = chapter === 'finale' && beatIndex === beatIndexById('finale-screen');
   const isVisible = (onPresentation && !isMoving) || isCalibrating;
-  const isDissolving = onPresentation && isMoving && !isCalibrating;
 
   // Network ignition animation when landing via match-cut transition
   const triggerIgnition = () => {
@@ -623,11 +608,7 @@ export default function FinaleWorldMapPresentation({
         },
       });
     }
-    // isDissolving only ever changes alongside isVisible.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isVisible]);
-
-  if (!mounted) return null;
 
   return (
     <>
@@ -1113,18 +1094,6 @@ export default function FinaleWorldMapPresentation({
         <FinaleQuestionsSlide live={activeSlide === 2} compact={deckCompact} />
       </div>
       </div>
-
-      {/* Animation Styles */}
-      <style jsx>{`
-        @keyframes dashPureStream2k {
-          from {
-            stroke-dashoffset: 220;
-          }
-          to {
-            stroke-dashoffset: 0;
-          }
-        }
-      `}</style>
     </div>
     </>
   );

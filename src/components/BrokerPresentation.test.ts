@@ -86,7 +86,7 @@ describe('BrokerPresentation Configuration & Data', () => {
     const viewportCorners = toViewport(BROKER_PHONE_CORNERS, rect);
 
     // Verify all 4 corners are inside the top 60% stage (0 <= y <= 506.4)
-    viewportCorners.forEach(([x, y]) => {
+    viewportCorners.forEach(([, y]) => {
       expect(y).toBeGreaterThanOrEqual(0);
       expect(y).toBeLessThanOrEqual(stageHeight);
     });

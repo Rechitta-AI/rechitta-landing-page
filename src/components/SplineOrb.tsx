@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import styles from './SplineOrb.module.css';
 
 /**
@@ -17,17 +17,31 @@ const SPLINE_URL = 'https://my.spline.design/meeet-K190VICHbClCgQyBKYguhj6F/';
 
 export default function SplineOrb({ onLoaded }: { onLoaded?: () => void }) {
   const [revealed, setRevealed] = useState(false);
+  const onLoadedRef = useRef(onLoaded);
+  useEffect(() => {
+    onLoadedRef.current = onLoaded;
+  }, [onLoaded]);
+
+  /** Reveals once, however many of the signals below arrive. */
+  const revealedOnceRef = useRef(false);
+  const loadTimerRef = useRef<number | null>(null);
+  const reveal = () => {
+    if (revealedOnceRef.current) return;
+    revealedOnceRef.current = true;
+    setRevealed(true);
+    onLoadedRef.current?.();
+  };
 
   // The iframe `load` event is unreliable — it can fire from cache before the
   // listener attaches — so reveal after a grace period regardless, and the orb
   // can never get stuck invisible.
   useEffect(() => {
-    const isMobile = typeof window !== 'undefined' && window.innerWidth < 810;
-    const timer = window.setTimeout(() => {
-      setRevealed(true);
-      if (onLoaded) onLoaded();
-    }, isMobile ? 800 : 2000);
-    return () => window.clearTimeout(timer);
+    const isMobile = window.innerWidth < 810;
+    const timer = window.setTimeout(reveal, isMobile ? 800 : 2000);
+    return () => {
+      window.clearTimeout(timer);
+      if (loadTimerRef.current !== null) window.clearTimeout(loadTimerRef.current);
+    };
   }, []);
 
   return (
@@ -37,10 +51,9 @@ export default function SplineOrb({ onLoaded }: { onLoaded?: () => void }) {
           src={SPLINE_URL}
           title="Rechitta orb"
           allow="autoplay"
-          onLoad={() => window.setTimeout(() => {
-            setRevealed(true);
-            if (onLoaded) onLoaded();
-          }, 150)}
+          onLoad={() => {
+            loadTimerRef.current = window.setTimeout(reveal, 150);
+          }}
         />
       </div>
 

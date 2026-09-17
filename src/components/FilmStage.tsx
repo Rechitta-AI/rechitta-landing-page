@@ -485,8 +485,7 @@ export default function FilmStage({
     };
 
     /** Chapters are separated by a white flash, the film's only hard cut. */
-    /** Chapters are separated by a white flash, the film's only hard cut. */
-    const crossChapter = async (target: Beat, swap: () => void | Promise<void>) => {
+    const crossChapter = async (swap: () => Promise<void>) => {
       if (reduceMotion) {
         await swap();
         return;
@@ -499,45 +498,125 @@ export default function FilmStage({
       // A beat to let the incoming layer paint before the flash lifts.
       await sleep(80);
       flash(0, FLASH_OUT_MS);
-      void target;
     };
 
     /**
      * Optical Match-Cut Screen Handoff Transition.
      * Bridges both major chapter boundaries (Broker <-> Cities, and Cities <-> Finale).
+     *
+     * The overlay calls `swap` under its black curtain and `done` when its
+     * timeline ends. Neither is guaranteed — a backgrounded tab stops the
+     * overlay's animation frames while this timer keeps running — so the swap
+     * runs at most once, the safety net runs it if the overlay never did, and
+     * the move only continues once the swap has actually finished.
      */
     const runFocusPullTransition = (
       dir: 1 | -1,
-      swap: () => void | Promise<void>,
-      meta?: { title?: string; subtitle?: string; igniteWorldMap?: boolean },
+      swap: () => Promise<void>,
+      meta: { title: string; subtitle: string; igniteWorldMap: boolean },
     ): Promise<void> =>
       new Promise<void>((resolve) => {
+        let swapped: Promise<void> | null = null;
+        const swapOnce = () => {
+          if (!swapped) {
+            swapped = swap().catch((err) => {
+              console.error('[film] transition swap failed', err);
+            });
+          }
+          return swapped;
+        };
+
         let settled = false;
         const done = () => {
           if (settled) return;
           settled = true;
           window.clearTimeout(timer);
-          resolve();
+          void swapOnce().then(resolve);
         };
-        const timer = window.setTimeout(done, 2200);
+        // Safety net only; the overlay's timeline runs ~3.03s and calls done itself.
+        const timer = window.setTimeout(done, 3500);
 
         window.dispatchEvent(
           new CustomEvent('rechitta:macro-focus-pull-transition', {
-            detail: {
-              dir,
-              swap,
-              done,
-              title: meta?.title,
-              subtitle: meta?.subtitle,
-              igniteWorldMap: meta?.igniteWorldMap,
-            },
+            detail: { dir, swap: swapOnce, done, ...meta },
           }),
         );
       });
 
+    /**
+     * Swaps the stage over to the chapter being entered, under whichever
+     * transition is covering the screen.
+     */
+    const swapToChapter = async (target: Beat, dir: 1 | -1, playsOut: boolean, withHold: boolean) => {
+      if (target.chapter === 'cities') {
+        preloadCityBlob('london');
+        preloadCityBlob('paris');
+        preloadBlobUrl('last').catch(() => {});
+        setLayerVisible(false);
+        show(null, 0);
+      } else {
+        setLayerVisible(true);
+        if (target.clip) {
+          const v = acquire(target.clip);
+          if (target.clip === 'last') alignFinaleClip(v, target.id);
+          const enterConf = getBeatEnter(target, isPortrait());
+          await park(
+            v,
+            dir === 1 && enterConf && !playsOut ? enterConf.from : getBeatPark(target, isPortrait()),
+          );
+          if (disposed) return;
+          show(v, 0);
+        }
+      }
+      if (target.city !== undefined) callbacks.current.onCity?.(target.city);
+      if (target.chapter !== currentChapter) {
+        currentChapter = target.chapter;
+        callbacks.current.onChapter?.(target.chapter);
+      }
+      if (withHold && target.hold !== undefined) setHold(target.hold);
+    };
+
+    /** The title card each focus-pull boundary carries, by direction. */
+    const focusPullMeta = (source: Beat, target: Beat, dir: 1 | -1) => {
+      const citiesFinale =
+        (source.chapter === 'cities' && target.chapter === 'finale') ||
+        (source.chapter === 'finale' && target.chapter === 'cities');
+      if (citiesFinale) {
+        return {
+          title: dir === 1 ? 'SYNCING GLOBAL HUBS //' : 'RETURNING TO HUBS //',
+          subtitle: dir === 1 ? 'DUBAI HQ BOARDROOM' : 'MULTILINGUAL CITIES',
+          igniteWorldMap: dir === 1,
+        };
+      }
+      const introCities =
+        (source.chapter === 'intro' && target.chapter === 'cities') ||
+        (source.chapter === 'cities' && target.chapter === 'intro');
+      if (introCities) {
+        return {
+          title: dir === 1 ? 'DISPATCHING BRIEFING //' : 'RETURNING TO BROKER //',
+          subtitle: dir === 1 ? '6 GLOBAL HUBS' : 'LIVE BRIEFING',
+          igniteWorldMap: false,
+        };
+      }
+      return null;
+    };
+
     // ── The move ─────────────────────────────────────────────────────
 
+    /**
+     * A move that throws must still land. Otherwise the director stays in
+     * 'moving' forever and every later input is swallowed.
+     */
     const runMove = async (from: number, to: number, dir: 1 | -1) => {
+      try {
+        await performMove(from, to, dir);
+      } catch (err) {
+        console.error('[film] move failed; landing on the target beat', err);
+        if (!disposed && state.phase === 'moving') await settle(to, dir);
+      }
+    };
+
+    const performMove = async (from: number, to: number, dir: 1 | -1) => {
       const source = BEATS[from];
       const target = BEATS[to];
       const fromProgress = beatProgress(source);
@@ -575,135 +654,18 @@ export default function FilmStage({
       }
 
       if (chapterChange) {
-        const isCitiesFinaleBoundary =
-          (source.chapter === 'cities' && target.chapter === 'finale') ||
-          (source.chapter === 'finale' && target.chapter === 'cities');
-
-        const isIntroCitiesBoundary =
-          (source.chapter === 'intro' && target.chapter === 'cities') ||
-          (source.chapter === 'cities' && target.chapter === 'intro');
-
-        if (isCitiesFinaleBoundary) {
-          await runFocusPullTransition(
-            dir,
-            async () => {
-              if (target.chapter === 'cities') {
-                setLayerVisible(false);
-                show(null, 0);
-              } else {
-                setLayerVisible(true);
-                if (target.clip) {
-                  const v = acquire(target.clip);
-                  if (target.clip === 'last') alignFinaleClip(v, target.id);
-                  const enterConf = getBeatEnter(target, isPortrait());
-                  await park(
-                    v,
-                    dir === 1 && enterConf && !playsOut ? enterConf.from : getBeatPark(target, isPortrait()),
-                  );
-                  show(v, 0);
-                }
-              }
-              if (target.city !== undefined) callbacks.current.onCity?.(target.city);
-              if (target.chapter !== currentChapter) {
-                currentChapter = target.chapter;
-                callbacks.current.onChapter?.(target.chapter);
-              }
-              if (target.hold !== undefined) {
-                setHold(target.hold);
-              }
-            },
-            {
-              title: dir === 1 ? 'SYNCING GLOBAL HUBS //' : 'RETURNING TO HUBS //',
-              subtitle: dir === 1 ? 'DUBAI HQ BOARDROOM' : 'MULTILINGUAL CITIES',
-              igniteWorldMap: dir === 1,
-            },
-          );
-          if (disposed) return;
-
-          if (!playsOut && dir === 1 && target.enter && target.chapter !== 'cities') {
-            await playForward(target, from, to);
-          } else {
-            publish(beatProgress(target));
-          }
-        } else if (isIntroCitiesBoundary) {
-          await runFocusPullTransition(
-            dir,
-            async () => {
-              if (target.chapter === 'cities') {
-                preloadCityBlob('london');
-                preloadCityBlob('paris');
-                preloadBlobUrl('last').catch(() => {});
-                setLayerVisible(false);
-                show(null, 0);
-              } else {
-                setLayerVisible(true);
-                if (target.clip) {
-                  const v = acquire(target.clip);
-                  if (target.clip === 'last') alignFinaleClip(v, target.id);
-                  const enterConf = getBeatEnter(target, isPortrait());
-                  await park(
-                    v,
-                    dir === 1 && enterConf && !playsOut ? enterConf.from : getBeatPark(target, isPortrait()),
-                  );
-                  show(v, 0);
-                }
-              }
-              if (target.city !== undefined) callbacks.current.onCity?.(target.city);
-              if (target.chapter !== currentChapter) {
-                currentChapter = target.chapter;
-                callbacks.current.onChapter?.(target.chapter);
-              }
-              if (target.hold !== undefined) {
-                setHold(target.hold);
-              }
-            },
-            {
-              title: dir === 1 ? 'DISPATCHING BRIEFING //' : 'RETURNING TO BROKER //',
-              subtitle: dir === 1 ? '6 GLOBAL HUBS' : 'LIVE BRIEFING',
-              igniteWorldMap: false,
-            },
-          );
-          if (disposed) return;
-
-          if (!playsOut && dir === 1 && target.enter && target.chapter !== 'cities') {
-            await playForward(target, from, to);
-          } else {
-            publish(beatProgress(target));
-          }
+        const meta = focusPullMeta(source, target, dir);
+        if (meta) {
+          await runFocusPullTransition(dir, () => swapToChapter(target, dir, playsOut, true), meta);
         } else {
-          await crossChapter(target, async () => {
-            if (target.chapter === 'cities') {
-              preloadCityBlob('london');
-              preloadCityBlob('paris');
-              preloadBlobUrl('last').catch(() => {});
-              setLayerVisible(false);
-              show(null, 0);
-            } else {
-              setLayerVisible(true);
-              if (target.clip) {
-                const v = acquire(target.clip);
-                if (target.clip === 'last') alignFinaleClip(v, target.id);
-                const enterConf = getBeatEnter(target, isPortrait());
-                await park(
-                  v,
-                  dir === 1 && enterConf && !playsOut ? enterConf.from : getBeatPark(target, isPortrait()),
-                );
-                show(v, 0);
-              }
-            }
-            if (target.city !== undefined) callbacks.current.onCity?.(target.city);
-            if (target.chapter !== currentChapter) {
-              currentChapter = target.chapter;
-              callbacks.current.onChapter?.(target.chapter);
-            }
-          });
-          if (disposed) return;
+          await crossChapter(() => swapToChapter(target, dir, playsOut, false));
+        }
+        if (disposed) return;
 
-          if (!playsOut && dir === 1 && target.enter && target.chapter !== 'cities') {
-            await playForward(target, from, to);
-          } else {
-            publish(beatProgress(target));
-          }
+        if (!playsOut && dir === 1 && target.enter && target.chapter !== 'cities') {
+          await playForward(target, from, to);
+        } else {
+          publish(beatProgress(target));
         }
       } else if (target.chapter === 'cities') {
         // Cities move by dissolve; the backdrop runs its own short push-in and
@@ -857,6 +819,8 @@ export default function FilmStage({
     const onKey = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement | null;
       if (target && ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)) return;
+      // Space on a focused control presses it; the film must not steal that.
+      if ((e.key === ' ' || e.key === 'Spacebar') && target?.closest?.('button, a, [role="button"]')) return;
       if (modalOpen()) return;
       if (FORWARD_KEYS.includes(e.key)) {
         e.preventDefault();
@@ -887,6 +851,12 @@ export default function FilmStage({
       if (typeof detail?.index === 'number' && detail.index >= 0 && detail.index < BEATS.length) {
         if (state.index === detail.index || state.phase === 'moving') return;
         const dir = detail.index > state.index ? 1 : -1;
+        // Claim the director the way `commit` does, or a scroll during the
+        // jump would start a second move on top of this one.
+        state.phase = 'moving';
+        state.transitionStartedAt = performance.now();
+        state.intent = 0;
+        state.nudges = 0;
         void runMove(state.index, detail.index, dir);
       }
     };

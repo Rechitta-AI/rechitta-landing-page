@@ -8,22 +8,16 @@ export default function InteractiveDemoModal() {
   const { isOpen, closeModal } = useDemoModal();
   const [isLoaded, setIsLoaded] = useState(false);
 
-  // Reset loading state when modal closes, and provide fallback timer for slow networks/cached iframes
+  // Fallback timer for slow networks and cached iframes whose load event is missed.
   useEffect(() => {
-    if (!isOpen) {
-      setIsLoaded(false);
-    } else {
-      const timer = setTimeout(() => setIsLoaded(true), 2000);
-      return () => clearTimeout(timer);
-    }
-  }, [isOpen]);
-
-  useEffect(() => {
-    // Lenis is now handled globally in useSmoothScroll via the DemoModalContext
+    if (!isOpen) return;
+    const timer = setTimeout(() => setIsLoaded(true), 2000);
+    return () => clearTimeout(timer);
   }, [isOpen]);
 
   return (
-    <AnimatePresence>
+    // The boot screen shows again next time, once the modal has fully left.
+    <AnimatePresence onExitComplete={() => setIsLoaded(false)}>
       {isOpen && (
         <div
           className="fixed inset-0 z-[9999] flex items-center justify-center pointer-events-auto [--modal-gutter:7rem] md:[--modal-gutter:8rem]"
