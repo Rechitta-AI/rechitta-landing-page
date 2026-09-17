@@ -106,7 +106,7 @@ export const PROMPT_PILLS = BROKER_PROBLEMS;
  */
 const PHONE_FOOT = 0.89882;   // the calibrated quad's lowest corner
 const RAIL_RESERVE = 78;      // the chapter rail, safe area included
-const PANEL_MIN = 172;        // what the compressed panel needs to not clip
+const PANEL_MIN = 196;        // what the compressed panel needs to not clip
 
 /** The film stage's height on a stacked (portrait) layout. */
 function stackedStageHeight(viewportHeight: number): number {
@@ -261,6 +261,17 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
     Math.max(0.72, Math.min((viewport.height - 120) / 570, (viewport.width - 520) / 540))
   );
 
+  /*
+   * A short phone. The answer card sets its type a step down here, which is
+   * what buys the call to action its room on a 548px-tall viewport.
+   *
+   * The bar sits at 860 rather than 720 because the card now hugs its copy
+   * instead of clamping it: at the larger step, a 390x844 handset has the
+   * panel almost exactly full, with nothing spare for the button. Only a
+   * genuinely tall screen gets the big type.
+   */
+  const tight = stacked && viewport.height < 860;
+
   const flatPhoneHeight = Math.min(viewport.height * 0.80, 660);
   const flatPhoneWidth = flatPhoneHeight * (PHONE_WIDTH / PHONE_HEIGHT);
 
@@ -323,11 +334,16 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
           transformOrigin: 'top center',
           display: 'flex',
           flexDirection: 'column',
-          justifyContent: 'flex-start',
-          gap: '0.3rem',
+          /*
+            Centred, so what the card does not need shows up as even room
+            above and below the stack rather than as a hole under the copy.
+          */
+          justifyContent: 'center',
+          gap: tight ? '0.2rem' : '0.3rem',
           paddingTop: '0px',
           paddingBottom: '0px',
           overflow: 'hidden',
+          minHeight: 0,
         }
       : {
           left: `calc(6% + ${flatPhoneWidth}px + 5%)`,
@@ -1145,8 +1161,19 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
         <div
           onTouchStart={stacked ? handleCardTouchStart : undefined}
           onTouchEnd={stacked ? handleCardTouchEnd : undefined}
+          /*
+            Stacked, the card is sized by its copy. It used to stretch into
+            whatever the button left over and clip the overflow, which cost
+            the last line of the longer answers. Sized by the copy it cannot
+            clip it, and the type steps down (see `tight`) on the screens
+            where the full stack would not otherwise clear the panel.
+
+            It is still the one item here that may shrink, so on a screen too
+            short for even the stepped-down stack the copy gives way and the
+            button keeps its row, rather than being pushed off the panel.
+          */
           className={`prompt-pill-reveal flex flex-col rounded-2xl border border-white/15 bg-neutral-900/80 backdrop-blur-xl shadow-[0_14px_40px_rgba(0,0,0,0.5)] ${
-            stacked ? 'p-3 shrink-0' : 'p-5'
+            stacked ? `${tight ? 'p-2.5' : 'p-3'} min-h-0 overflow-hidden` : 'p-5'
           }`}
         >
           {/* Card Header: Category */}
@@ -1163,9 +1190,19 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
             key={activeProblem.id}
             className={`${stacked ? 'animate-story-slide flex flex-col' : 'animate-fade-in flex flex-col'}`}
           >
-            <div className={`${stacked ? 'mt-1.5 flex flex-col gap-1' : ''}`}>
+            {/*
+              With the waitlist button and the example query both off on a
+              phone, the question and the answer are all this card holds, so
+              they are set a step up from the old clamped sizes and the card
+              takes its height from them.
+            */}
+            <div className={`${stacked ? 'mt-1.5 flex flex-col gap-1.5' : ''}`}>
               {stacked && (
-                <h4 className="text-white text-[14px] sm:text-[15px] font-bold tracking-tight leading-snug">
+                <h4
+                  className={`text-white font-bold tracking-tight leading-snug shrink-0 ${
+                    tight ? 'text-[14.5px]' : 'text-[16px]'
+                  }`}
+                >
                   &ldquo;{activeProblem.problem}&rdquo;
                 </h4>
               )}
@@ -1173,7 +1210,7 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
               <p
                 className={`font-medium ${
                   stacked
-                    ? 'text-[11.5px] sm:text-[12px] leading-[1.5] text-neutral-200'
+                    ? `${tight ? 'text-[12.5px] leading-[1.45]' : 'text-[13.5px] leading-[1.5]'} text-neutral-200`
                     : 'mt-3.5 text-[15px] leading-[1.55] text-neutral-100'
                 }`}
                 style={{ fontFamily: 'var(--font-inter)' }}
@@ -1183,27 +1220,36 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
             </div>
 
             {activeProblem.isWaitlist ? (
+              /*
+                The waitlist button, and below it the example query — both off
+                on a phone, where the panel is only as tall as what is left
+                under the handset and the answer needs every line of it. The
+                film's own call to action sits right under this card anyway.
+              */
+              stacked ? null : (
               <a
                 href={WAITLIST_URL}
                 target="_blank"
                 rel="noopener noreferrer"
                 /* The button shape and type from design.md, painted white on black. */
                 className={`btn w-full bg-white text-black hover:bg-neutral-200 active:bg-neutral-300 active:scale-[0.98] ${
-                  stacked ? 'btn-sm mt-2' : 'btn-md mt-4'
+                  stacked ? `btn-sm shrink-0 ${tight ? 'mt-1.5' : 'mt-2'}` : 'btn-md mt-4'
                 }`}
               >
                 Join the waitlist →
               </a>
-            ) : (
+              )
+            ) : stacked ? null : (
+              /*
+                The example query, and the link out to it. Off on a phone: the
+                panel there is only as tall as what is left under the handset,
+                and the row cost the answer itself the lines it needed.
+              */
               <a
                 href={BROKER_APP_URL}
                 target="_blank"
                 rel="noopener noreferrer"
-                className={`flex items-center justify-between gap-2 text-left font-mono text-neutral-300 transition-colors cursor-pointer group ${
-                  stacked
-                    ? 'mt-2 pt-2 text-[10px] border-t border-white/10'
-                    : 'mt-4 pt-3 text-[10px] border-t border-white/10'
-                }`}
+                className="flex items-center justify-between gap-2 text-left font-mono text-neutral-300 transition-colors cursor-pointer group mt-4 pt-3 text-[10px] border-t border-white/10"
               >
                 <span className="truncate text-white/85 group-hover:text-white">
                   &ldquo;{activeProblem.query}&rdquo;
@@ -1217,7 +1263,7 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
         </div>
 
         {/* The one control the film waits on. Present on every objection. */}
-        <div className={`hud-action-reveal relative flex shrink-0 ${stacked ? 'mt-auto' : 'mt-4'}`}>
+        <div className={`hud-action-reveal relative flex shrink-0 ${stacked ? (tight ? 'mt-1.5' : 'mt-2') : 'mt-4'}`}>
           {/*
             Auto-placed: on desktop, show the floating prompt tooltip.
             On mobile, we integrate the hint directly into the button to prevent rail overlap.
@@ -1246,13 +1292,13 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
             }`}
             aria-label="Take the briefing global"
           >
-            <span className="whitespace-nowrap">
-              {stacked && showScrollPrompt
-                ? 'Tap here to continue'
-                : stacked && ctaHint
-                  ? 'Tap to continue'
-                  : 'Take it global'}
-            </span>
+            {/*
+              The same words on every screen. Stacked, the button used to
+              relabel itself to 'Tap to continue' while the film waited on it;
+              the lift and the focus ring say that already, and the label is
+              the one place the scene names what the click is for.
+            */}
+            <span className="whitespace-nowrap">Take it global</span>
             <span className="transition-transform group-hover:translate-x-1">
               &rarr;
             </span>
