@@ -111,7 +111,7 @@ export default function InteractiveDemoModal() {
 
                 {/* The Demo App */}
                 <iframe
-                  src="https://icy-sand-0d102fd00.7.azurestaticapps.net/?sessionId=0b555e4f-a0cf-4459-be58-a6d45a69ac68"
+                  src="https://beta.rechitta.com/d/Demo/demo-verakai"
                   className="absolute inset-0 w-full h-full border-none z-0 pointer-events-auto cursor-pointer"
                   style={{
                     pointerEvents: 'auto',

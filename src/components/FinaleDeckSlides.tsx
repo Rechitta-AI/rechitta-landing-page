@@ -61,7 +61,7 @@ const SAFE_X = 10;
 const SAFE_Y = 6;
 
 /** The project on the monitor — the same one the broker's handset is briefing. */
-const PROJECT = 'DoubleTree by Hilton';
+const PROJECT = 'Solvane Bay by Verakai Developments';
 
 /**
  * Six tiles, matching the product dashboard.

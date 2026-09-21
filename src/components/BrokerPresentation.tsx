@@ -32,7 +32,7 @@ const PHONE_HEIGHT = 844;
 
 /** The live broker assistant, both in the tracked handset and in a new tab. */
 export const BROKER_APP_URL =
-  'https://icy-sand-0d102fd00.7.azurestaticapps.net/?sessionId=0b555e4f-a0cf-4459-be58-a6d45a69ac68';
+  'https://beta.rechitta.com/d/Demo/demo-verakai';
 
 /** Where the last objection's call to action goes. */
 export const WAITLIST_URL = 'https://beta.rechitta.com/login';
@@ -59,7 +59,7 @@ export const BROKER_PROBLEMS: BrokerProblem[] = [
     tabLabel: 'Missed it',
     category: 'AVAILABLE 24/7',
     problem: 'Missed a briefing!',
-    query: 'Give me the full briefing for DoubleTree by Hilton',
+    query: 'Give me the full briefing for Solvane Bay by Verakai Developments',
     solution:
       'Rechitta gives you a presentation mode - take the whole briefing whenever you want to. It\u2019s available 24/7.',
   },

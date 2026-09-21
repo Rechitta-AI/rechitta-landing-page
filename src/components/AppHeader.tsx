@@ -10,7 +10,7 @@ const LINKS = [
   { label: 'Blog', href: 'https://www.rechitta.com/blog' },
   {
     label: 'Live Briefing',
-    href: 'https://icy-sand-0d102fd00.7.azurestaticapps.net/?sessionId=0b555e4f-a0cf-4459-be58-a6d45a69ac68',
+    href: 'https://beta.rechitta.com/d/Demo/demo-verakai',
     newTab: true,
   },
   { label: 'Privacy', href: 'https://www.rechitta.com/privacy', newTab: true },
