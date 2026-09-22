@@ -131,7 +131,7 @@ export default function MonitorCalibrator({ active = true }: { active?: boolean 
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
+    requestAnimationFrame(() => setMounted(true));
   }, []);
   const activeDragRef = useRef<string | null>(null);
 

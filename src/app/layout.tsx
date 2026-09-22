@@ -20,6 +20,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://www.rechitta.com"),
   title: "Rechitta - AI Real Estate Platform in Dubai",
   description:
     "Next-gen AI for Dubai real estate. Discover properties faster with 24/7 support, real-time insights, and always-accurate listings.",

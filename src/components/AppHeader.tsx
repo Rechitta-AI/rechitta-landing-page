@@ -1,23 +1,26 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
+import { usePathname } from 'next/navigation';
 import { useDemoModal } from '@/contexts/DemoModalContext';
 import Image from 'next/image';
+import Link from 'next/link';
 
 const LINKS = [
-  { label: 'Brokers', href: 'https://www.rechitta.com/brokers' },
-  { label: 'Developers', href: 'https://www.rechitta.com/developers' },
-  { label: 'Blog', href: 'https://www.rechitta.com/blog' },
+  { label: 'Brokers', href: '/brokers' },
+  { label: 'Developers', href: '/developers' },
+  { label: 'Blog', href: '/blog' },
   {
     label: 'Live Briefing',
     href: 'https://beta.rechitta.com/d/Demo/demo-verakai',
     newTab: true,
   },
-  { label: 'Privacy', href: 'https://www.rechitta.com/privacy', newTab: true },
-  { label: 'Terms', href: 'https://www.rechitta.com/terms', newTab: true },
+  { label: 'Privacy', href: '/privacy' },
+  { label: 'Terms', href: '/terms' },
 ];
 
 export default function AppHeader() {
+  const pathname = usePathname();
   const { openModal } = useDemoModal();
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -58,12 +61,16 @@ export default function AppHeader() {
     };
   }, [open]);
 
+  useEffect(() => {
+    setOpen(false);
+  }, [pathname]);
+
   return (
     <header className={`fixed top-0 left-0 right-0 ${open ? 'z-[300]' : 'z-[150]'} flex items-center justify-between px-4 sm:px-6 md:px-12 py-3 sm:py-4 md:py-6 pt-[max(0.85rem,env(safe-area-inset-top))] pointer-events-auto transition-all duration-300`}>
       {/* Subtle backdrop blur only behind the header to keep it readable */}
       <div className="absolute inset-0 bg-black/10 backdrop-blur-md border-b border-white/5 pointer-events-none -z-10 [mask-image:linear-gradient(to_bottom,black,transparent)]" />
 
-      <div className="flex items-center gap-2.5 sm:gap-3">
+      <Link href="/" className="flex items-center gap-2.5 sm:gap-3 cursor-pointer" aria-label="Rechitta - Home">
         <Image
           src="/brand/rechitta-wordmark.svg"
           alt="Rechitta"
@@ -72,7 +79,7 @@ export default function AppHeader() {
           className="w-auto h-4.5 sm:h-5 md:h-6 drop-shadow-md"
           priority
         />
-      </div>
+      </Link>
 
       <div className="flex items-center gap-2 md:gap-3" ref={menuRef}>
         <button

@@ -25,6 +25,20 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  async redirects() {
+    return [
+      {
+        source: "/broker",
+        destination: "/brokers",
+        permanent: true,
+      },
+      {
+        source: "/developer",
+        destination: "/developers",
+        permanent: true,
+      },
+    ];
+  },
 };
 
 export default nextConfig;
