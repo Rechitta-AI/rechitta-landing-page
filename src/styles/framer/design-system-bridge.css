@@ -813,14 +813,6 @@ a.framer-v-1c8kqsq:hover {
   }
 }
 
-.framer-1yifvyx,
-.framer-1bw02m4 {
-  width: 100% !important;
-  max-width: 850px !important;
-  margin: 0 auto !important;
-  box-sizing: border-box !important;
-}
-
 /* --------------------------------------------------------------------------
    7. Footer Glass & Seamless Logo Notch Polish
    -------------------------------------------------------------------------- */
@@ -900,42 +892,57 @@ a.framer-v-1c8kqsq:hover {
 }
 
 /* --------------------------------------------------------------------------
-   8. Stats & High-Impact Callout Cards (Brokers & Developers Parity)
+   8. LLM Statement / Stats (Brokers & Developers Parity)
    -------------------------------------------------------------------------- */
 
 .framer-1yifvyx,
+.framer-1bw02m4,
+.framer-1ko4nuy,
+.framer-1guwh8m,
+.framer-r0vcfj,
+.framer-yy22qk {
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.framer-1yifvyx,
 .framer-1bw02m4 {
-  background: rgba(20, 20, 19, 0.75) !important;
-  border: 1px solid var(--border-default, #222220) !important;
-  border-radius: var(--radius-xl, 16px) !important;
-  padding: 36px 40px !important;
-  backdrop-filter: blur(14px) !important;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5) !important;
-  margin-top: 36px !important;
-  max-width: 960px !important;
+  padding: 24px 0 !important;
+  margin-top: 28px !important;
+  max-width: 900px !important;
   margin-left: auto !important;
   margin-right: auto !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
 }
 
 @media (max-width: 809.98px) {
   .framer-1yifvyx,
   .framer-1bw02m4 {
-    padding: 24px 20px !important;
+    padding: 16px 12px !important;
+    margin-top: 16px !important;
   }
 }
 
 .framer-1yifvyx p,
 .framer-1bw02m4 p {
   font-size: 20px !important;
-  line-height: 1.6em !important;
-  color: var(--text-primary, #fafaf9) !important;
+  line-height: 1.65em !important;
+  color: var(--text-secondary, #e8e8e5) !important;
   text-align: center !important;
+  margin: 0 auto !important;
+  max-width: 880px !important;
 }
 
 @media (max-width: 809.98px) {
   .framer-1yifvyx p,
   .framer-1bw02m4 p {
     font-size: 16px !important;
+    line-height: 1.55em !important;
   }
 }
 
