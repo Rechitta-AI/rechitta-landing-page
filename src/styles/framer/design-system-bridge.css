@@ -192,6 +192,55 @@ blockquote p,
   text-decoration: none !important;
 }
 
+/* Ensure button wrappers and text are strictly vertically & horizontally centered */
+.framer-CsDyE .framer-1pxacyp,
+.framer-CsDyE .framer-esl6hy-container,
+.framer-1kblhh1 .framer-1pxacyp,
+.framer-1kblhh1 .framer-esl6hy-container,
+.framer-1cgg18b .framer-1pxacyp,
+.framer-1cgg18b .framer-esl6hy-container {
+  height: 100% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.framer-CsDyE .framer-esl6hy-container > div,
+.framer-1kblhh1 .framer-esl6hy-container > div,
+.framer-1cgg18b .framer-esl6hy-container > div {
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  height: 100% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  margin: 0 !important;
+}
+
+.framer-CsDyE p,
+.framer-1kblhh1 p,
+.framer-1cgg18b p,
+.framer-v-1cgg18b p,
+.framer-v-1c8kqsq p,
+[class*="rolling-text-inner-"] {
+  margin: 0 !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  padding: 0 !important;
+  line-height: 1.2 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+[class*="rolling-text-inner-"] span {
+  display: inline-block !important;
+  line-height: 1.2 !important;
+  margin: 0 !important;
+}
+
 /* Primary CTA Button (Light variant in Framer -> Brand Blue in design.md) */
 .framer-v-1cgg18b,
 a.framer-v-1cgg18b {
@@ -1294,7 +1343,7 @@ a.framer-v-1c8kqsq:hover {
 
 /* Legal Body Text (P) - Regular 400 */
 .framer-ztw4we p,
-.framer-o3tmg p,
+.framer-o3tmg .framer-ztw4we p,
 .framer-Nk3nB .framer-styles-preset-o3oioe {
   font-family: var(--font-inter), sans-serif !important;
   font-weight: 400 !important;
