@@ -871,6 +871,7 @@ a.framer-v-1c8kqsq:hover {
 .framer-sl3uaf {
   background: linear-gradient(135deg, rgba(26, 26, 24, 0.95) 0%, var(--bg-secondary, #141413) 40%, rgba(14, 14, 13, 0.98) 100%) !important;
   border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-top: none !important;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.65) !important;
   position: relative !important;
   box-sizing: border-box !important;
@@ -892,13 +893,13 @@ a.framer-v-1c8kqsq:hover {
 }
 
 .framer-mle7ye {
-  background-color: var(--bg-primary, #0a0a09) !important;
+  background-color: #000000 !important;
   border: none !important;
   box-shadow: none !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  padding: 4px 12px 6px !important;
+  padding: 4px 14px 6px !important;
   border-bottom-left-radius: 12px !important;
   border-bottom-right-radius: 12px !important;
 }
@@ -909,7 +910,7 @@ a.framer-v-1c8kqsq:hover {
 .framer-u5sqwr svg path,
 .framer-h4o64n svg path,
 #svg12158825557 path {
-  fill: var(--bg-primary, #0a0a09) !important;
+  fill: #000000 !important;
 }
 
 /* Footer Content Container */
