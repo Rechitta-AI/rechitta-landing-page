@@ -159,6 +159,8 @@ h2.framer-styles-preset-1y86yxm,
   line-height: 1.25em !important;
   letter-spacing: -0.03em !important;
   color: #ffffff !important;
+  margin: 0 !important;
+  padding: 0 !important;
 }
 
 @media (max-width: 1199.98px) {
@@ -183,6 +185,7 @@ h2.framer-styles-preset-1y86yxm,
   .framer-o3tmg h2,
   .framer-Nk3nB .framer-styles-preset-1y86yxm {
     font-size: 32px !important;
+    margin: 0 !important;
   }
 }
 
@@ -208,6 +211,7 @@ h2.framer-styles-preset-1y86yxm,
   .framer-o3tmg h2,
   .framer-Nk3nB .framer-styles-preset-1y86yxm {
     font-size: 26px !important;
+    margin: 0 !important;
   }
 }
 
@@ -983,23 +987,48 @@ a.framer-v-1c8kqsq:hover {
 }
 
 /* --------------------------------------------------------------------------
-   6B. "How it works" Process Section Parity (Brokers & Developers)
+   6B. Section Parity (Comparison, Process, Insights, CTA across all pages)
    -------------------------------------------------------------------------- */
 
 .framer-wljjm0,
-.framer-e1rryr {
+.framer-e1rryr,
+.framer-1km2asa,
+.framer-c1f038 {
   width: 100% !important;
   max-width: 1200px !important;
   margin: 0 auto !important;
   display: flex !important;
   flex-direction: column !important;
   align-items: center !important;
-  gap: 40px !important;
+  gap: 48px !important;
   box-sizing: border-box !important;
 }
 
+@media (max-width: 1199.98px) {
+  .framer-wljjm0,
+  .framer-e1rryr,
+  .framer-1km2asa,
+  .framer-c1f038 {
+    gap: 40px !important;
+  }
+}
+
+@media (max-width: 809.98px) {
+  .framer-wljjm0,
+  .framer-e1rryr,
+  .framer-1km2asa,
+  .framer-c1f038 {
+    gap: 28px !important;
+  }
+}
+
+.framer-13lboxo,
+.framer-1sqq9e7,
 .framer-1mdsod2,
-.framer-n25k51 {
+.framer-n25k51,
+.framer-53kiad,
+.framer-1xp0zoi,
+.framer-1ps093 {
   width: 100% !important;
   max-width: 900px !important;
   margin: 0 auto !important;
@@ -1011,8 +1040,25 @@ a.framer-v-1c8kqsq:hover {
   box-sizing: border-box !important;
 }
 
+@media (max-width: 809.98px) {
+  .framer-13lboxo,
+  .framer-1sqq9e7,
+  .framer-1mdsod2,
+  .framer-n25k51,
+  .framer-53kiad,
+  .framer-1xp0zoi,
+  .framer-1ps093 {
+    gap: 12px !important;
+  }
+}
+
 .framer-1nxuaso,
-.framer-dolra3 {
+.framer-dolra3,
+.framer-171m18i,
+.framer-1e30e7a,
+.framer-ipj807,
+.framer-12345z3,
+.framer-1x0e2fy {
   width: 100% !important;
   max-width: 800px !important;
   margin: 0 auto !important;
@@ -1020,7 +1066,12 @@ a.framer-v-1c8kqsq:hover {
 }
 
 .framer-1nxuaso h2,
-.framer-dolra3 h2 {
+.framer-dolra3 h2,
+.framer-171m18i h2,
+.framer-1e30e7a h2,
+.framer-ipj807 h2,
+.framer-12345z3 h2,
+.framer-1x0e2fy h2 {
   font-family: "Inter Display", var(--font-inter), sans-serif !important;
   font-weight: 700 !important;
   color: #ffffff !important;
@@ -1030,7 +1081,11 @@ a.framer-v-1c8kqsq:hover {
 }
 
 .framer-sawro1,
-.framer-1bbnwyp {
+.framer-1bbnwyp,
+.framer-1uu8ev1,
+.framer-1r7r35,
+.framer-1r14d1z,
+.framer-r20n2g {
   width: 100% !important;
   max-width: 650px !important;
   margin: 0 auto !important;
@@ -1038,13 +1093,41 @@ a.framer-v-1c8kqsq:hover {
 }
 
 .framer-sawro1 p,
-.framer-1bbnwyp p {
-  font-family: var(--font-inter), sans-serif !important;
+.framer-1bbnwyp p,
+.framer-1uu8ev1 p,
+.framer-1r7r35 p,
+.framer-1r14d1z p,
+.framer-r20n2g p {
+  font-family: var(--font-inter), 'Inter', sans-serif !important;
   font-size: 16px !important;
   line-height: 1.6em !important;
-  color: rgba(255, 255, 255, 0.75) !important;
+  letter-spacing: -0.01em !important;
+  color: var(--text-secondary, #e8e8e5) !important;
   text-align: center !important;
   margin: 0 auto !important;
+}
+
+@media (max-width: 1199.98px) {
+  .framer-sawro1 p,
+  .framer-1bbnwyp p,
+  .framer-1uu8ev1 p,
+  .framer-1r7r35 p,
+  .framer-1r14d1z p,
+  .framer-r20n2g p {
+    font-size: 15px !important;
+  }
+}
+
+@media (max-width: 809.98px) {
+  .framer-sawro1 p,
+  .framer-1bbnwyp p,
+  .framer-1uu8ev1 p,
+  .framer-1r7r35 p,
+  .framer-1r14d1z p,
+  .framer-r20n2g p {
+    font-size: 14px !important;
+    line-height: 1.55em !important;
+  }
 }
 
 /* --------------------------------------------------------------------------
@@ -1353,7 +1436,7 @@ section.framer-1ckk2q7 > .ssr-variant {
   line-height: 1.2em !important;
   letter-spacing: -0.03em !important;
   color: #ffffff !important;
-  margin: 0 0 10px 0 !important;
+  margin: 0 !important;
   text-align: center !important;
 }
 
@@ -1533,6 +1616,40 @@ section.framer-1ckk2q7 > .ssr-variant {
   min-height: fit-content !important;
   overflow: visible !important;
   align-items: stretch !important;
+}
+
+@media (min-width: 810px) and (max-width: 1199.98px) {
+  .framer-jfyj0a,
+  .framer-880wzz {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    grid-template-rows: repeat(2, minmax(0, 1fr)) !important;
+    gap: 20px !important;
+    width: 100% !important;
+  }
+
+  .framer-18gs1jh,
+  .framer-1uvpn1c,
+  .framer-tqt7w1,
+  .framer-n0g48q,
+  .framer-1d5ds6w,
+  .framer-1vbzq9h,
+  .framer-o85fdo,
+  .framer-17cjfn0,
+  .framer-eWytW .framer-18gs1jh,
+  .framer-eWytW .framer-1uvpn1c,
+  .framer-eWytW .framer-tqt7w1,
+  .framer-eWytW .framer-n0g48q,
+  .framer-5k5Wj .framer-1d5ds6w,
+  .framer-5k5Wj .framer-1vbzq9h,
+  .framer-5k5Wj .framer-o85fdo,
+  .framer-5k5Wj .framer-17cjfn0 {
+    grid-column: span 1 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    place-self: stretch !important;
+    height: 100% !important;
+  }
 }
 
 /* Process Cards (Brokers & Developers) - Compact so entire card is visible in single screen view */
