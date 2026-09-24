@@ -58,6 +58,10 @@ h2,
 .framer-1exuxz4 h1,
 .framer-1exuph7 h1,
 .framer-1etlfm3 h1,
+.framer-32sui0 h1,
+.framer-dglk63 h1,
+.framer-1wy136e h1,
+.framer-o3tmg h1,
 h2.framer-styles-preset-1uc0rn1,
 .framer-styles-preset-1uc0rn1 h2,
 [data-styles-preset="f6v2ro_B_"],
@@ -72,7 +76,14 @@ h2.framer-styles-preset-1uc0rn1,
 .framer-1ps093 h2,
 .framer-1x0e2fy h2,
 .framer-1ixwfg1 h1,
-.framer-1ixwfg1 h2 {
+.framer-1ixwfg1 h2,
+.framer-w8a9pw h1,
+.framer-w8a9pw h2,
+h2.framer-styles-preset-1y86yxm,
+[data-styles-preset="1y86yxm"],
+.framer-ztw4we h2,
+.framer-o3tmg h2,
+.framer-Nk3nB .framer-styles-preset-1y86yxm {
   font-family: "Inter Display", var(--font-inter), -apple-system, BlinkMacSystemFont, sans-serif !important;
   font-weight: 700 !important;
   letter-spacing: -0.03em !important;
@@ -84,7 +95,11 @@ h2.framer-styles-preset-1uc0rn1,
 .framer-1balu35 h1,
 .framer-1exuxz4 h1,
 .framer-1exuph7 h1,
-.framer-1etlfm3 h1 {
+.framer-1etlfm3 h1,
+.framer-32sui0 h1,
+.framer-dglk63 h1,
+.framer-1wy136e h1,
+.framer-o3tmg h1 {
   font-size: 52px !important;
   line-height: 1.15em !important;
 }
@@ -94,8 +109,12 @@ h2.framer-styles-preset-1uc0rn1,
   .framer-1balu35 h1,
   .framer-1exuxz4 h1,
   .framer-1exuph7 h1,
-  .framer-1etlfm3 h1 {
-    font-size: 42px !important;
+  .framer-1etlfm3 h1,
+  .framer-32sui0 h1,
+  .framer-dglk63 h1,
+  .framer-1wy136e h1,
+  .framer-o3tmg h1 {
+    font-size: 40px !important;
   }
 }
 
@@ -104,12 +123,16 @@ h2.framer-styles-preset-1uc0rn1,
   .framer-1balu35 h1,
   .framer-1exuxz4 h1,
   .framer-1exuph7 h1,
-  .framer-1etlfm3 h1 {
+  .framer-1etlfm3 h1,
+  .framer-32sui0 h1,
+  .framer-dglk63 h1,
+  .framer-1wy136e h1,
+  .framer-o3tmg h1 {
     font-size: 29px !important;
   }
 }
 
-/* Section H2 titles - Unified across all sections on Brokers & Developers */
+/* Section H2 titles - Unified across all sections, pages & blogs */
 h2.framer-styles-preset-1uc0rn1,
 .framer-styles-preset-1uc0rn1 h2,
 [data-styles-preset="f6v2ro_B_"],
@@ -122,7 +145,14 @@ h2.framer-styles-preset-1uc0rn1,
 .framer-ipj807 h2,
 .framer-12345z3 h2,
 .framer-1ps093 h2,
-.framer-1x0e2fy h2 {
+.framer-1x0e2fy h2,
+.framer-1ixwfg1 h2,
+.framer-w8a9pw h2,
+h2.framer-styles-preset-1y86yxm,
+[data-styles-preset="1y86yxm"],
+.framer-ztw4we h2,
+.framer-o3tmg h2,
+.framer-Nk3nB .framer-styles-preset-1y86yxm {
   font-family: "Inter Display", var(--font-inter), sans-serif !important;
   font-weight: 700 !important;
   font-size: 38px !important;
@@ -144,7 +174,14 @@ h2.framer-styles-preset-1uc0rn1,
   .framer-ipj807 h2,
   .framer-12345z3 h2,
   .framer-1ps093 h2,
-  .framer-1x0e2fy h2 {
+  .framer-1x0e2fy h2,
+  .framer-1ixwfg1 h2,
+  .framer-w8a9pw h2,
+  h2.framer-styles-preset-1y86yxm,
+  [data-styles-preset="1y86yxm"],
+  .framer-ztw4we h2,
+  .framer-o3tmg h2,
+  .framer-Nk3nB .framer-styles-preset-1y86yxm {
     font-size: 32px !important;
   }
 }
@@ -162,7 +199,14 @@ h2.framer-styles-preset-1uc0rn1,
   .framer-ipj807 h2,
   .framer-12345z3 h2,
   .framer-1ps093 h2,
-  .framer-1x0e2fy h2 {
+  .framer-1x0e2fy h2,
+  .framer-1ixwfg1 h2,
+  .framer-w8a9pw h2,
+  h2.framer-styles-preset-1y86yxm,
+  [data-styles-preset="1y86yxm"],
+  .framer-ztw4we h2,
+  .framer-o3tmg h2,
+  .framer-Nk3nB .framer-styles-preset-1y86yxm {
     font-size: 26px !important;
   }
 }
@@ -461,12 +505,14 @@ a.framer-v-1c8kqsq:hover {
 
 /* Card Titles */
 .framer-bmutq8 p,
-.framer-styles-preset-13jy9hb {
-  font-family: var(--font-playfair), 'Playfair Display', serif !important;
+.framer-mqfbwv p,
+.framer-styles-preset-13jy9hb,
+[data-styles-preset="oBvWttoAP"] {
+  font-family: "Inter Display", var(--font-inter), sans-serif !important;
   font-size: 24px !important;
-  font-weight: 500 !important;
+  font-weight: 700 !important;
   color: var(--text-primary, #fafaf9) !important;
-  letter-spacing: -0.01em !important;
+  letter-spacing: -0.02em !important;
 }
 
 /* Card Notches */
@@ -861,10 +907,11 @@ a.framer-v-1c8kqsq:hover {
 
 .framer-1exuxz4 h1,
 .framer-1exuph7 h1 {
-  font-family: var(--font-playfair), 'Playfair Display', Georgia, serif !important;
-  font-size: 48px !important;
-  font-weight: 500 !important;
+  font-family: "Inter Display", var(--font-inter), sans-serif !important;
+  font-size: 52px !important;
+  font-weight: 700 !important;
   line-height: 1.15em !important;
+  letter-spacing: -0.03em !important;
   text-align: center !important;
   color: #ffffff !important;
   margin: 0 !important;
@@ -1642,26 +1689,28 @@ section.framer-1ckk2q7 > .ssr-variant {
 .framer-1etlfm3 h1,
 .framer-1ixwfg1 h1,
 .framer-w8a9pw h1 {
-  font-family: var(--font-playfair), 'Playfair Display', serif !important;
+  font-family: "Inter Display", var(--font-inter), sans-serif !important;
   font-weight: 700 !important;
-  font-size: 42px !important;
+  font-size: 38px !important;
   line-height: 1.2em !important;
-  letter-spacing: -0.02em !important;
+  letter-spacing: -0.03em !important;
   color: #ffffff !important;
   margin-top: 12px !important;
   margin-bottom: 24px !important;
   text-align: left !important;
 }
 
-/* Blog Section Headings (H2) - Bold 700, distinct scale */
+/* Blog Section Headings (H2) - Bold 700, matching section titles */
 .framer-1ixwfg1 h2,
 .framer-w8a9pw h2,
-.framer-w8a9pw .framer-styles-preset-1y86yxm {
-  font-family: var(--font-inter), 'Inter', sans-serif !important;
+.framer-w8a9pw .framer-styles-preset-1y86yxm,
+h2.framer-styles-preset-1y86yxm,
+[data-styles-preset="1y86yxm"] {
+  font-family: "Inter Display", var(--font-inter), sans-serif !important;
   font-weight: 700 !important;
-  font-size: 26px !important;
-  line-height: 1.3em !important;
-  letter-spacing: -0.025em !important;
+  font-size: 32px !important;
+  line-height: 1.25em !important;
+  letter-spacing: -0.03em !important;
   color: #ffffff !important;
   margin-top: 48px !important;
   margin-bottom: 16px !important;
@@ -1671,19 +1720,23 @@ section.framer-1ckk2q7 > .ssr-variant {
 .framer-1ixwfg1 h2 span,
 .framer-w8a9pw h2 strong,
 .framer-w8a9pw h2 span {
+  font-family: "Inter Display", var(--font-inter), sans-serif !important;
   font-weight: 700 !important;
+  letter-spacing: -0.03em !important;
   color: #ffffff !important;
 }
 
 /* Blog Subheadings (H3) - Semi-bold 600, distinct intermediate weight & scale */
 .framer-1ixwfg1 h3,
 .framer-w8a9pw h3,
-.framer-w8a9pw .framer-styles-preset-36sham {
-  font-family: var(--font-inter), 'Inter', sans-serif !important;
+.framer-w8a9pw .framer-styles-preset-36sham,
+h3.framer-styles-preset-36sham,
+[data-styles-preset="36sham"] {
+  font-family: "Inter Display", var(--font-inter), sans-serif !important;
   font-weight: 600 !important;
-  font-size: 19px !important;
+  font-size: 20px !important;
   line-height: 1.4em !important;
-  letter-spacing: -0.015em !important;
+  letter-spacing: -0.02em !important;
   color: #f0f0ee !important;
   text-transform: none !important;
   margin-top: 32px !important;
@@ -1694,6 +1747,7 @@ section.framer-1ckk2q7 > .ssr-variant {
 .framer-1ixwfg1 h3 span,
 .framer-w8a9pw h3 strong,
 .framer-w8a9pw h3 span {
+  font-family: "Inter Display", var(--font-inter), sans-serif !important;
   font-weight: 600 !important;
   color: #f0f0ee !important;
 }
@@ -1827,10 +1881,11 @@ section.framer-1ckk2q7 > .ssr-variant {
 /* Legal Page Main Title (H1) - Bold 700 */
 .framer-o3tmg h1,
 .framer-1wy136e h1 {
-  font-family: var(--font-playfair), 'Playfair Display', serif !important;
+  font-family: "Inter Display", var(--font-inter), sans-serif !important;
   font-weight: 700 !important;
   font-size: 44px !important;
   line-height: 1.15em !important;
+  letter-spacing: -0.03em !important;
   color: #ffffff !important;
   margin-top: 8px !important;
   margin-bottom: 20px !important;
@@ -1840,12 +1895,13 @@ section.framer-1ckk2q7 > .ssr-variant {
 /* Legal Section Headings (H2) - Bold 700, compact gaps */
 .framer-ztw4we h2,
 .framer-o3tmg h2,
-.framer-Nk3nB .framer-styles-preset-1y86yxm {
-  font-family: var(--font-inter), 'Inter', sans-serif !important;
+.framer-Nk3nB .framer-styles-preset-1y86yxm,
+h2.framer-styles-preset-1y86yxm {
+  font-family: "Inter Display", var(--font-inter), sans-serif !important;
   font-weight: 700 !important;
-  font-size: 20px !important;
+  font-size: 22px !important;
   line-height: 1.3em !important;
-  letter-spacing: -0.02em !important;
+  letter-spacing: -0.03em !important;
   color: #ffffff !important;
   margin-top: 24px !important;
   margin-bottom: 8px !important;
@@ -1859,7 +1915,9 @@ section.framer-1ckk2q7 > .ssr-variant {
 .framer-ztw4we h2 span,
 .framer-o3tmg h2 strong,
 .framer-o3tmg h2 span {
+  font-family: "Inter Display", var(--font-inter), sans-serif !important;
   font-weight: 700 !important;
+  letter-spacing: -0.03em !important;
   color: #ffffff !important;
 }
 
