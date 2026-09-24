@@ -260,20 +260,6 @@ export default function FramerFooter() {
           >
             {/* Notch with Logo */}
             <div className="framer-kg07fk" data-framer-name="Notch" style={{ opacity: 1 }}>
-              <div className="framer-11gja0v" data-framer-name="Rounded Edge" style={{ transform: 'none', opacity: 1 }}>
-                <div
-                  data-framer-component-type="SVG"
-                  className="framer-u5sqwr"
-                  aria-hidden="true"
-                  style={{ imageRendering: 'pixelated', flexShrink: 0, opacity: 1 }}
-                >
-                  <div className="svgContainer" style={{ width: '100%', height: '100%' }}>
-                    <svg style={{ width: '100%', height: '100%' }}>
-                      <use href="#svg12158825557" />
-                    </svg>
-                  </div>
-                </div>
-              </div>
 
               <div
                 className="framer-mle7ye"

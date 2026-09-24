@@ -50,23 +50,40 @@
 /* Display / Section Headings */
 h1,
 h2,
-.framer-17r0fej h1,
 .framer-styles-preset-d8f6ar,
-.framer-styles-preset-1uc0rn1,
-.framer-171m18i h2,
+.framer-styles-preset-d8f6ar h1,
+[data-styles-preset="btOMgah8g"],
+.framer-17r0fej h1,
+.framer-1balu35 h1,
+.framer-1exuxz4 h1,
+.framer-1exuph7 h1,
+.framer-1etlfm3 h1,
+h2.framer-styles-preset-1uc0rn1,
+.framer-styles-preset-1uc0rn1 h2,
+[data-styles-preset="f6v2ro_B_"],
 .framer-xuljs5 h2,
+.framer-dff12t h2,
+.framer-171m18i h2,
+.framer-1e30e7a h2,
+.framer-1nxuaso h2,
+.framer-dolra3 h2,
+.framer-ipj807 h2,
+.framer-12345z3 h2,
 .framer-1ps093 h2,
+.framer-1x0e2fy h2,
 .framer-1ixwfg1 h1,
-.framer-1ixwfg1 h2,
-.framer-1etlfm3 h1 {
+.framer-1ixwfg1 h2 {
   font-family: "Inter Display", var(--font-inter), -apple-system, BlinkMacSystemFont, sans-serif !important;
   font-weight: 700 !important;
   letter-spacing: -0.03em !important;
   color: var(--text-primary, #ffffff) !important;
 }
 
-/* Specific heading scales */
+/* Specific heading scales - Hero H1 */
 .framer-17r0fej h1,
+.framer-1balu35 h1,
+.framer-1exuxz4 h1,
+.framer-1exuph7 h1,
 .framer-1etlfm3 h1 {
   font-size: 52px !important;
   line-height: 1.15em !important;
@@ -74,6 +91,9 @@ h2,
 
 @media (max-width: 1199.98px) {
   .framer-17r0fej h1,
+  .framer-1balu35 h1,
+  .framer-1exuxz4 h1,
+  .framer-1exuph7 h1,
   .framer-1etlfm3 h1 {
     font-size: 42px !important;
   }
@@ -81,23 +101,68 @@ h2,
 
 @media (max-width: 809.98px) {
   .framer-17r0fej h1,
+  .framer-1balu35 h1,
+  .framer-1exuxz4 h1,
+  .framer-1exuph7 h1,
   .framer-1etlfm3 h1 {
+    font-size: 29px !important;
+  }
+}
+
+/* Section H2 titles - Unified across all sections on Brokers & Developers */
+h2.framer-styles-preset-1uc0rn1,
+.framer-styles-preset-1uc0rn1 h2,
+[data-styles-preset="f6v2ro_B_"],
+.framer-xuljs5 h2,
+.framer-dff12t h2,
+.framer-171m18i h2,
+.framer-1e30e7a h2,
+.framer-1nxuaso h2,
+.framer-dolra3 h2,
+.framer-ipj807 h2,
+.framer-12345z3 h2,
+.framer-1ps093 h2,
+.framer-1x0e2fy h2 {
+  font-family: "Inter Display", var(--font-inter), sans-serif !important;
+  font-weight: 700 !important;
+  font-size: 38px !important;
+  line-height: 1.25em !important;
+  letter-spacing: -0.03em !important;
+  color: #ffffff !important;
+}
+
+@media (max-width: 1199.98px) {
+  h2.framer-styles-preset-1uc0rn1,
+  .framer-styles-preset-1uc0rn1 h2,
+  [data-styles-preset="f6v2ro_B_"],
+  .framer-xuljs5 h2,
+  .framer-dff12t h2,
+  .framer-171m18i h2,
+  .framer-1e30e7a h2,
+  .framer-1nxuaso h2,
+  .framer-dolra3 h2,
+  .framer-ipj807 h2,
+  .framer-12345z3 h2,
+  .framer-1ps093 h2,
+  .framer-1x0e2fy h2 {
     font-size: 32px !important;
   }
 }
 
-/* Section H2 titles */
-.framer-171m18i h2,
-.framer-xuljs5 h2,
-.framer-1ps093 h2 {
-  font-size: 38px !important;
-  line-height: 1.25em !important;
-}
-
 @media (max-width: 809.98px) {
-  .framer-171m18i h2,
+  h2.framer-styles-preset-1uc0rn1,
+  .framer-styles-preset-1uc0rn1 h2,
+  [data-styles-preset="f6v2ro_B_"],
   .framer-xuljs5 h2,
-  .framer-1ps093 h2 {
+  .framer-dff12t h2,
+  .framer-171m18i h2,
+  .framer-1e30e7a h2,
+  .framer-1nxuaso h2,
+  .framer-dolra3 h2,
+  .framer-ipj807 h2,
+  .framer-12345z3 h2,
+  .framer-1ps093 h2,
+  .framer-1x0e2fy h2 {
     font-size: 26px !important;
   }
 }
@@ -1020,17 +1085,28 @@ a.framer-v-1c8kqsq:hover {
   fill: #000000 !important;
 }
 
-/* Seamless mobile logo notch: eliminate left border around logo */
-.framer-mobile-footer-wrapper .framer-kg07fk::before {
-  content: '' !important;
+/* Seamless mobile logo notch: flush left alignment and smooth continuous boundary */
+.framer-mobile-footer-wrapper .framer-kg07fk {
   position: absolute !important;
-  top: -4px !important;
-  bottom: -24px !important;
-  left: -4px !important;
-  width: 6px !important;
-  background: #000000 !important;
-  z-index: 20 !important;
-  pointer-events: none !important;
+  top: 0 !important;
+  left: 0 !important;
+  display: flex !important;
+  align-items: flex-start !important;
+  z-index: 3 !important;
+  overflow: visible !important;
+}
+
+.framer-mobile-footer-wrapper .framer-11gja0v {
+  display: none !important;
+}
+
+.framer-mobile-footer-wrapper .framer-mle7ye {
+  background-color: #000000 !important;
+  border: none !important;
+  border-top-left-radius: 0 !important;
+  border-bottom-left-radius: 0 !important;
+  border-bottom-right-radius: 14px !important;
+  padding: 6px 18px 8px 16px !important;
 }
 
 /* Footer Content Container */
