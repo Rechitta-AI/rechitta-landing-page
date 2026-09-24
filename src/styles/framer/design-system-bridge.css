@@ -913,6 +913,19 @@ a.framer-v-1c8kqsq:hover {
   fill: #000000 !important;
 }
 
+/* Seamless mobile logo notch: eliminate left border around logo */
+.framer-mobile-footer-wrapper .framer-kg07fk::before {
+  content: '' !important;
+  position: absolute !important;
+  top: -4px !important;
+  bottom: -24px !important;
+  left: -4px !important;
+  width: 6px !important;
+  background: #000000 !important;
+  z-index: 20 !important;
+  pointer-events: none !important;
+}
+
 /* Footer Content Container */
 .framer-o4deo7 {
   width: 100% !important;

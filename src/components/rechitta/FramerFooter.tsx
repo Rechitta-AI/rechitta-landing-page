@@ -252,7 +252,7 @@ export default function FramerFooter() {
                 'linear-gradient(135deg, rgba(26, 26, 24, 0.95) 0%, var(--bg-secondary, #141413) 40%, rgba(14, 14, 13, 0.98) 100%)',
               borderBottomLeftRadius: 20,
               borderBottomRightRadius: 20,
-              borderTopLeftRadius: 20,
+              borderTopLeftRadius: 0,
               borderTopRightRadius: 20,
               opacity: 1,
               transform: 'none',

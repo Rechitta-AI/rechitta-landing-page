@@ -1147,6 +1147,19 @@ img {
     overflow: visible !important;
   }
 
+  /* Seamlessly eliminate the left border line around the logo notch */
+  .framer-kg07fk::before {
+    content: '' !important;
+    position: absolute !important;
+    top: -4px !important;
+    bottom: -24px !important;
+    left: -4px !important;
+    width: 6px !important;
+    background: #000000 !important;
+    z-index: 20 !important;
+    pointer-events: none !important;
+  }
+
   .framer-mle7ye {
     padding: 4px 14px 6px 16px !important;
     border-bottom-left-radius: 0 !important;
