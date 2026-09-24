@@ -6,28 +6,33 @@
    1. Rolling Text Animation on Hover (Buttons & CTAs)
    -------------------------------------------------------------------------- */
 
+[class*="rolling-text-inner-"],
+[class*="rolling-text-inner-"] * {
+  text-shadow: none !important;
+}
+
 [class*="rolling-text-inner-"] {
-  --line-height-abs: 16.8px;
   overflow: hidden !important;
-  display: flex !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
   user-select: none;
-  text-shadow: 0 var(--line-height-abs, 16.8px) 0 var(--text, currentColor) !important;
+  text-shadow: none !important;
 }
 
 [class*="rolling-text-inner-"] span {
   display: inline-block !important;
-  transform: translateY(0px);
-  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1) !important;
-  transition-delay: calc(var(--i, 0) * 0.015s) !important;
-  will-change: transform;
+  transform: none !important;
+  will-change: auto;
+  text-shadow: none !important;
 }
 
-/* On hover of any button or link containing rolling-text, shift characters up */
+/* Eliminate fragile text-shadow roll that causes clipped ghost text inside buttons */
 a:hover [class*="rolling-text-inner-"] span,
 button:hover [class*="rolling-text-inner-"] span,
 .framer-CsDyE:hover [class*="rolling-text-inner-"] span,
 .framer-1kblhh1:hover [class*="rolling-text-inner-"] span {
-  transform: translateY(calc(-1 * var(--line-height-abs, 16.8px))) !important;
+  transform: none !important;
 }
 
 /* Button hover feedback */

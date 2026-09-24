@@ -588,9 +588,7 @@ a.framer-v-1c8kqsq span {
   .framer-17r0fej h1,
   .framer-1exuxz4 h1,
   .framer-1exuph7 h1,
-  .framer-1etlfm3 h1,
-  .framer-o3tmg h1,
-  .framer-1wy136e h1 {
+  .framer-1etlfm3 h1 {
     font-family: "Inter Display", var(--font-inter), sans-serif !important;
     font-weight: 700 !important;
     font-size: 29px !important;
@@ -599,6 +597,22 @@ a.framer-v-1c8kqsq span {
     text-align: center !important;
     color: #ffffff !important;
     margin: 8px 0 !important;
+  }
+
+  /* Terms & Privacy Main Title on Mobile (Left Aligned) */
+  .framer-o3tmg h1,
+  .framer-1wy136e,
+  .framer-1wy136e h1,
+  .framer-1uctbv0 {
+    font-family: "Inter Display", var(--font-inter), sans-serif !important;
+    font-weight: 700 !important;
+    font-size: 32px !important;
+    line-height: 1.18em !important;
+    letter-spacing: -0.03em !important;
+    text-align: left !important;
+    align-items: flex-start !important;
+    color: #ffffff !important;
+    margin: 6px 0 16px 0 !important;
   }
 
   .framer-171m18i h2,
@@ -931,12 +945,16 @@ a.framer-v-1c8kqsq span {
     width: 100% !important;
   }
 
+  .framer-1wy136e,
   .framer-1wy136e h1,
-  .framer-o3tmg h1 {
-    font-size: 34px !important;
+  .framer-o3tmg h1,
+  .framer-1uctbv0 {
+    font-size: 32px !important;
     margin-top: 6px !important;
     margin-bottom: 16px !important;
     line-height: 1.15em !important;
+    text-align: left !important;
+    align-items: flex-start !important;
   }
 
   .framer-ztw4we h2 {
@@ -1024,16 +1042,25 @@ a.framer-v-1c8kqsq span {
 
   .framer-1ehvore a {
     width: 100% !important;
+    padding: 12px 20px !important;
+    display: inline-flex !important;
+    align-items: center !important;
     justify-content: center !important;
     box-sizing: border-box !important;
+    overflow: hidden !important;
   }
 
   .framer-1ehvore .framer-1pxacyp,
+  .framer-1ehvore .framer-esl6hy-container,
   .framer-1ehvore .framer-esl6hy-container div,
   .framer-1ehvore [class*="rolling-text-inner"] {
     width: 100% !important;
-    padding: 12px 16px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    text-shadow: none !important;
     font-size: 13.5px !important;
+    display: inline-flex !important;
+    align-items: center !important;
     justify-content: center !important;
   }
 

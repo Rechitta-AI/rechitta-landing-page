@@ -218,6 +218,11 @@ blockquote p,
   margin: 0 !important;
 }
 
+[class*="rolling-text-inner-"],
+[class*="rolling-text-inner-"] * {
+  text-shadow: none !important;
+}
+
 .framer-CsDyE p,
 .framer-1kblhh1 p,
 .framer-1cgg18b p,
@@ -232,12 +237,14 @@ blockquote p,
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
+  text-shadow: none !important;
 }
 
 [class*="rolling-text-inner-"] span {
   display: inline-block !important;
   line-height: 1.2 !important;
   margin: 0 !important;
+  text-shadow: none !important;
 }
 
 /* Primary CTA Button (Light variant in Framer -> White pill with dark text) */
@@ -1171,10 +1178,24 @@ section.framer-1ckk2q7 > .ssr-variant {
 }
 
 /* Button Text Padding & Typography */
+.framer-1ehvore a,
+.framer-1ehvore .framer-CsDyE {
+  padding: 12px 28px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-decoration: none !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
+}
+
 .framer-1ehvore .framer-1pxacyp,
+.framer-1ehvore .framer-esl6hy-container,
 .framer-1ehvore .framer-esl6hy-container div,
 .framer-1ehvore [class*="rolling-text-inner"] {
-  padding: 12px 24px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  text-shadow: none !important;
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
@@ -1902,6 +1923,22 @@ pre,
   margin-left: auto !important;
   margin-right: auto !important;
   box-sizing: border-box !important;
+}
+
+/* Terms & Privacy Main Heading Container & H1 - Left Aligned */
+.framer-1uctbv0 {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  text-align: left !important;
+}
+
+.framer-1nruqgs,
+.framer-1wy136e,
+.framer-1wy136e h1,
+.framer-o3tmg h1 {
+  text-align: left !important;
+  align-items: flex-start !important;
 }
 
 
