@@ -188,6 +188,7 @@ a.framer-v-1c8kqsq span {
   .framer-171m18i h2,
   .framer-xuljs5 h2,
   .framer-1nxuaso h2,
+  .framer-dolra3 h2,
   .framer-ipj807 h2,
   .framer-12345z3 h2,
   .framer-1ps093 h2 {
@@ -245,6 +246,7 @@ a.framer-v-1c8kqsq span {
   .framer-1nav39h,
   .framer-1km2asa,
   .framer-wljjm0,
+  .framer-e1rryr,
   .framer-1y2icjx,
   .framer-1af2gb1,
   .framer-1128m0d,
@@ -273,6 +275,7 @@ a.framer-v-1c8kqsq span {
   .framer-171m18i h2,
   .framer-xuljs5 h2,
   .framer-1nxuaso h2,
+  .framer-dolra3 h2,
   .framer-ipj807 h2,
   .framer-12345z3 h2,
   .framer-1ps093 h2,
@@ -288,7 +291,8 @@ a.framer-v-1c8kqsq span {
 
   .framer-umoj4c p,
   .framer-1uu8ev1 p,
-  .framer-sawro1 p {
+  .framer-sawro1 p,
+  .framer-1bbnwyp p {
     font-family: "Inter Display", var(--font-inter), sans-serif !important;
     font-size: 16px !important;
     line-height: 1.6em !important;
@@ -353,6 +357,23 @@ a.framer-v-1c8kqsq span {
   .framer-sxoGm {
     width: 100% !important;
     max-width: 100% !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+  }
+
+  .framer-kdeq7b {
+    width: 100% !important;
+    max-width: 100% !important;
+    align-self: stretch !important;
+    padding: 22px 20px 26px !important;
+    box-sizing: border-box !important;
+  }
+
+  .framer-bmutq8,
+  .framer-wp22n5 {
+    width: 100% !important;
+    max-width: 100% !important;
+    align-self: stretch !important;
   }
 
   /* Comparison Section on Tablet */
@@ -384,6 +405,10 @@ a.framer-v-1c8kqsq span {
   .framer-1uvpn1c,
   .framer-tqt7w1,
   .framer-n0g48q,
+  .framer-1d5ds6w,
+  .framer-1vbzq9h,
+  .framer-o85fdo,
+  .framer-17cjfn0,
   .framer-e1h5e4,
   .framer-1p522e8,
   .framer-1r651z4,
@@ -576,6 +601,7 @@ a.framer-v-1c8kqsq span {
   .framer-1nav39h,
   .framer-1km2asa,
   .framer-wljjm0,
+  .framer-e1rryr,
   .framer-1y2icjx,
   .framer-1af2gb1,
   .framer-1128m0d,
@@ -620,6 +646,7 @@ a.framer-v-1c8kqsq span {
   .framer-171m18i h2,
   .framer-xuljs5 h2,
   .framer-1nxuaso h2,
+  .framer-dolra3 h2,
   .framer-ipj807 h2,
   .framer-12345z3 h2,
   .framer-1ps093 h2 {
@@ -638,6 +665,7 @@ a.framer-v-1c8kqsq span {
 
   .framer-171m18i h2,
   .framer-1nxuaso h2,
+  .framer-dolra3 h2,
   .framer-ipj807 h2,
   .framer-12345z3 h2,
   .framer-1ps093 h2 {
@@ -647,7 +675,8 @@ a.framer-v-1c8kqsq span {
   /* Subheadings & descriptions */
   .framer-umoj4c p,
   .framer-1uu8ev1 p,
-  .framer-sawro1 p {
+  .framer-sawro1 p,
+  .framer-1bbnwyp p {
     font-family: "Inter Display", var(--font-inter), sans-serif !important;
     font-size: 15px !important;
     line-height: 1.55em !important;
@@ -659,7 +688,8 @@ a.framer-v-1c8kqsq span {
   }
 
   .framer-1uu8ev1 p,
-  .framer-sawro1 p {
+  .framer-sawro1 p,
+  .framer-1bbnwyp p {
     text-align: center !important;
   }
 
@@ -744,9 +774,29 @@ a.framer-v-1c8kqsq span {
   .framer-sxoGm {
     width: 100% !important;
     max-width: 100% !important;
+    padding: 0 !important;
+    overflow: hidden !important;
     border-radius: 18px !important;
     border: 1px solid var(--token-819e50e5-99c5-4547-ba7c-e2d71a9ee22d, rgb(0, 85, 255)) !important;
     background-color: var(--token-a53beb93-2df8-4cea-8692-a810c05e478d, rgb(0, 0, 0)) !important;
+  }
+
+  .framer-kdeq7b {
+    width: 100% !important;
+    max-width: 100% !important;
+    align-self: stretch !important;
+    padding: 20px 18px 24px !important;
+    box-sizing: border-box !important;
+    align-items: flex-start !important;
+    text-align: left !important;
+  }
+
+  .framer-bmutq8,
+  .framer-wp22n5 {
+    width: 100% !important;
+    max-width: 100% !important;
+    align-self: stretch !important;
+    text-align: left !important;
   }
 
   .framer-9a4bjj {
@@ -762,15 +812,23 @@ a.framer-v-1c8kqsq span {
   }
 
   .framer-bmutq8 p {
-    font-size: 18px !important;
+    font-size: 20px !important;
     font-weight: 600 !important;
     color: #ffffff !important;
+    width: 100% !important;
+    text-align: left !important;
+    text-wrap: normal !important;
+    --framer-text-wrap-override: normal !important;
   }
 
   .framer-wp22n5 p {
     font-size: 14px !important;
     line-height: 1.55em !important;
     color: rgba(255, 255, 255, 0.7) !important;
+    width: 100% !important;
+    text-align: left !important;
+    text-wrap: normal !important;
+    --framer-text-wrap-override: normal !important;
   }
 
   /* Comparison Section on Mobile */
@@ -809,6 +867,10 @@ a.framer-v-1c8kqsq span {
   .framer-1uvpn1c,
   .framer-tqt7w1,
   .framer-n0g48q,
+  .framer-1d5ds6w,
+  .framer-1vbzq9h,
+  .framer-o85fdo,
+  .framer-17cjfn0,
   .framer-e1h5e4,
   .framer-1p522e8,
   .framer-1r651z4,
