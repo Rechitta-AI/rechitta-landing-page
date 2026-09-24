@@ -1,5 +1,6 @@
 /* ==========================================================================
    Rechitta Framer Responsive System: Desktop, Tablet & Mobile Breakpoints
+   Maintains original Framer aesthetic, typography, font weights, and layout parity.
    ========================================================================== */
 
 /* --------------------------------------------------------------------------
@@ -51,101 +52,285 @@
 }
 
 /* --------------------------------------------------------------------------
-   2. Layout Fluidity & Container Bounds
-   Prevent horizontal scrolling, ensure flexible sizing across screen sizes
+   2. Global Fluidity & Container Bounds
+   Prevent horizontal scrolling and ensure edge-to-edge flexibility
    -------------------------------------------------------------------------- */
 
 html,
 body {
   overflow-x: clip !important;
   max-width: 100vw !important;
+  width: 100% !important;
 }
 
 .ssr-variant {
   display: contents !important;
 }
 
+/* Base Framer root containers - never fixed-width */
 [data-framer-root],
 [data-layout-template="true"],
+.framer-page-root,
 .framer-R7l59,
 .framer-eWytW,
 .framer-5k5Wj,
-.framer-Nk3nB,
+.framer-qw05F,
 .framer-eil9H,
-.framer-m25d88 {
+.framer-Nk3nB,
+.framer-VQnUD,
+.framer-klqrj,
+.framer-jp6so {
   max-width: 100% !important;
   width: 100% !important;
   box-sizing: border-box !important;
   overflow-x: clip !important;
 }
 
-/* Ensure inner section containers don't exceed screen width on mobile/tablet */
-@media (max-width: 1199.98px) {
-  .framer-a06ty1,
-  .framer-1x101fe,
-  .framer-293j3c,
-  .framer-8rxlc0,
-  .framer-1bizrx5,
-  .framer-1y17f4o,
-  .framer-1nav39h,
-  .framer-2kiesh,
-  .framer-1km2asa,
-  .framer-1ckk2q7,
-  .framer-wljjm0,
-  .framer-e1rryr,
-  .framer-1p522e8,
-  .framer-13lboxo,
-  .framer-1sqq9e7,
-  .framer-qtep3e,
-  .framer-16yy9te,
-  .framer-y0sa0n,
-  .framer-w8a9pw {
-    max-width: 100% !important;
-    box-sizing: border-box !important;
+/* --------------------------------------------------------------------------
+   3. Common Component Styles (Badges, Buttons & Typography Baseline)
+   -------------------------------------------------------------------------- */
+
+/* Badges - Vibrant Framer blue pill with white text */
+.framer-XUE7K,
+[data-framer-name="Badge"] {
+  background-color: var(--token-819e50e5-99c5-4547-ba7c-e2d71a9ee22d, rgb(0, 85, 255)) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  border-radius: 20px !important;
+  padding: 4px 14px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: fit-content !important;
+}
+
+.framer-XUE7K p,
+.framer-xrs0cf p,
+[data-framer-name="Badge"] p {
+  font-family: "Inter Display", var(--font-inter), sans-serif !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  letter-spacing: normal !important;
+  text-transform: none !important;
+  color: #ffffff !important;
+  margin: 0 !important;
+}
+
+/* Light button ("Join the waitlist", "Experience a live briefing") */
+.framer-v-1cgg18b,
+a.framer-v-1cgg18b {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+  border: none !important;
+  border-radius: 50px !important;
+  font-family: "Inter Display", var(--font-inter), sans-serif !important;
+  font-weight: 600 !important;
+  font-size: 14px !important;
+  padding: 10px 22px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-decoration: none !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25) !important;
+}
+
+.framer-v-1cgg18b p,
+.framer-v-1cgg18b span,
+a.framer-v-1cgg18b p,
+a.framer-v-1cgg18b span {
+  color: #000000 !important;
+  font-weight: 600 !important;
+  font-family: "Inter Display", var(--font-inter), sans-serif !important;
+}
+
+/* Dark secondary button */
+.framer-v-1c8kqsq,
+a.framer-v-1c8kqsq {
+  background-color: var(--token-f8734902-8d1d-4e80-b378-a091f0e2450d, rgb(38, 38, 38)) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border-radius: 50px !important;
+  font-family: "Inter Display", var(--font-inter), sans-serif !important;
+  font-weight: 600 !important;
+  font-size: 14px !important;
+  padding: 10px 22px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-decoration: none !important;
+}
+
+.framer-v-1c8kqsq p,
+.framer-v-1c8kqsq span,
+a.framer-v-1c8kqsq p,
+a.framer-v-1c8kqsq span {
+  color: #ffffff !important;
+  font-weight: 600 !important;
+  font-family: "Inter Display", var(--font-inter), sans-serif !important;
+}
+
+/* --------------------------------------------------------------------------
+   4. Desktop Viewport System (1200px and up)
+   -------------------------------------------------------------------------- */
+
+@media (min-width: 1200px) {
+  /* Heading typography */
+  .framer-17r0fej h1,
+  .framer-1exuxz4 h1,
+  .framer-1exuph7 h1,
+  .framer-1etlfm3 h1 {
+    font-family: "Inter Display", var(--font-inter), sans-serif !important;
+    font-weight: 700 !important;
+    font-size: 52px !important;
+    line-height: 1.1em !important;
+    letter-spacing: -0.03em !important;
   }
 
-  .framer-1c2l5qg,
-  .framer-1ts059q {
-    max-width: 100% !important;
+  .framer-171m18i h2,
+  .framer-xuljs5 h2,
+  .framer-1nxuaso h2,
+  .framer-ipj807 h2,
+  .framer-12345z3 h2,
+  .framer-1ps093 h2 {
+    font-family: "Inter Display", var(--font-inter), sans-serif !important;
+    font-weight: 700 !important;
+    font-size: 38px !important;
+    line-height: 1.2em !important;
+    letter-spacing: -0.03em !important;
+  }
+
+  /* Demo iframe */
+  .framer-1hghg6w-container,
+  .framer-1ymwg3e-container,
+  .framer-1hghg6w-container iframe,
+  .framer-1ymwg3e-container iframe {
+    height: 620px !important;
     width: 100% !important;
+    max-width: 1080px !important;
   }
 }
 
-@media (max-width: 809.98px) {
+/* --------------------------------------------------------------------------
+   5. Tablet Viewport System (810px to 1199.98px)
+   -------------------------------------------------------------------------- */
+
+@media (min-width: 810px) and (max-width: 1199.98px) {
+  /* Container widths: fluid up to tablet max */
+  .framer-R7l59,
+  .framer-eWytW,
+  .framer-5k5Wj,
+  .framer-qw05F,
+  .framer-eil9H,
+  .framer-Nk3nB,
+  .framer-VQnUD,
+  .framer-klqrj,
+  .framer-jp6so {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  /* Section Padding */
   .framer-1bizrx5,
   .framer-1y17f4o {
-    padding: 16px 12px !important;
+    padding: 0 !important;
+    width: 100% !important;
   }
 
   .framer-a06ty1,
   .framer-1x101fe {
-    padding: 120px 16px 40px !important;
-    width: 100% !important;
-  }
-
-  .framer-1exuxz4,
-  .framer-1exuph7 {
+    padding: 130px 32px 50px !important;
     width: 100% !important;
     max-width: 100% !important;
   }
 
-  .framer-1exuxz4 h1,
-  .framer-1exuph7 h1 {
-    font-size: 32px !important;
-    line-height: 1.15em !important;
-    text-align: center !important;
+  .framer-1nav39h,
+  .framer-1km2asa,
+  .framer-wljjm0,
+  .framer-1y2icjx,
+  .framer-1af2gb1,
+  .framer-1128m0d,
+  .framer-2kiesh,
+  .framer-1ckk2q7 {
+    padding: 60px 32px !important;
+    width: 100% !important;
+    max-width: 100% !important;
   }
 
+  /* Heading Typography for Tablets */
+  .framer-17r0fej h1,
+  .framer-1exuxz4 h1,
+  .framer-1exuph7 h1,
+  .framer-1etlfm3 h1,
+  .framer-o3tmg h1,
+  .framer-1wy136e h1 {
+    font-family: "Inter Display", var(--font-inter), sans-serif !important;
+    font-weight: 700 !important;
+    font-size: 40px !important;
+    line-height: 1.15em !important;
+    letter-spacing: -0.03em !important;
+    color: #ffffff !important;
+  }
+
+  .framer-171m18i h2,
+  .framer-xuljs5 h2,
+  .framer-1nxuaso h2,
+  .framer-ipj807 h2,
+  .framer-12345z3 h2,
+  .framer-1ps093 h2,
+  .framer-1ixwfg1 h2,
+  .framer-ztw4we h2 {
+    font-family: "Inter Display", var(--font-inter), sans-serif !important;
+    font-weight: 700 !important;
+    font-size: 32px !important;
+    line-height: 1.25em !important;
+    letter-spacing: -0.03em !important;
+    color: #ffffff !important;
+  }
+
+  .framer-umoj4c p,
+  .framer-1uu8ev1 p,
+  .framer-sawro1 p {
+    font-family: "Inter Display", var(--font-inter), sans-serif !important;
+    font-size: 16px !important;
+    line-height: 1.6em !important;
+    color: rgba(255, 255, 255, 0.75) !important;
+  }
+
+  /* Demo Iframe on Tablet */
+  .framer-1hghg6w-container,
+  .framer-1ymwg3e-container {
+    height: 500px !important;
+    width: 100% !important;
+    max-width: 900px !important;
+    margin: 20px auto 0 !important;
+  }
+
+  .framer-1hghg6w-container iframe,
+  .framer-1ymwg3e-container iframe {
+    height: 500px !important;
+    border-radius: 16px !important;
+  }
+
+  /* LLM Statement on Tablet */
   .framer-1yifvyx,
   .framer-1bw02m4 {
     width: 100% !important;
-    padding: 0 8px !important;
+    max-width: 800px !important;
+    padding: 24px 20px !important;
+    margin: 24px auto 0 !important;
   }
 
+  .framer-1yifvyx p,
+  .framer-1bw02m4 p {
+    font-size: 17px !important;
+    line-height: 1.6em !important;
+  }
+
+  /* Features / Our story Section on Tablet */
   .framer-293j3c,
   .framer-8rxlc0 {
     flex-direction: column !important;
-    padding: 0 16px !important;
+    gap: 36px !important;
+    width: 100% !important;
   }
 
   .framer-1j02ymg,
@@ -153,20 +338,24 @@ body {
     position: relative !important;
     top: auto !important;
     width: 100% !important;
+    flex: none !important;
   }
 
   .framer-1c2l5qg,
   .framer-1ts059q {
     width: 100% !important;
+    flex: none !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 24px !important;
   }
 
-  /* Right cards stack cleanly on mobile */
   .framer-sxoGm {
     width: 100% !important;
     max-width: 100% !important;
   }
 
-  /* Comparison section mobile adjustments */
+  /* Comparison Section on Tablet */
   .framer-1i5ifux,
   .framer-crlhqj {
     flex-direction: column !important;
@@ -182,204 +371,449 @@ body {
     max-width: 100% !important;
   }
 
-  /* FAQ / Process items */
-  .framer-2t347y,
-  .framer-2c206m {
+  /* Process Section on Tablet */
+  .framer-jfyj0a,
+  .framer-880wzz {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 20px !important;
     width: 100% !important;
   }
-}
 
-/* --------------------------------------------------------------------------
-   3. Responsive Demo Iframe
-   -------------------------------------------------------------------------- */
-
-.framer-1hghg6w-container,
-.framer-1ymwg3e-container {
-  width: 100% !important;
-  max-width: 1080px !important;
-  margin: 0 auto !important;
-  position: relative !important;
-}
-
-.framer-1hghg6w-container iframe,
-.framer-1ymwg3e-container iframe {
-  width: 100% !important;
-  border-radius: 18px !important;
-  border: 1px solid var(--border-default, #222220) !important;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7), 0 0 40px rgba(61, 111, 245, 0.18) !important;
-  background-color: var(--bg-secondary, #141413) !important;
-  transition: box-shadow 0.4s ease, border-color 0.4s ease !important;
-}
-
-.framer-1hghg6w-container iframe:hover,
-.framer-1ymwg3e-container iframe:hover {
-  border-color: rgba(61, 111, 245, 0.4) !important;
-  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.8), 0 0 50px rgba(61, 111, 245, 0.25) !important;
-}
-
-@media (min-width: 1200px) {
-  .framer-1hghg6w-container,
-  .framer-1ymwg3e-container {
-    height: 620px !important;
+  .framer-18gs1jh,
+  .framer-1uvpn1c,
+  .framer-tqt7w1,
+  .framer-n0g48q,
+  .framer-e1h5e4,
+  .framer-1p522e8,
+  .framer-1r651z4,
+  .framer-1sqq9e7 {
+    width: 100% !important;
+    max-width: 100% !important;
   }
-  .framer-1hghg6w-container iframe,
-  .framer-1ymwg3e-container iframe {
-    height: 620px !important;
+
+  /* BLOG SECTION ON BROKERS & DEVELOPERS (TABLET: 1 CARD AT A TIME VERTICALLY) */
+  .framer-146rpfx,
+  .framer-149lf8m {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    gap: 24px !important;
   }
-}
 
-@media (min-width: 810px) and (max-width: 1199.98px) {
-  .framer-1hghg6w-container,
-  .framer-1ymwg3e-container {
-    height: 520px !important;
+  .framer-146rpfx .ssr-variant,
+  .framer-149lf8m .ssr-variant,
+  .framer-146rpfx .framer-1xntu03-container,
+  .framer-149lf8m .framer-y4eq15-container,
+  .framer-146rpfx .framer-FA7o1,
+  .framer-149lf8m .framer-FA7o1 {
+    width: 100% !important;
+    max-width: 560px !important;
+    height: auto !important;
+    min-height: 420px !important;
+    margin: 0 auto !important;
   }
-  .framer-1hghg6w-container iframe,
-  .framer-1ymwg3e-container iframe {
-    height: 520px !important;
+
+  /* Blog Listing Page (/blog) on Tablet */
+  .framer-to7td7 {
+    padding: 120px 32px 60px !important;
+    width: 100% !important;
   }
-}
 
-@media (max-width: 809.98px) {
-  .framer-1hghg6w-container,
-  .framer-1ymwg3e-container {
-    height: 440px !important;
+  .framer-e4ahsn {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 20px !important;
+    width: 100% !important;
   }
-  .framer-1hghg6w-container iframe,
-  .framer-1ymwg3e-container iframe {
-    height: 440px !important;
-    border-radius: 14px !important;
-  }
-}
 
-@media (max-width: 480px) {
-  .framer-1hghg6w-container,
-  .framer-1ymwg3e-container {
-    height: 340px !important;
-  }
-  .framer-1hghg6w-container iframe,
-  .framer-1ymwg3e-container iframe {
-    height: 340px !important;
-    border-radius: 12px !important;
-  }
-}
-
-/* --------------------------------------------------------------------------
-   3b. Responsive Blog Article & Legal Page Layouts
-   -------------------------------------------------------------------------- */
-
-/* Blog Article Container */
-.framer-w8a9pw {
-  width: 100% !important;
-  display: flex !important;
-  justify-content: center !important;
-  padding: 0 !important;
-  box-sizing: border-box !important;
-}
-
-.framer-y0sa0n {
-  width: 100% !important;
-  max-width: 1200px !important;
-  margin: 0 auto !important;
-  padding: 160px 40px 80px !important;
-  box-sizing: border-box !important;
-}
-
-/* Blog Hero Banner */
-.framer-p6qyj {
-  width: 100% !important;
-  height: 420px !important;
-  position: relative !important;
-  border-radius: 18px !important;
-  overflow: hidden !important;
-  margin: 28px 0 36px !important;
-  box-sizing: border-box !important;
-}
-
-/* Legal Container (Terms & Privacy) */
-.framer-o3tmg {
-  width: 100% !important;
-  display: flex !important;
-  justify-content: center !important;
-  box-sizing: border-box !important;
-}
-
-.framer-18w4wh6 {
-  width: 100% !important;
-  max-width: 1200px !important;
-  margin: 0 auto !important;
-  padding: 160px 40px 80px !important;
-  box-sizing: border-box !important;
-}
-
-.framer-1kmhw3,
-.framer-1uctbv0,
-.framer-1wy136e,
-.framer-ztw4we {
-  width: 100% !important;
-  max-width: 1080px !important;
-  margin-left: auto !important;
-  margin-right: auto !important;
-  box-sizing: border-box !important;
-}
-
-/* Tablet Layouts (810px to 1199.98px) */
-@media (min-width: 810px) and (max-width: 1199.98px) {
+  /* Individual Blog Pages (/blog/[slug]) on Tablet */
   .framer-w8a9pw {
-    padding-top: 120px !important;
-    padding-bottom: 60px !important;
-    padding-left: 24px !important;
-    padding-right: 24px !important;
+    padding: 120px 32px 60px !important;
+    width: 100% !important;
   }
 
-  .framer-1etlfm3 h1,
-  .framer-1ixwfg1 h1 {
-    font-size: 34px !important;
-  }
-
-  .framer-1ixwfg1 h2 {
-    font-size: 23px !important;
+  .framer-y0sa0n {
+    padding: 0 !important;
+    width: 100% !important;
   }
 
   .framer-p6qyj {
     height: 340px !important;
+    width: 100% !important;
     border-radius: 16px !important;
+    margin: 28px 0 36px !important;
   }
 
+  /* Legal Pages (/terms & /privacy) on Tablet */
   .framer-18w4wh6 {
-    padding: 130px 24px 60px !important;
-  }
-
-  .framer-o3tmg h1,
-  .framer-1wy136e h1 {
-    font-size: 38px !important;
-  }
-}
-
-/* Mobile Layouts (up to 809.98px) */
-@media (max-width: 809.98px) {
-  .framer-w8a9pw {
-    padding-top: 100px !important;
-    padding-bottom: 40px !important;
-    padding-left: 16px !important;
-    padding-right: 16px !important;
+    padding: 120px 32px 60px !important;
     width: 100% !important;
   }
 
+  /* 404 Page on Tablet */
+  .framer-10rypk1 {
+    padding: 180px 32px 80px !important;
+    width: 100% !important;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   6. Mobile Viewport System (up to 809.98px)
+   -------------------------------------------------------------------------- */
+
+@media (max-width: 809.98px) {
+  /* Container widths: 100% edge-to-edge with safe margins */
+  .framer-R7l59,
+  .framer-eWytW,
+  .framer-5k5Wj,
+  .framer-qw05F,
+  .framer-eil9H,
+  .framer-Nk3nB,
+  .framer-VQnUD,
+  .framer-klqrj,
+  .framer-jp6so {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  /* Section Padding */
+  .framer-1bizrx5,
+  .framer-1y17f4o {
+    padding: 0 !important;
+    width: 100% !important;
+  }
+
+  .framer-a06ty1,
+  .framer-1x101fe {
+    padding: 110px 16px 40px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .framer-1nav39h,
+  .framer-1km2asa,
+  .framer-wljjm0,
+  .framer-1y2icjx,
+  .framer-1af2gb1,
+  .framer-1128m0d,
+  .framer-2kiesh,
+  .framer-1ckk2q7 {
+    padding: 48px 16px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  /* Heading Typography for Mobile */
+  .framer-17r0fej h1,
+  .framer-1exuxz4 h1,
+  .framer-1exuph7 h1,
   .framer-1etlfm3 h1,
-  .framer-1ixwfg1 h1 {
+  .framer-o3tmg h1,
+  .framer-1wy136e h1 {
+    font-family: "Inter Display", var(--font-inter), sans-serif !important;
+    font-weight: 700 !important;
+    font-size: 29px !important;
+    line-height: 1.18em !important;
+    letter-spacing: -0.03em !important;
+    text-align: center !important;
+    color: #ffffff !important;
+    margin: 8px 0 !important;
+  }
+
+  .framer-171m18i h2,
+  .framer-xuljs5 h2,
+  .framer-1nxuaso h2,
+  .framer-ipj807 h2,
+  .framer-12345z3 h2,
+  .framer-1ps093 h2 {
+    font-family: "Inter Display", var(--font-inter), sans-serif !important;
+    font-weight: 700 !important;
     font-size: 26px !important;
     line-height: 1.25em !important;
+    letter-spacing: -0.03em !important;
+    color: #ffffff !important;
+  }
+
+  /* Align Section H2 to left where appropriate (e.g. features header) */
+  .framer-xuljs5 h2 {
+    text-align: left !important;
+  }
+
+  .framer-171m18i h2,
+  .framer-1nxuaso h2,
+  .framer-ipj807 h2,
+  .framer-12345z3 h2,
+  .framer-1ps093 h2 {
+    text-align: center !important;
+  }
+
+  /* Subheadings & descriptions */
+  .framer-umoj4c p,
+  .framer-1uu8ev1 p,
+  .framer-sawro1 p {
+    font-family: "Inter Display", var(--font-inter), sans-serif !important;
+    font-size: 15px !important;
+    line-height: 1.55em !important;
+    color: rgba(255, 255, 255, 0.75) !important;
+  }
+
+  .framer-umoj4c p {
+    text-align: left !important;
+  }
+
+  .framer-1uu8ev1 p,
+  .framer-sawro1 p {
+    text-align: center !important;
+  }
+
+  /* Demo Iframe on Mobile */
+  .framer-1hghg6w-container,
+  .framer-1ymwg3e-container {
+    height: 380px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 16px auto 0 !important;
+  }
+
+  .framer-1hghg6w-container iframe,
+  .framer-1ymwg3e-container iframe {
+    height: 380px !important;
+    width: 100% !important;
+    border-radius: 14px !important;
+  }
+
+  /* LLM Statement on Mobile (Brokers & Developers) */
+  .framer-1yifvyx,
+  .framer-1bw02m4 {
+    width: 100% !important;
+    padding: 16px 8px !important;
+    margin: 20px auto 0 !important;
+  }
+
+  .framer-1yifvyx p,
+  .framer-1bw02m4 p {
+    font-size: 15px !important;
+    line-height: 1.6em !important;
+    text-align: center !important;
+    color: rgba(255, 255, 255, 0.8) !important;
+  }
+
+  /* Features / Our story Section on Mobile */
+  .framer-293j3c,
+  .framer-8rxlc0 {
+    flex-direction: column !important;
+    gap: 32px !important;
+    padding: 0 !important;
+    width: 100% !important;
+  }
+
+  .framer-1j02ymg,
+  .framer-1y68enf {
+    position: relative !important;
+    top: auto !important;
+    width: 100% !important;
+    flex: none !important;
+  }
+
+  .framer-wy6tqb {
+    margin-bottom: 12px !important;
+  }
+
+  /* "Join the waitlist" button on mobile */
+  .framer-1j02ymg .framer-lywei0-container,
+  .framer-1y68enf .framer-lywei0-container {
+    margin-top: 16px !important;
+    display: block !important;
+  }
+
+  /* Right Cards on Mobile: full width, clean vertical stacking */
+  .framer-1c2l5qg,
+  .framer-1ts059q {
+    width: 100% !important;
+    flex: none !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 24px !important;
+    padding: 0 !important;
+  }
+
+  .framer-4mc8eh-container,
+  .framer-ad7geq-container,
+  .framer-1gvepnu-container,
+  .framer-1o5qjhb-container {
+    width: 100% !important;
+  }
+
+  .framer-sxoGm {
+    width: 100% !important;
+    max-width: 100% !important;
+    border-radius: 18px !important;
+    border: 1px solid var(--token-819e50e5-99c5-4547-ba7c-e2d71a9ee22d, rgb(0, 85, 255)) !important;
+    background-color: var(--token-a53beb93-2df8-4cea-8692-a810c05e478d, rgb(0, 0, 0)) !important;
+  }
+
+  .framer-9a4bjj {
+    background-color: var(--token-a53beb93-2df8-4cea-8692-a810c05e478d, rgb(0, 0, 0)) !important;
+    border-bottom-right-radius: 18px !important;
+    padding: 8px 16px 10px !important;
+  }
+
+  .framer-1sofoyv p {
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    color: #ffffff !important;
+  }
+
+  .framer-bmutq8 p {
+    font-size: 18px !important;
+    font-weight: 600 !important;
+    color: #ffffff !important;
+  }
+
+  .framer-wp22n5 p {
+    font-size: 14px !important;
+    line-height: 1.55em !important;
+    color: rgba(255, 255, 255, 0.7) !important;
+  }
+
+  /* Comparison Section on Mobile */
+  .framer-qtep3e {
+    padding: 0 !important;
+    width: 100% !important;
+  }
+
+  .framer-1i5ifux,
+  .framer-crlhqj {
+    flex-direction: column !important;
+    gap: 20px !important;
+    width: 100% !important;
+    padding: 0 !important;
+  }
+
+  .framer-fr8pzb,
+  .framer-1gzyrrp,
+  .framer-11ku6un,
+  .framer-1mls9yd {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  /* Process Section on Mobile */
+  .framer-jfyj0a,
+  .framer-880wzz {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 20px !important;
+    width: 100% !important;
+    padding: 0 !important;
+  }
+
+  .framer-18gs1jh,
+  .framer-1uvpn1c,
+  .framer-tqt7w1,
+  .framer-n0g48q,
+  .framer-e1h5e4,
+  .framer-1p522e8,
+  .framer-1r651z4,
+  .framer-1sqq9e7 {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  /* BLOG SECTION ON BROKERS & DEVELOPERS (MOBILE: 1 CARD AT A TIME VERTICALLY) */
+  .framer-146rpfx,
+  .framer-149lf8m {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    gap: 24px !important;
+    padding: 0 !important;
+  }
+
+  .framer-146rpfx .ssr-variant,
+  .framer-149lf8m .ssr-variant,
+  .framer-146rpfx .framer-1xntu03-container,
+  .framer-149lf8m .framer-y4eq15-container,
+  .framer-146rpfx .framer-FA7o1,
+  .framer-149lf8m .framer-FA7o1 {
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    min-height: 380px !important;
+    margin: 0 auto !important;
+  }
+
+  .framer-FA7o1 {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Blog Listing Page (/blog) on Mobile */
+  .framer-to7td7 {
+    padding: 100px 16px 40px !important;
+    width: 100% !important;
+  }
+
+  .framer-e4ahsn {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 24px !important;
+    width: 100% !important;
+  }
+
+  .framer-e4ahsn .ssr-variant,
+  .framer-e4ahsn [class*="-container"],
+  .framer-e4ahsn .framer-FA7o1 {
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    min-height: 380px !important;
+  }
+
+  /* Individual Blog Pages (/blog/[slug]) on Mobile */
+  .framer-w8a9pw {
+    padding: 100px 16px 40px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .framer-y0sa0n {
+    padding: 0 !important;
+    width: 100% !important;
+  }
+
+  .framer-p6qyj {
+    height: 220px !important;
+    width: 100% !important;
+    border-radius: 14px !important;
+    margin: 18px 0 24px !important;
+  }
+
+  .framer-1ixwfg1 h1 {
+    font-size: 26px !important;
+    font-weight: 700 !important;
+    line-height: 1.25em !important;
+    text-align: left !important;
   }
 
   .framer-1ixwfg1 h2 {
-    font-size: 20px !important;
-    margin-top: 36px !important;
+    font-size: 22px !important;
+    font-weight: 700 !important;
+    margin-top: 32px !important;
     margin-bottom: 12px !important;
+    line-height: 1.3em !important;
   }
 
   .framer-1ixwfg1 h3 {
     font-size: 17px !important;
-    margin-top: 24px !important;
+    font-weight: 600 !important;
+    margin-top: 20px !important;
     margin-bottom: 10px !important;
   }
 
@@ -387,12 +821,30 @@ body {
     font-size: 15px !important;
     line-height: 1.7em !important;
     margin-bottom: 18px !important;
+    color: var(--text-secondary, #e8e8e5) !important;
   }
 
-  .framer-p6qyj {
-    height: 220px !important;
-    border-radius: 12px !important;
-    margin: 20px 0 !important;
+  .framer-gokz6t {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 12px !important;
+    width: 100% !important;
+    margin-top: 32px !important;
+    padding-top: 20px !important;
+    align-items: stretch !important;
+  }
+
+  .framer-gokz6t .ssr-variant,
+  .framer-gokz6t [class*="-container"],
+  .framer-gokz6t a {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+
+  /* Legal Pages (/terms & /privacy) on Mobile */
+  .framer-o3tmg {
+    padding: 0 !important;
+    width: 100% !important;
   }
 
   .framer-18w4wh6 {
@@ -400,30 +852,70 @@ body {
     width: 100% !important;
   }
 
-  .framer-o3tmg h1,
-  .framer-1wy136e h1 {
-    font-size: 28px !important;
-    line-height: 1.25em !important;
-  }
-
   .framer-ztw4we h2 {
-    font-size: 19px !important;
+    font-size: 20px !important;
+    font-weight: 700 !important;
     margin-top: 28px !important;
+    margin-bottom: 12px !important;
   }
 
   .framer-ztw4we h3 {
     font-size: 16px !important;
+    font-weight: 600 !important;
+    margin-top: 20px !important;
   }
 
   .framer-ztw4we p,
   .framer-ztw4we li {
     font-size: 14.5px !important;
     line-height: 1.65em !important;
+    margin-bottom: 16px !important;
+  }
+
+  /* 404 Page on Mobile */
+  .framer-6sdwkh {
+    padding: 0 !important;
+    width: 100% !important;
+  }
+
+  .framer-10rypk1 {
+    padding: 140px 16px 60px !important;
+    width: 100% !important;
+    text-align: center !important;
+  }
+
+  .framer-1jt90o8 p {
+    font-size: 68px !important;
+    font-weight: 700 !important;
+    line-height: 1em !important;
+  }
+
+  .framer-1o7u981 p {
+    font-size: 15px !important;
+    line-height: 1.6em !important;
+    max-width: 320px !important;
+    margin: 16px auto 24px !important;
+  }
+
+  .framer-18db7tv-container {
+    display: flex !important;
+    justify-content: center !important;
+    width: 100% !important;
+  }
+}
+
+/* Extra small mobile refinement (<= 480px) */
+@media (max-width: 480px) {
+  .framer-1hghg6w-container,
+  .framer-1ymwg3e-container,
+  .framer-1hghg6w-container iframe,
+  .framer-1ymwg3e-container iframe {
+    height: 320px !important;
   }
 }
 
 /* --------------------------------------------------------------------------
-   4. Image responsiveness
+   7. Image & Footer Responsiveness
    -------------------------------------------------------------------------- */
 
 img {
@@ -431,107 +923,17 @@ img {
   height: auto;
 }
 
-/* Footer responsiveness */
 @media (max-width: 809.98px) {
   .framer-a4yijq-container {
     width: 100% !important;
     padding: 0 12px 24px !important;
+    box-sizing: border-box !important;
   }
+
   .framer-sl3uaf {
     width: 100% !important;
+    flex-direction: column !important;
+    gap: 20px !important;
+    padding: 40px 16px 20px !important;
   }
 }
-
-/* --------------------------------------------------------------------------
-   5. Framer Header & Footer Desktop/Mobile Visibility & Interaction
-   -------------------------------------------------------------------------- */
-
-.framer-kvjt16-container {
-  position: fixed !important;
-  top: 0 !important;
-  left: 0 !important;
-  right: 0 !important;
-  width: 100% !important;
-  z-index: 1000 !important;
-  pointer-events: none !important;
-}
-
-.framer-kvjt16-container nav {
-  pointer-events: auto !important;
-}
-
-@media (min-width: 1200px) {
-  .framer-desktop-nav-wrapper {
-    display: flex !important;
-    justify-content: center !important;
-    width: 100% !important;
-  }
-  .framer-mobile-nav-wrapper {
-    display: none !important;
-  }
-  .framer-desktop-footer-wrapper {
-    display: block !important;
-    width: 100% !important;
-  }
-  .framer-mobile-footer-wrapper {
-    display: none !important;
-  }
-}
-
-@media (max-width: 1199.98px) {
-  .framer-desktop-nav-wrapper {
-    display: none !important;
-  }
-  .framer-mobile-nav-wrapper {
-    display: flex !important;
-    justify-content: center !important;
-    width: 100% !important;
-  }
-  .framer-desktop-footer-wrapper {
-    display: none !important;
-  }
-  .framer-mobile-footer-wrapper {
-    display: block !important;
-    width: 100% !important;
-  }
-}
-
-/* Desktop nav link hovers */
-.framer-desktop-nav-wrapper .framer-TLfWE {
-  transition: opacity 0.2s ease, transform 0.2s ease !important;
-  text-decoration: none !important;
-}
-.framer-desktop-nav-wrapper .framer-TLfWE:hover {
-  opacity: 0.75 !important;
-}
-
-/* Mobile drawer open states */
-.framer-GYTmv.framer-v-8j8qfo {
-  background: rgba(10, 10, 10, 0.95) !important;
-  backdrop-filter: blur(20px) !important;
-  -webkit-backdrop-filter: blur(20px) !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.12) !important;
-  border-bottom-left-radius: 20px !important;
-  border-bottom-right-radius: 20px !important;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.85) !important;
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
-  max-width: 100% !important;
-}
-
-.framer-GYTmv.framer-v-8j8qfo .framer-mds9fs {
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 14px !important;
-  padding: 10px 24px 28px !important;
-  width: 100% !important;
-  align-items: flex-start !important;
-}
-
-.framer-GYTmv.framer-v-8j8qfo .framer-mds9fs .framer-TLfWE {
-  font-size: 16px !important;
-  padding: 8px 0 !important;
-  display: block !important;
-  width: 100% !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
-}
-

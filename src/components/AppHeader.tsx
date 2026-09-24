@@ -86,7 +86,7 @@ export default function AppHeader() {
           onClick={openModal}
           type="button"
           /* The site's call to action: design.md's primary button. */
-          className="btn btn-primary btn-sm md:btn-md"
+          className="hidden sm:inline-flex btn btn-primary btn-sm md:btn-md"
         >
           Try the Platform
         </button>

@@ -1,7 +1,7 @@
 @import './fonts.css';
-@import './responsive.css';
 @import './animations.css';
 @import './design-system-bridge.css';
+@import './responsive.css';
 
 /* Base visibility defaults for Framer elements */
 .framer-zk0tzl,

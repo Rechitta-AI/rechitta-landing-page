@@ -59,10 +59,10 @@ h2,
 .framer-1ixwfg1 h1,
 .framer-1ixwfg1 h2,
 .framer-1etlfm3 h1 {
-  font-family: var(--font-playfair), 'Playfair Display', Georgia, serif !important;
-  font-weight: 400 !important;
-  letter-spacing: -0.02em !important;
-  color: var(--text-primary, #fafaf9) !important;
+  font-family: "Inter Display", var(--font-inter), -apple-system, BlinkMacSystemFont, sans-serif !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.03em !important;
+  color: var(--text-primary, #ffffff) !important;
 }
 
 /* Specific heading scales */
@@ -137,10 +137,10 @@ blockquote p,
 
 .framer-XUE7K,
 [data-framer-name="Badge"] {
-  background: rgba(197, 165, 114, 0.08) !important;
-  border: 1px solid rgba(207, 163, 79, 0.3) !important;
-  border-radius: var(--radius-full, 9999px) !important;
-  padding: 5px 16px !important;
+  background-color: var(--token-819e50e5-99c5-4547-ba7c-e2d71a9ee22d, rgb(0, 85, 255)) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  border-radius: 20px !important;
+  padding: 4px 14px !important;
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
@@ -149,20 +149,19 @@ blockquote p,
 
 .framer-XUE7K:hover,
 [data-framer-name="Badge"]:hover {
-  background: rgba(197, 165, 114, 0.14) !important;
-  border-color: rgba(207, 163, 79, 0.5) !important;
-  box-shadow: 0 0 16px rgba(197, 165, 114, 0.25) !important;
+  background-color: rgb(26, 102, 255) !important;
+  box-shadow: 0 0 16px rgba(0, 85, 255, 0.4) !important;
 }
 
 .framer-XUE7K p,
 .framer-xrs0cf p,
 [data-framer-name="Badge"] p {
-  font-family: var(--font-inter), 'Inter', sans-serif !important;
-  font-size: 11px !important;
+  font-family: "Inter Display", var(--font-inter), sans-serif !important;
+  font-size: 13px !important;
   font-weight: 600 !important;
-  text-transform: uppercase !important;
-  letter-spacing: 1.3px !important;
-  color: var(--text-accent, #ddbb73) !important;
+  letter-spacing: normal !important;
+  text-transform: none !important;
+  color: #ffffff !important;
   margin: 0 !important;
 }
 
@@ -241,20 +240,29 @@ blockquote p,
   margin: 0 !important;
 }
 
-/* Primary CTA Button (Light variant in Framer -> Brand Blue in design.md) */
+/* Primary CTA Button (Light variant in Framer -> White pill with dark text) */
 .framer-v-1cgg18b,
 a.framer-v-1cgg18b {
-  background-color: var(--action-primary-default, #3d6ff5) !important;
-  color: #ffffff !important;
-  border: 1px solid rgba(255, 255, 255, 0.15) !important;
-  box-shadow: 0 4px 14px rgba(61, 111, 245, 0.35), 0 0 1px rgba(255, 255, 255, 0.3) !important;
+  background-color: #ffffff !important;
+  color: #000000 !important;
+  border: none !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25) !important;
 }
 
 .framer-v-1cgg18b:hover,
 a.framer-v-1cgg18b:hover {
-  background-color: var(--action-primary-hover, #5c8dff) !important;
+  background-color: rgba(255, 255, 255, 0.9) !important;
+  color: #000000 !important;
   transform: translateY(-2px) scale(1.02) !important;
-  box-shadow: 0 8px 24px rgba(61, 111, 245, 0.45), 0 0 16px rgba(92, 141, 255, 0.3) !important;
+  box-shadow: 0 8px 24px rgba(255, 255, 255, 0.2) !important;
+}
+
+.framer-v-1cgg18b p,
+.framer-v-1cgg18b span,
+a.framer-v-1cgg18b p,
+a.framer-v-1cgg18b span {
+  color: #000000 !important;
+  font-weight: 600 !important;
 }
 
 /* Secondary Action Button (Dark variant in Framer -> Neutral Secondary in design.md) */
@@ -1437,11 +1445,16 @@ pre,
   width: 100% !important;
   max-width: 1200px !important;
   margin: 0 auto !important;
-  padding: 160px 40px 80px !important;
   display: flex !important;
   flex-direction: column !important;
   align-items: center !important;
   box-sizing: border-box !important;
+}
+
+@media (min-width: 1200px) {
+  .framer-y0sa0n {
+    padding: 160px 40px 80px !important;
+  }
 }
 
 /* Blog Content Bounds matching Brokers & Developers hero bounds (1080px) */
@@ -1460,12 +1473,17 @@ pre,
 .framer-p6qyj {
   width: 100% !important;
   max-width: 1080px !important;
-  height: 500px !important;
   position: relative !important;
   border-radius: 18px !important;
   overflow: hidden !important;
   margin: 36px auto !important;
   box-sizing: border-box !important;
+}
+
+@media (min-width: 1200px) {
+  .framer-p6qyj {
+    height: 500px !important;
+  }
 }
 
 /* Blog Buttons Footer Layout */
@@ -1496,11 +1514,16 @@ pre,
   width: 100% !important;
   max-width: 1200px !important;
   margin: 0 auto !important;
-  padding: 160px 40px 80px !important;
   display: flex !important;
   flex-direction: column !important;
   align-items: center !important;
   box-sizing: border-box !important;
+}
+
+@media (min-width: 1200px) {
+  .framer-to7td7 {
+    padding: 160px 40px 80px !important;
+  }
 }
 
 .framer-dglk63,
@@ -1536,11 +1559,16 @@ pre,
   width: 100% !important;
   max-width: 1200px !important;
   margin: 0 auto !important;
-  padding: 160px 40px 80px !important;
   display: flex !important;
   flex-direction: column !important;
   align-items: center !important;
   box-sizing: border-box !important;
+}
+
+@media (min-width: 1200px) {
+  .framer-18w4wh6 {
+    padding: 160px 40px 80px !important;
+  }
 }
 
 /* Terms & Privacy Content Bounds matching Brokers & Developers bounds (1080px) */
