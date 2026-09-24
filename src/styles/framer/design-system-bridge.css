@@ -822,25 +822,78 @@ a.framer-v-1c8kqsq:hover {
 }
 
 /* --------------------------------------------------------------------------
-   7. Footer Glass & Seamless Logo Notch Polish
+   7. Footer Glass, Notch Alignment & Single Footer Resolution
    -------------------------------------------------------------------------- */
+
+/* Show ONLY one footer per device viewport: Desktop (>=1200px) vs Mobile/Tablet (<1200px) */
+@media (min-width: 1200px) {
+  .framer-desktop-footer-wrapper {
+    display: block !important;
+  }
+  .framer-mobile-footer-wrapper {
+    display: none !important;
+  }
+}
+
+@media (max-width: 1199.98px) {
+  .framer-desktop-footer-wrapper {
+    display: none !important;
+  }
+  .framer-mobile-footer-wrapper {
+    display: block !important;
+  }
+}
+
+.framer-a4yijq-container {
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  position: relative !important;
+  z-index: 5 !important;
+}
+
+.framer-Vsft9 {
+  width: 100% !important;
+  max-width: 1154px !important;
+  margin: 0 auto !important;
+  position: relative !important;
+  overflow: visible !important;
+  box-sizing: border-box !important;
+}
 
 .framer-sl3uaf {
   background: linear-gradient(135deg, rgba(26, 26, 24, 0.95) 0%, var(--bg-secondary, #141413) 40%, rgba(14, 14, 13, 0.98) 100%) !important;
-  border: none !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.65) !important;
   position: relative !important;
+  box-sizing: border-box !important;
+  border-radius: 20px !important;
+  overflow: visible !important;
+  width: 100% !important;
 }
 
 .framer-kg07fk {
   background: transparent !important;
   border: none !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: 40px !important;
+  height: auto !important;
+  display: flex !important;
+  align-items: flex-start !important;
+  z-index: 3 !important;
 }
 
 .framer-mle7ye {
   background-color: var(--bg-primary, #0a0a09) !important;
   border: none !important;
   box-shadow: none !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 4px 12px 6px !important;
+  border-bottom-left-radius: 12px !important;
+  border-bottom-right-radius: 12px !important;
 }
 
 /* Seamless corner notch SVGs matching the page background */
@@ -852,6 +905,36 @@ a.framer-v-1c8kqsq:hover {
   fill: var(--bg-primary, #0a0a09) !important;
 }
 
+/* Footer Content Container */
+.framer-o4deo7 {
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  overflow: visible !important;
+}
+
+.framer-16eo53d {
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  display: flex !important;
+  flex-direction: row !important;
+  justify-content: space-between !important;
+  gap: 40px !important;
+}
+
+.framer-b68q31 {
+  flex: none !important;
+  max-width: 320px !important;
+}
+
+.framer-b68q31 p {
+  font-family: var(--font-inter), sans-serif !important;
+  font-size: 15px !important;
+  line-height: 1.5em !important;
+  color: #8e8e86 !important;
+  font-weight: 400 !important;
+}
 
 /* Footer Section Headers */
 .framer-171v285 strong,
@@ -867,6 +950,13 @@ a.framer-v-1c8kqsq:hover {
 }
 
 /* Footer Links */
+.framer-uld8n7 {
+  display: flex !important;
+  flex-direction: row !important;
+  gap: 48px !important;
+  box-sizing: border-box !important;
+}
+
 .framer-uld8n7 a,
 .framer-1v6a6u2 a,
 .framer-qg6k4c a,
@@ -892,11 +982,208 @@ a.framer-v-1c8kqsq:hover {
 }
 
 /* Footer Copyright */
+.framer-bsp3v9 {
+  width: 100% !important;
+  margin-top: 40px !important;
+  padding-top: 24px !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+  display: flex !important;
+  justify-content: space-between !important;
+  box-sizing: border-box !important;
+}
+
 .framer-3w6b40 p,
 .framer-1s6ujd5 p {
   font-family: var(--font-inter), sans-serif !important;
   font-size: 13px !important;
-  color: var(--text-tertiary, #a8a8a1) !important;
+  color: var(--text-tertiary, #8e8e86) !important;
+}
+
+/* --------------------------------------------------------------------------
+   7B. Pre-Footer CTA System across all Framer Pages
+   -------------------------------------------------------------------------- */
+
+/* Ensure Pre-Footer CTA is ALWAYS visible across all viewports */
+section[data-framer-name="CTA"],
+section.framer-1128m0d,
+section.framer-2kiesh,
+section.framer-1n2dqs2,
+section.framer-1ckk2q7 {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  position: relative !important;
+  z-index: 2 !important;
+  padding: 80px 24px 40px !important;
+}
+
+section[data-framer-name="CTA"] > .ssr-variant,
+section.framer-1128m0d > .ssr-variant,
+section.framer-2kiesh > .ssr-variant,
+section.framer-1n2dqs2 > .ssr-variant,
+section.framer-1ckk2q7 > .ssr-variant {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  width: 100% !important;
+}
+
+.framer-z0ao0f-container,
+.framer-qihw0e-container,
+.framer-9472tl-container,
+.framer-1ub274q-container {
+  width: 100% !important;
+  display: flex !important;
+  justify-content: center !important;
+  opacity: 1 !important;
+  transform: none !important;
+}
+
+.framer-RbPOb {
+  opacity: 1 !important;
+  transform: none !important;
+  margin: 0 auto !important;
+  background: radial-gradient(50% 50% at 50% 0%, rgba(255, 255, 255, 0.16) 0%, rgba(18, 18, 18, 0.8) 100%), #0d0d0c !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6) !important;
+  position: relative !important;
+  overflow: hidden !important;
+  width: 100% !important;
+  max-width: 1154px !important;
+  border-radius: 32px !important;
+  padding: 72px 48px !important;
+  box-sizing: border-box !important;
+}
+
+/* Glowing top highlight line */
+.framer-RbPOb .framer-9nfub7 {
+  position: absolute !important;
+  top: 0 !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  width: min(440px, 80%) !important;
+  height: 2px !important;
+  background: linear-gradient(90deg, rgba(153, 238, 255, 0) 0%, rgba(255, 255, 255, 0.85) 50%, rgba(0, 200, 240, 0) 100%) !important;
+  opacity: 1 !important;
+}
+
+.framer-RbPOb .framer-16kc0fz {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  text-align: center !important;
+  gap: 20px !important;
+  width: 100% !important;
+  max-width: 760px !important;
+  margin: 0 auto !important;
+  overflow: visible !important;
+}
+
+.framer-RbPOb .framer-18hthov {
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  margin-bottom: 6px !important;
+}
+
+.framer-RbPOb .framer-15h0mhi {
+  width: 160px !important;
+  height: 26px !important;
+  display: block !important;
+}
+
+.framer-RbPOb .framer-1ps093 h2,
+.framer-RbPOb h2 {
+  font-family: "Inter Display", var(--font-inter), sans-serif !important;
+  font-weight: 700 !important;
+  font-size: 38px !important;
+  line-height: 1.2em !important;
+  letter-spacing: -0.03em !important;
+  color: #ffffff !important;
+  margin: 0 0 10px 0 !important;
+  text-align: center !important;
+}
+
+/* Pre-Footer CTA Buttons */
+.framer-RbPOb .framer-1ehvore,
+.framer-1ehvore {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 16px !important;
+  width: 100% !important;
+  overflow: visible !important;
+  margin-top: 12px !important;
+  flex-wrap: wrap !important;
+}
+
+.framer-sdzyff-container,
+.framer-11ah0or-container {
+  display: inline-flex !important;
+  justify-content: center !important;
+}
+
+/* Button 1: Light (White Pill) */
+.framer-1ehvore a[data-framer-name="Light"] {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+  border-radius: 50px !important;
+  border: none !important;
+  font-weight: 600 !important;
+  font-size: 14px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 !important;
+  text-decoration: none !important;
+  transition: transform 0.2s ease, opacity 0.2s ease !important;
+  box-shadow: 0 4px 16px rgba(255, 255, 255, 0.2) !important;
+}
+
+.framer-1ehvore a[data-framer-name="Light"]:hover {
+  transform: translateY(-2px) !important;
+  opacity: 0.92 !important;
+}
+
+/* Button 2: Dark (Charcoal Pill with Subtle Border) */
+.framer-1ehvore a[data-framer-name="Dark"] {
+  background-color: #222220 !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.18) !important;
+  border-radius: 50px !important;
+  font-weight: 600 !important;
+  font-size: 14px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 !important;
+  text-decoration: none !important;
+  transition: transform 0.2s ease, background-color 0.2s ease, border-color 0.2s ease !important;
+}
+
+.framer-1ehvore a[data-framer-name="Dark"]:hover {
+  transform: translateY(-2px) !important;
+  background-color: #2a2a28 !important;
+  border-color: rgba(255, 255, 255, 0.35) !important;
+}
+
+/* Button Text Padding & Typography */
+.framer-1ehvore .framer-1pxacyp,
+.framer-1ehvore .framer-esl6hy-container div,
+.framer-1ehvore [class*="rolling-text-inner"] {
+  padding: 12px 24px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  white-space: nowrap !important;
+  font-family: var(--font-inter), sans-serif !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.01em !important;
+  box-sizing: border-box !important;
 }
 
 /* --------------------------------------------------------------------------
@@ -1284,7 +1571,7 @@ a.framer-v-1c8kqsq:hover {
 }
 
 /* --------------------------------------------------------------------------
-   11. Legal & Privacy Typography (Terms & Privacy Pages)
+   11. Legal & Privacy Typography & Compact Spacing (Terms & Privacy Pages)
    -------------------------------------------------------------------------- */
 
 .framer-Nk3nB,
@@ -1292,30 +1579,62 @@ a.framer-v-1c8kqsq:hover {
   background-color: var(--bg-primary, #0a0a09) !important;
 }
 
+/* Legal Container bounds & padding */
+.framer-18w4wh6 {
+  max-width: 860px !important;
+  margin: 0 auto !important;
+  box-sizing: border-box !important;
+}
+
+/* Zero out Framer's excessive paragraph spacing variable */
+.framer-ztw4we,
+.framer-1kmhw3,
+.framer-18w4wh6 {
+  --framer-paragraph-spacing: 0px !important;
+}
+
+/* Collapse any empty paragraph spacer elements or trailing breaks */
+.framer-ztw4we p:has(> br:only-child),
+.framer-ztw4we h2:has(> br:only-child),
+.framer-ztw4we .trailing-break,
+.framer-ztw4we p:empty,
+.framer-ztw4we h2:empty {
+  display: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  height: 0 !important;
+  line-height: 0 !important;
+}
+
 /* Legal Page Main Title (H1) - Bold 700 */
 .framer-o3tmg h1,
 .framer-1wy136e h1 {
   font-family: var(--font-playfair), 'Playfair Display', serif !important;
   font-weight: 700 !important;
-  font-size: 46px !important;
-  line-height: 1.2em !important;
+  font-size: 44px !important;
+  line-height: 1.15em !important;
   color: #ffffff !important;
-  margin-bottom: 16px !important;
+  margin-top: 8px !important;
+  margin-bottom: 20px !important;
   text-align: left !important;
 }
 
-/* Legal Section Headings (H2) - Bold 700 */
+/* Legal Section Headings (H2) - Bold 700, compact gaps */
 .framer-ztw4we h2,
 .framer-o3tmg h2,
 .framer-Nk3nB .framer-styles-preset-1y86yxm {
   font-family: var(--font-inter), 'Inter', sans-serif !important;
   font-weight: 700 !important;
-  font-size: 22px !important;
-  line-height: 1.35em !important;
+  font-size: 20px !important;
+  line-height: 1.3em !important;
   letter-spacing: -0.02em !important;
   color: #ffffff !important;
-  margin-top: 36px !important;
-  margin-bottom: 12px !important;
+  margin-top: 24px !important;
+  margin-bottom: 8px !important;
+}
+
+.framer-ztw4we h2:first-of-type {
+  margin-top: 14px !important;
 }
 
 .framer-ztw4we h2 strong,
@@ -1331,12 +1650,12 @@ a.framer-v-1c8kqsq:hover {
 .framer-o3tmg h3 {
   font-family: var(--font-inter), 'Inter', sans-serif !important;
   font-weight: 600 !important;
-  font-size: 17px !important;
-  line-height: 1.4em !important;
+  font-size: 16px !important;
+  line-height: 1.35em !important;
   letter-spacing: -0.015em !important;
   color: #f0f0ee !important;
-  margin-top: 24px !important;
-  margin-bottom: 8px !important;
+  margin-top: 16px !important;
+  margin-bottom: 6px !important;
 }
 
 .framer-ztw4we h3 strong,
@@ -1353,29 +1672,30 @@ a.framer-v-1c8kqsq:hover {
   font-size: 14px !important;
   color: var(--text-tertiary, #8e8e86) !important;
   letter-spacing: 0.02em !important;
-  margin-bottom: 8px !important;
+  margin-bottom: 4px !important;
 }
 
-/* Legal Body Text (P) - Regular 400 */
+/* Legal Body Text (P) - Regular 400, tight spacing */
 .framer-ztw4we p,
 .framer-o3tmg .framer-ztw4we p,
 .framer-Nk3nB .framer-styles-preset-o3oioe {
   font-family: var(--font-inter), sans-serif !important;
   font-weight: 400 !important;
   font-size: 15px !important;
-  line-height: 1.75em !important;
+  line-height: 1.6em !important;
   letter-spacing: -0.01em !important;
   color: var(--text-secondary, #b0b0a8) !important;
-  margin-bottom: 16px !important;
+  margin-top: 0 !important;
+  margin-bottom: 10px !important;
 }
 
-/* Legal Lists - Regular 400 */
+/* Legal Lists - Regular 400, compact vertical rhythm */
 .framer-ztw4we ul,
 .framer-ztw4we ol {
   font-family: var(--font-inter), sans-serif !important;
   font-weight: 400 !important;
-  padding-left: 24px !important;
-  margin: 0 0 20px 0 !important;
+  padding-left: 22px !important;
+  margin: 6px 0 12px 0 !important;
   color: var(--text-secondary, #b0b0a8) !important;
 }
 
@@ -1383,9 +1703,9 @@ a.framer-v-1c8kqsq:hover {
   font-family: var(--font-inter), sans-serif !important;
   font-weight: 400 !important;
   font-size: 15px !important;
-  line-height: 1.7em !important;
+  line-height: 1.55em !important;
   color: var(--text-secondary, #b0b0a8) !important;
-  margin-bottom: 8px !important;
+  margin-bottom: 5px !important;
 }
 
 .framer-ztw4we li p {
