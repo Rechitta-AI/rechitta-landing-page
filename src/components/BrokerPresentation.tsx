@@ -209,8 +209,26 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
   const deviceMode = modeFor(viewport.width);
   const stacked = isPortraitFor(viewport.width, viewport.height);
   const composited = deviceMode === 'desktop' && !stacked;
-  // On responsive stacked viewports, defer mounting the iframe until the phone has fully settled
-  const [iframeActive, setIframeActive] = useState(!stacked);
+  /*
+   * The live demo only exists while the film is parked on this beat.
+   *
+   * It is a cross-origin page with its own audio and presentation, so hiding
+   * it with opacity leaves it playing to nobody. It is unmounted whenever the
+   * beat is left (or the tab is hidden), which ends the session and its sound;
+   * arriving again mounts a fresh one. On stacked viewports the mount is also
+   * deferred until the phone in the footage has settled.
+   */
+  const [iframeActive, setIframeActive] = useState(false);
+
+  // A backgrounded tab must not keep talking either.
+  useEffect(() => {
+    const onVisibility = () => {
+      if (document.hidden) setIframeActive(false);
+      else if (isVisibleRef.current && !isExitingRef.current) setIframeActive(true);
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => document.removeEventListener('visibilitychange', onVisibility);
+  }, []);
 
   // Responsive phone calibration state (applies ONLY to responsive portrait mode)
   // 1. Desktop Homography
@@ -767,6 +785,9 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
               gsap.set(containerRef.current, { autoAlpha: 0 });
               containerRef.current.style.pointerEvents = 'none';
             }
+            // Only once the fade has hidden it, so the phone never blanks
+            // mid-fade. Not if the viewer has already come back.
+            if (!isVisibleRef.current) setIframeActive(false);
           },
         });
       }
