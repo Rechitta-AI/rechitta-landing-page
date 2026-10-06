@@ -120,7 +120,7 @@ export default function InteractiveDemoModal() {
                     height: '100%',
                   }}
                   title="Interactive Demo"
-                  allow="autoplay; fullscreen; microphone"
+                  allow="autoplay; fullscreen; microphone https://beta.rechitta.com https://interaction.rechitta.com"
                   onLoad={() => setIsLoaded(true)}
                 />
               </div>
