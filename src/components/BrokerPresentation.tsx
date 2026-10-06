@@ -957,7 +957,7 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
                       backfaceVisibility: 'hidden',
                     }}
                     title="Rechitta Live Broker Assistant"
-                    allow="autoplay; fullscreen; microphone"
+                    allow="autoplay; fullscreen; microphone https://beta.rechitta.com https://interaction.rechitta.com"
                   />
                 )}
               </div>

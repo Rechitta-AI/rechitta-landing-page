@@ -4,6 +4,20 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
+        // Grant microphone access at the site level so the embedded demo app can
+        // use it. The demo loads on beta.rechitta.com and then navigates itself to
+        // interaction.rechitta.com, so both origins must be allowed here and in
+        // each demo iframe's allow attribute.
+        source: "/:path*",
+        headers: [
+          {
+            key: "Permissions-Policy",
+            value:
+              'microphone=(self "https://beta.rechitta.com" "https://interaction.rechitta.com")',
+          },
+        ],
+      },
+      {
         // The film never changes without changing filename, so let browsers
         // and Vercel's CDN keep it for a year instead of revalidating.
         source: "/film/video/:file*",
