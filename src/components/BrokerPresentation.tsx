@@ -1278,14 +1278,17 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
             stacked ? `${tight ? 'p-2.5' : 'p-3'} min-h-0 overflow-hidden` : 'p-5'
           }`}
         >
-          {/* Card Header: Category */}
-          <div className="flex items-center justify-between gap-1.5">
-            <span
-              className="self-start rounded-full border border-[#3D6FF5]/30 bg-[#3D6FF5]/15 px-2.5 py-0.5 eyebrow-chip text-[#8BB0FF] text-[8.5px]"
-            >
-              {activeProblem.category}
-            </span>
-          </div>
+          {/* Card Header: Category — skipped on the waitlist slide in stacked
+              mode, trading a low-value tag for room the waitlist button needs. */}
+          {!(stacked && activeProblem.isWaitlist) && (
+            <div className="flex items-center justify-between gap-1.5">
+              <span
+                className="self-start rounded-full border border-[#3D6FF5]/30 bg-[#3D6FF5]/15 px-2.5 py-0.5 eyebrow-chip text-[#8BB0FF] text-[8.5px]"
+              >
+                {activeProblem.category}
+              </span>
+            </div>
+          )}
 
           {/* Animated Card Content */}
           <div
@@ -1302,7 +1305,7 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
               {stacked && (
                 <h4
                   className={`text-white font-bold tracking-tight leading-snug shrink-0 ${
-                    tight ? 'text-[14.5px]' : 'text-[16px]'
+                    tight ? 'text-[13px]' : 'text-[14.5px]'
                   }`}
                 >
                   &ldquo;{activeProblem.problem}&rdquo;
@@ -1323,24 +1326,31 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
 
             {activeProblem.isWaitlist ? (
               /*
-                The waitlist button, and below it the example query — both off
-                on a phone, where the panel is only as tall as what is left
-                under the handset and the answer needs every line of it. The
-                film's own call to action sits right under this card anyway.
+                The waitlist button. The example query stays off on a phone —
+                the panel there is only as tall as what is left under the
+                handset — but this button is the one thing on this slide that
+                actually moves someone forward, so it shows on every viewport.
               */
-              stacked ? null : (
               <a
                 href={WAITLIST_URL}
                 target="_blank"
                 rel="noopener noreferrer"
-                /* The button shape and type from design.md, painted white on black. */
+                /*
+                  The button shape and type from design.md, painted white on
+                  black. Stacked, it steps below `btn-sm` — a deliberate,
+                  one-off size off the btn-sm/md/lg scale, because at 36px
+                  tall this button on top of the heading and solution text
+                  read as a cluttered stack on a phone; shrinking it mattered
+                  more here than staying on the shared scale.
+                */
                 className={`btn w-full bg-white text-black hover:bg-neutral-200 active:bg-neutral-300 active:scale-[0.98] ${
-                  stacked ? `btn-sm shrink-0 ${tight ? 'mt-1.5' : 'mt-2'}` : 'btn-md mt-4'
+                  stacked
+                    ? `h-[30px] px-3 text-[11px] leading-4 tracking-[0.2px] shrink-0 ${tight ? 'mt-1' : 'mt-1.5'}`
+                    : 'btn-md mt-4'
                 }`}
               >
                 Join the waitlist →
               </a>
-              )
             ) : stacked ? null : (
               /*
                 The example query, and the link out to it. Off on a phone: the
