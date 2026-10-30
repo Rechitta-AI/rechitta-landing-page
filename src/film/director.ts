@@ -55,6 +55,18 @@ export const STEP_COOLDOWN_MS = 300;
 /** Grace period after transition starts before any mid-flight skip is permitted. */
 export const SKIP_GRACE_MS = 650;
 
+/**
+ * Hard-zero window after a step commits, before another step is read.
+ *
+ * A step's own change (a slide-track tween) is instant, unlike a cross-beat
+ * move, which gets a multi-second video transition to let a gesture's
+ * momentum tail die before COOLDOWN_MS even has to matter. A step has no
+ * such runway, so it needs the same absorption SKIP_GRACE_MS gives a move's
+ * tail, not the much shorter STEP_COOLDOWN_MS alone — that only governs the
+ * minimum gap between two *separate accepted* steps, not the current one's tail.
+ */
+export const STEP_GRACE_MS = SKIP_GRACE_MS;
+
 /** How many refusals a gated beat gives before it lets the viewer through. */
 export const NUDGE_LIMIT = 3;
 
@@ -70,6 +82,13 @@ export type DirectorState = {
   lockedUntil: number;
   nudges: number;
   transitionStartedAt: number;
+  /** When the current step last committed, any axis — shared grace window. */
+  lastStepAt: number;
+  /** Horizontal accumulator, kept separate from `intent` so a diagonal
+   * gesture's two axes cannot add into the same scalar and cross the
+   * threshold from the wrong one's contribution. */
+  hIntent: number;
+  hLastInputAt: number;
 };
 
 export type Command =
@@ -99,6 +118,9 @@ export function createDirector(index = 0): DirectorState {
     lockedUntil: -Infinity,
     nudges: 0,
     transitionStartedAt: -Infinity,
+    lastStepAt: -Infinity,
+    hIntent: 0,
+    hLastInputAt: -Infinity,
   };
 }
 
@@ -139,8 +161,10 @@ export function feedInput(
     return { type: 'skip' };
   }
 
-  // The tail of the gesture that started the last move is not a new one.
-  if (now < state.lockedUntil) {
+  // The tail of the gesture that started the last move or step is not a new
+  // one. STEP_GRACE_MS hard-zeros intent the way SKIP_GRACE_MS does for a
+  // move's tail, instead of merely locking commits — see STEP_GRACE_MS.
+  if (now < state.lockedUntil || now - state.lastStepAt < STEP_GRACE_MS) {
     state.intent = 0;
     state.lastInputAt = now;
     return { type: 'none' };
@@ -160,6 +184,31 @@ export function feedInput(
   return commit(state, dir, now, beats, isBlocked);
 }
 
+/**
+ * Advances or retreats the current beat's sub-step, if it has one to give.
+ * Shared by vertical and horizontal input so both update `lockedUntil` and
+ * `lastStepAt` identically — one physical gesture can never produce a step
+ * on both axes.
+ */
+function tryStep(state: DirectorState, dir: 1 | -1, now: number, beats: Beat[]): Command | null {
+  const beat = beats[state.index];
+  const steps = beat?.steps ?? 1;
+
+  if (dir === 1 && state.step < steps - 1) {
+    state.step += 1;
+    state.lockedUntil = now + STEP_COOLDOWN_MS;
+    state.lastStepAt = now;
+    return { type: 'step', index: state.index, step: state.step, dir };
+  }
+  if (dir === -1 && state.step > 0) {
+    state.step -= 1;
+    state.lockedUntil = now + STEP_COOLDOWN_MS;
+    state.lastStepAt = now;
+    return { type: 'step', index: state.index, step: state.step, dir };
+  }
+  return null;
+}
+
 /** Commits a move in `dir`, applying the beat's own step and gate rules. */
 export function commit(
   state: DirectorState,
@@ -170,20 +219,10 @@ export function commit(
   isBlocked?: (index: number) => boolean,
 ): Command {
   const beat = beats[state.index];
-  const steps = beat?.steps ?? 1;
 
   // Sub-steps first: the boardroom walks its slides before the film moves on.
-  // We lock input briefly so one continuous flick only advances one slide at a time.
-  if (dir === 1 && state.step < steps - 1) {
-    state.step += 1;
-    state.lockedUntil = now + STEP_COOLDOWN_MS;
-    return { type: 'step', index: state.index, step: state.step, dir };
-  }
-  if (dir === -1 && state.step > 0) {
-    state.step -= 1;
-    state.lockedUntil = now + STEP_COOLDOWN_MS;
-    return { type: 'step', index: state.index, step: state.step, dir };
-  }
+  const stepCmd = tryStep(state, dir, now, beats);
+  if (stepCmd) return stepCmd;
 
   // An overlay can refuse to let go. This is not the gate below: a gate is a
   // preference the film relents on, this is a requirement it does not.
@@ -211,6 +250,43 @@ export function commit(
   return { type: 'move', from: state.index, to, dir };
 }
 
+/**
+ * Feeds one horizontal input event in — left/right swipe or trackpad scroll,
+ * stepping through the current beat's own slides (e.g. the boardroom's 4, or
+ * the broker's 4 objections). Never falls through to a gate, nudge or
+ * cross-beat move: a beat with no steps, or already at the first/last slide,
+ * simply ignores horizontal input.
+ */
+export function feedHorizontalInput(
+  state: DirectorState,
+  delta: number,
+  now: number,
+  beats: Beat[],
+): Command {
+  if (delta === 0) return { type: 'none' };
+  if (state.phase === 'moving') return { type: 'none' };
+
+  const beat = beats[state.index];
+  if (!beat?.steps || beat.steps <= 1) return { type: 'none' };
+
+  if (now < state.lockedUntil || now - state.lastStepAt < STEP_GRACE_MS) {
+    state.hIntent = 0;
+    state.hLastInputAt = now;
+    return { type: 'none' };
+  }
+
+  if (now - state.hLastInputAt > IDLE_RESET_MS) state.hIntent = 0;
+  if (state.hIntent !== 0 && sign(delta) !== sign(state.hIntent)) state.hIntent = 0;
+
+  state.hLastInputAt = now;
+  state.hIntent += Math.max(-MAX_DELTA, Math.min(MAX_DELTA, delta));
+  if (Math.abs(state.hIntent) < THRESHOLD) return { type: 'none' };
+
+  const dir = sign(state.hIntent);
+  state.hIntent = 0;
+  return tryStep(state, dir, now, beats) ?? { type: 'none' };
+}
+
 /** The film loops at the end and stops at the top. */
 export function nextIndex(index: number, dir: 1 | -1, count: number): number {
   if (dir === 1) return index >= count - 1 ? 0 : index + 1;
@@ -228,6 +304,7 @@ export function arrive(
   state.index = index;
   state.phase = 'idle';
   state.intent = 0;
+  state.hIntent = 0;
   state.lockedUntil = now + COOLDOWN_MS;
   state.nudges = 0;
   // Arriving backwards lands on the far side of the beat, so the next

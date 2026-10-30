@@ -4,9 +4,12 @@ import {
   IDLE_RESET_MS,
   MAX_DELTA,
   NUDGE_LIMIT,
+  STEP_COOLDOWN_MS,
+  STEP_GRACE_MS,
   THRESHOLD,
   arrive,
   createDirector,
+  feedHorizontalInput,
   feedInput,
   nextIndex,
   release,
@@ -27,6 +30,14 @@ function push(state: ReturnType<typeof createDirector>, delta: number, from = 0)
   let last: ReturnType<typeof feedInput> = { type: 'none' };
   for (let i = 0; i < ticks; i++) {
     last = feedInput(state, delta, from + i * 10, beats);
+  }
+  return last;
+}
+
+function pushH(state: ReturnType<typeof createDirector>, delta: number, from = 0) {
+  let last: ReturnType<typeof feedHorizontalInput> = { type: 'none' };
+  for (let i = 0; i < ticks; i++) {
+    last = feedHorizontalInput(state, delta, from + i * 10, beats);
   }
   return last;
 }
@@ -126,15 +137,102 @@ describe('beat steps', () => {
     const s = createDirector();
     arrive(s, 1, 1, 0, beats);
     const t = COOLDOWN_MS + 100;
+    // Gaps exceed STEP_GRACE_MS so each push lands outside the previous
+    // step's hard-zero window and is read as a genuinely new gesture.
     expect(push(s, MAX_DELTA, t)).toEqual({ type: 'step', index: 1, step: 1, dir: 1 });
-    expect(push(s, MAX_DELTA, t + 500)).toEqual({ type: 'step', index: 1, step: 2, dir: 1 });
-    expect(push(s, MAX_DELTA, t + 1000)).toEqual({ type: 'move', from: 1, to: 2, dir: 1 });
+    expect(push(s, MAX_DELTA, t + STEP_GRACE_MS + 50)).toEqual({ type: 'step', index: 1, step: 2, dir: 1 });
+    expect(push(s, MAX_DELTA, t + 2 * (STEP_GRACE_MS + 50))).toEqual({ type: 'move', from: 1, to: 2, dir: 1 });
   });
 
   it('lands on the last step when arriving backwards', () => {
     const s = createDirector();
     arrive(s, 1, -1, 0, beats);
     expect(s.step).toBe(2);
+  });
+
+  it('does not let a trackpad momentum tail commit a second step (regression)', () => {
+    const s = createDirector();
+    arrive(s, 1, 1, 0, beats);
+    const t = COOLDOWN_MS + 100;
+    expect(push(s, MAX_DELTA, t)).toEqual({ type: 'step', index: 1, step: 1, dir: 1 });
+    // Decaying momentum: small events every ~25ms, well after
+    // STEP_COOLDOWN_MS (300ms) but still inside STEP_GRACE_MS (650ms) — the
+    // exact window that used to let one flick commit a second slide.
+    for (let dt = STEP_COOLDOWN_MS + 20; dt < STEP_GRACE_MS; dt += 25) {
+      expect(feedInput(s, MAX_DELTA, t + dt, beats)).toEqual({ type: 'none' });
+    }
+    expect(s.step).toBe(1);
+  });
+
+  it('still commits a new step once the grace window has fully passed', () => {
+    const s = createDirector();
+    arrive(s, 1, 1, 0, beats);
+    const t = COOLDOWN_MS + 100;
+    expect(push(s, MAX_DELTA, t)).toEqual({ type: 'step', index: 1, step: 1, dir: 1 });
+    expect(push(s, MAX_DELTA, t + STEP_GRACE_MS + 50)).toEqual({ type: 'step', index: 1, step: 2, dir: 1 });
+  });
+});
+
+describe('horizontal steps', () => {
+  it('ignores a beat with no steps', () => {
+    const s = createDirector(0); // beat 'a' has no steps
+    expect(pushH(s, MAX_DELTA, 1000)).toEqual({ type: 'none' });
+    expect(s.step).toBe(0);
+  });
+
+  it('steps forward and backward on a beat with steps', () => {
+    const s = createDirector();
+    arrive(s, 1, 1, 0, beats);
+    const t = COOLDOWN_MS + 100;
+    expect(pushH(s, MAX_DELTA, t)).toEqual({ type: 'step', index: 1, step: 1, dir: 1 });
+    expect(pushH(s, -MAX_DELTA, t + STEP_GRACE_MS + 50)).toEqual({ type: 'step', index: 1, step: 0, dir: -1 });
+  });
+
+  it('does nothing at the last slide rather than advancing the beat', () => {
+    const s = createDirector();
+    arrive(s, 1, 1, 0, beats); // beat 'b' has 3 steps: 0, 1, 2
+    let t = COOLDOWN_MS + 100;
+    expect(pushH(s, MAX_DELTA, t)).toEqual({ type: 'step', index: 1, step: 1, dir: 1 });
+    t += STEP_GRACE_MS + 50;
+    expect(pushH(s, MAX_DELTA, t)).toEqual({ type: 'step', index: 1, step: 2, dir: 1 });
+    t += STEP_GRACE_MS + 50;
+    // Already on the last step: horizontal input must not fall through to a
+    // gate check or a cross-beat move the way vertical input does.
+    expect(pushH(s, MAX_DELTA, t)).toEqual({ type: 'none' });
+    expect(s.index).toBe(1);
+    expect(s.step).toBe(2);
+  });
+
+  it('ignores input while a transition is playing', () => {
+    const s = createDirector();
+    push(s, MAX_DELTA); // beat 'a' has no steps, so this commits a move
+    expect(s.phase).toBe('moving');
+    expect(pushH(s, MAX_DELTA, 1000)).toEqual({ type: 'none' });
+  });
+
+  it('shares the step grace window with vertical input', () => {
+    const s = createDirector();
+    arrive(s, 1, 1, 0, beats);
+    const t = COOLDOWN_MS + 100;
+    expect(push(s, MAX_DELTA, t)).toEqual({ type: 'step', index: 1, step: 1, dir: 1 });
+    // Horizontal input right after a vertical step, still inside the shared
+    // grace window, must be swallowed the same as more vertical input would be.
+    expect(pushH(s, MAX_DELTA, t + 50)).toEqual({ type: 'none' });
+    expect(s.step).toBe(1);
+  });
+
+  it('keeps vertical and horizontal accumulators independent', () => {
+    const s = createDirector();
+    arrive(s, 1, 1, 0, beats);
+    const t = COOLDOWN_MS + 100;
+    const half = Math.floor(THRESHOLD / 2);
+    // Sub-threshold vertical intent...
+    expect(feedInput(s, half, t, beats)).toEqual({ type: 'none' });
+    expect(s.intent).toBe(half);
+    // ...plus enough horizontal intent to cross the threshold commits only
+    // the horizontal step, leaving the vertical accumulator untouched.
+    expect(pushH(s, MAX_DELTA, t + 10)).toEqual({ type: 'step', index: 1, step: 1, dir: 1 });
+    expect(s.intent).toBe(half);
   });
 });
 

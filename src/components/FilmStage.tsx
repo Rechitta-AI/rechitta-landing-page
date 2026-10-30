@@ -22,6 +22,7 @@ import {
   arrive,
   commit,
   createDirector,
+  feedHorizontalInput,
   feedInput,
   release as releaseDirector,
   type Command,
@@ -797,6 +798,13 @@ export default function FilmStage({
       dispatch(feedInput(state, delta, performance.now(), BEATS, isBlocked));
     };
 
+    /** Horizontal scroll/swipe: steps a beat's own slides, never a cross-beat move. */
+    const feedHorizontal = (delta: number) => {
+      if (!enabledRef.current) return;
+      if (modalOpen()) return;
+      dispatch(feedHorizontalInput(state, delta, performance.now(), BEATS));
+    };
+
     const modalOpen = () => document.documentElement.hasAttribute('data-modal-open');
 
     const onWheel = (e: WheelEvent) => {
@@ -804,7 +812,16 @@ export default function FilmStage({
       e.preventDefault();
       // deltaMode 1 is lines, 2 is pages. Normalise both to pixels.
       const scale = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? window.innerHeight : 1;
-      feed(e.deltaY * scale);
+      const dx = e.deltaX * scale;
+      const dy = e.deltaY * scale;
+      // Axis dominance, same ratio BoardroomPresentation's portrait
+      // touch-swipe already uses, so a deliberate diagonal gesture resolves
+      // to one axis rather than firing both.
+      if (Math.abs(dx) > Math.abs(dy) * 1.2 && Math.abs(dx) > 2) {
+        feedHorizontal(dx);
+        return;
+      }
+      feed(dy);
     };
 
     const isInteractiveTarget = (target: EventTarget | null): boolean => {
