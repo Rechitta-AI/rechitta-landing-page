@@ -16,6 +16,25 @@ import gsap from 'gsap';
 const HOLD = 1.6;
 const HOLD_END = 0.5 + HOLD;
 
+/** The full timeline's real duration at timeScale 1 (desktop), ms — the
+ * 0.5s ramp-in + HOLD + the 0.28s dissolve-to-black + the 0.65s curtain-clear. */
+const BASE_DURATION_MS = (HOLD_END + 0.28 + 0.65) * 1000; // 3030
+
+/**
+ * Below this width the whole transition plays proportionally slower — the
+ * same percentage sweep covers more of a small screen in the same time,
+ * which reads as rushed. Matches DESKTOP_MIN in src/hooks/useDeviceMode.ts,
+ * so this catches tablet in either orientation, not just mobile portrait.
+ */
+const NARROW_MAX_WIDTH = 1200;
+const NARROW_TIME_SCALE = 1.25;
+
+/** FilmStage.tsx's tweenChapterProgress mirrors this exactly, so the orb's
+ * glide always matches the curtain's real duration on every viewport. */
+export function focusPullDurationMs(viewportWidth: number): number {
+  return viewportWidth < NARROW_MAX_WIDTH ? BASE_DURATION_MS * NARROW_TIME_SCALE : BASE_DURATION_MS;
+}
+
 export default function MacroFocusPullTransition() {
   const containerRef = useRef<HTMLDivElement>(null);
   const curtainRef = useRef<HTMLDivElement>(null);
@@ -82,6 +101,11 @@ export default function MacroFocusPullTransition() {
         },
       });
       timelineRef.current = tl;
+
+      // Plays the whole timeline slower on narrow viewports, every phase
+      // stretched uniformly — see focusPullDurationMs for why.
+      const durationMs = focusPullDurationMs(window.innerWidth);
+      tl.timeScale(BASE_DURATION_MS / durationMs);
 
       // ── CINEMA ANAMORPHIC DUAL-PHASE CHOREOGRAPHY (~3.03s total, swap at 2.38s) ────
       // The hold is long enough to read the title card; everything after it keys off HOLD_END.

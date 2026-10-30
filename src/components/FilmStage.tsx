@@ -18,6 +18,7 @@ import {
 import { isPortraitFor } from '@/hooks/useDeviceMode';
 import { coverRect } from '@/screens/warp';
 import { preloadCityBlob } from './CityBackdrop';
+import { focusPullDurationMs } from './MacroFocusPullTransition';
 import {
   arrive,
   commit,
@@ -500,6 +501,30 @@ export default function FilmStage({
       });
     };
 
+    /**
+     * Eases `scrollData.current.progress` across a chapter-boundary focus pull.
+     *
+     * Run concurrently with `runFocusPullTransition`, starting the instant its
+     * event is dispatched — not after its promise resolves — so the orb's staged
+     * K9→K11→K12→K13 glide plays out while the curtain is on screen, instead of
+     * jumping the instant the curtain finishes.
+     */
+    const tweenChapterProgress = (fromProgress: number, toProgress: number) => {
+      const durationMs = focusPullDurationMs(window.innerWidth);
+      return new Promise<void>((resolve) => {
+        const started = performance.now();
+        const step = (now: number) => {
+          if (disposed) return resolve();
+          const t = Math.min(1, (now - started) / durationMs);
+          const e = t * t * (3 - 2 * t); // smoothstep, same as dissolveTo
+          publish(fromProgress + (toProgress - fromProgress) * e);
+          if (t >= 1) return resolve();
+          requestAnimationFrame(step);
+        };
+        requestAnimationFrame(step);
+      });
+    };
+
     /** Chapters are separated by a white flash, the film's only hard cut. */
     const crossChapter = async (swap: () => Promise<void>) => {
       if (reduceMotion) {
@@ -551,8 +576,10 @@ export default function FilmStage({
           window.clearTimeout(timer);
           void swapOnce().then(resolve);
         };
-        // Safety net only; the overlay's timeline runs ~3.03s and calls done itself.
-        const timer = window.setTimeout(done, 3500);
+        // Safety net only; the overlay's timeline calls done itself. Matches
+        // the overlay's own (viewport-scaled) duration plus margin, so this
+        // never fires before a slowed-down narrow-viewport timeline finishes.
+        const timer = window.setTimeout(done, focusPullDurationMs(window.innerWidth) + 500);
 
         window.dispatchEvent(
           new CustomEvent('rechitta:macro-focus-pull-transition', {
@@ -680,7 +707,10 @@ export default function FilmStage({
       if (chapterChange) {
         const meta = focusPullMeta(source, target, dir);
         if (meta) {
-          await runFocusPullTransition(dir, () => swapToChapter(target, dir, playsOut, true), meta);
+          await Promise.all([
+            runFocusPullTransition(dir, () => swapToChapter(target, dir, playsOut, true), meta),
+            tweenChapterProgress(fromProgress, beatProgress(target)),
+          ]);
         } else {
           await crossChapter(() => swapToChapter(target, dir, playsOut, false));
         }
