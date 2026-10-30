@@ -294,22 +294,21 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
   const flatPhoneWidth = flatPhoneHeight * (PHONE_WIDTH / PHONE_HEIGHT);
 
   /*
-   * The two columns either side of the handset.
+   * The band beside the handset, and the orb's mirror distance on the other side.
    *
    * The phone is projected onto the footage by homography, so where its edges
    * land moves with the viewport's aspect — measuring off the same covering
-   * rect is the only way the columns stay beside it rather than under it. The
+   * rect is the only way the band stays beside it rather than under it. The
    * corners are the calibrated quad above: 0.367 is its leftmost, 0.618 its
    * rightmost.
    *
    * The layout is then made symmetric about the viewport's centre rather than
-   * about the phone. Sizing each side to its own free space gave two different
-   * widths and two different margins — the answer ended up pinned 165px off
-   * the right edge while the objections sat 29px off the left. So the phone is
-   * treated as a keep-out box centred on the viewport, wide enough to cover
-   * whichever of its edges reaches further out; both columns are then the same
-   * width, the same distance from their own edge of the screen, and the same
-   * distance from that box.
+   * about the phone: the phone is treated as a keep-out box centred on the
+   * viewport, wide enough to cover whichever of its edges reaches further out.
+   * Composited now carries all its copy (the problem list and the answer
+   * beneath it) in a single left-hand band of this width, and the orb docks
+   * `colInset` off the right edge — the same distance, so the two sides still
+   * read as a matched pair even though only one of them holds text.
    */
   const MARGIN = 48;
   const PHONE_GAP = 44;
@@ -327,49 +326,52 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
   const colInset = MARGIN + Math.max(0, (band - colWidth) / 2);
 
   /*
-   * The copy panel goes wherever the phone is not: opposite it in the shot on
-   * desktop, docked in the bottom 40% on mobile portrait, and side-by-side on tablet landscape.
+   * The answer area's fixed height, so switching objections crossfades
+   * content in place rather than resizing the box and shoving the CTA below
+   * it up and down. Calibrated against the tallest of the four answers
+   * (category chip + solution text + query/waitlist row) rendered at
+   * MAX_COL width — verified in-browser, not guessed.
+   */
+  const REVEAL_MIN_HEIGHT = 190;
+
+  /*
+   * The copy panel goes wherever the phone is not: docked in the bottom 40%
+   * on mobile portrait, side-by-side on tablet landscape. Composited builds
+   * its own layout above instead of using this — it carries the list and the
+   * answer together in one left-hand band, not a panel opposite the phone.
    * On mobile portrait, bottom clearance ensures all content floats safely above the ScrollRail progress bar.
    */
   // Exact physical bottom edge of the handset in mobile portrait
   const phoneBottomY = Math.round(responsiveStageHeight * PHONE_FOOT + 10);
 
-  const hudStyle: React.CSSProperties = composited
+  const hudStyle: React.CSSProperties = stacked
     ? {
-        right: `${colInset}px`,
-        top: '50%',
-        width: `${colWidth}px`,
-        transform: `translateY(-50%) scale(${hudScale})`,
-        transformOrigin: 'right center',
+        left: '50%',
+        top: `${phoneBottomY + 8}px`,
+        bottom: 'calc(max(1rem, env(safe-area-inset-bottom)) + 3.85rem)',
+        width: 'min(94vw, 420px)',
+        transform: 'translateX(-50%)',
+        transformOrigin: 'top center',
+        display: 'flex',
+        flexDirection: 'column',
+        /*
+          Centred, so what the card does not need shows up as even room
+          above and below the stack rather than as a hole under the copy.
+        */
+        justifyContent: 'center',
+        gap: tight ? '0.2rem' : '0.3rem',
+        paddingTop: '0px',
+        paddingBottom: '0px',
+        overflow: 'hidden',
+        minHeight: 0,
       }
-    : stacked
-      ? {
-          left: '50%',
-          top: `${phoneBottomY + 8}px`,
-          bottom: 'calc(max(1rem, env(safe-area-inset-bottom)) + 3.85rem)',
-          width: 'min(94vw, 420px)',
-          transform: 'translateX(-50%)',
-          transformOrigin: 'top center',
-          display: 'flex',
-          flexDirection: 'column',
-          /*
-            Centred, so what the card does not need shows up as even room
-            above and below the stack rather than as a hole under the copy.
-          */
-          justifyContent: 'center',
-          gap: tight ? '0.2rem' : '0.3rem',
-          paddingTop: '0px',
-          paddingBottom: '0px',
-          overflow: 'hidden',
-          minHeight: 0,
-        }
-      : {
-          left: `calc(6% + ${flatPhoneWidth}px + 5%)`,
-          right: '5%',
-          top: '50%',
-          transform: `translateY(-50%) scale(${hudScale})`,
-          transformOrigin: 'left center',
-        };
+    : {
+        left: `calc(6% + ${flatPhoneWidth}px + 5%)`,
+        right: '5%',
+        top: '50%',
+        transform: `translateY(-50%) scale(${hudScale})`,
+        transformOrigin: 'left center',
+      };
 
   const activeProblem =
     BROKER_PROBLEMS.find((p) => p.id === activeProblemId) || BROKER_PROBLEMS[0];
@@ -1009,7 +1011,7 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
          =================================================================== */}
       {composited && (
         <div
-          className="absolute z-[55] pointer-events-auto select-none flex flex-col gap-2"
+          className="absolute z-[55] pointer-events-auto select-none flex flex-col gap-3"
           style={{
             left: `${colInset}px`,
             top: '50%',
@@ -1018,51 +1020,150 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
             transformOrigin: 'left center',
           }}
         >
+          {/*
+            The problem list. All four stay visible and clickable at all
+            times — nothing is ever hidden behind a carousel or an
+            accordion's collapse, which is what a dot/tab indicator would
+            otherwise have to stand in for.
+          */}
           <p
-            className="objection-reveal eyebrow mb-1 text-[var(--text-accent)]"
+            className="objection-reveal eyebrow text-[var(--text-accent)]"
           >
-            Without Rechitta
+            Problem faced:
           </p>
-          {BROKER_PROBLEMS.map((prob) => {
-            const isSelected = activeProblemId === prob.id;
-            return (
-              <button
-                key={prob.id}
-                onClick={() => handleProblemSelect(prob)}
-                /*
-                  Colours only. `transition-all` also caught the opacity and
-                  transform the entrance sets on these, so a button snapped
-                  hidden by GSAP faded out over 300ms first and then came back
-                  in — the whole column visibly loaded twice.
-                */
-                className={`objection-reveal group relative overflow-hidden rounded-xl border px-3.5 py-3 text-left text-[13px] font-semibold leading-snug tracking-tight transition-[background-color,border-color,color,box-shadow] duration-300 cursor-pointer backdrop-blur-xl ${
-                  isSelected
-                    ? 'bg-white text-neutral-950 border-white shadow-[0_12px_34px_rgba(0,0,0,0.55)]'
-                    : 'bg-neutral-900/55 text-neutral-300 border-white/10 hover:bg-neutral-900/85 hover:text-white hover:border-white/25'
-                }`}
-                style={{ fontFamily: 'var(--font-inter)' }}
-                aria-pressed={isSelected}
-              >
-                {/* The lit edge, so which one is open reads from the shape of
-                    the column and not only from its fill. */}
-                <span
-                  className={`absolute inset-y-0 left-0 w-[3px] transition-colors duration-300 ${
-                    isSelected ? 'bg-[#3D6FF5]' : 'bg-transparent'
+          <div className="flex flex-col gap-2">
+            {BROKER_PROBLEMS.map((prob) => {
+              const isSelected = activeProblemId === prob.id;
+              return (
+                <button
+                  key={prob.id}
+                  onClick={() => handleProblemSelect(prob)}
+                  /*
+                    Colours only. `transition-all` also caught the opacity and
+                    transform the entrance sets on these, so a button snapped
+                    hidden by GSAP faded out over 300ms first and then came back
+                    in — the whole column visibly loaded twice.
+                  */
+                  className={`objection-reveal group relative overflow-hidden rounded-xl border px-3.5 py-3 text-left text-[13px] font-semibold leading-snug tracking-tight transition-[background-color,border-color,color,box-shadow] duration-300 cursor-pointer backdrop-blur-xl ${
+                    isSelected
+                      ? 'bg-white text-neutral-950 border-white shadow-[0_12px_34px_rgba(0,0,0,0.55)]'
+                      : 'bg-neutral-900/55 text-neutral-300 border-white/10 hover:bg-neutral-900/85 hover:text-white hover:border-white/25'
                   }`}
-                  aria-hidden="true"
-                />
-                <span className="block pl-1.5">{prob.problem}</span>
-              </button>
-            );
-          })}
+                  style={{ fontFamily: 'var(--font-inter)' }}
+                  aria-pressed={isSelected}
+                >
+                  {/* The lit edge, so which one is open reads from the shape of
+                      the column and not only from its fill. */}
+                  <span
+                    className={`absolute inset-y-0 left-0 w-[3px] transition-colors duration-300 ${
+                      isSelected ? 'bg-[#3D6FF5]' : 'bg-transparent'
+                    }`}
+                    aria-hidden="true"
+                  />
+                  <span className="block pl-1.5">{prob.problem}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/*
+            The answer, directly under the list instead of beside it — a
+            single vertical reading flow instead of a left/right split. The
+            box's height is fixed (calibrated to the tallest of the four
+            answers, see REVEAL_MIN_HEIGHT) so switching objections never
+            shifts the list above or the CTA below; only the content inside
+            crossfades.
+          */}
+          <div className="objection-reveal relative flex flex-col gap-3" style={{ minHeight: `${REVEAL_MIN_HEIGHT}px` }}>
+            <p className="eyebrow text-[var(--text-brand)]">
+              Rechitta&rsquo;s solution
+            </p>
+            <div
+              key={activeProblem.id}
+              className="animate-fade-in flex flex-col rounded-2xl border border-white/15 bg-neutral-900/80 backdrop-blur-xl shadow-[0_14px_40px_rgba(0,0,0,0.5)] p-5"
+            >
+              <span className="self-start rounded-full border border-[#3D6FF5]/30 bg-[#3D6FF5]/15 px-2.5 py-0.5 eyebrow-chip text-[#8BB0FF] text-[8.5px]">
+                {activeProblem.category}
+              </span>
+              <p className="mt-2 text-[15px] leading-[1.55] text-neutral-100 font-medium" style={{ fontFamily: 'var(--font-inter)' }}>
+                {activeProblem.solution}
+              </p>
+              {activeProblem.isWaitlist ? (
+                <a
+                  href={WAITLIST_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn btn-md w-full bg-white text-black hover:bg-neutral-200 active:bg-neutral-300 active:scale-[0.98] mt-4"
+                >
+                  Join the waitlist →
+                </a>
+              ) : (
+                <a
+                  href={BROKER_APP_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-between gap-2 text-left font-mono text-neutral-300 transition-colors cursor-pointer group mt-4 pt-3 text-[10px] border-t border-white/10"
+                >
+                  <span className="truncate text-white/85 group-hover:text-white">
+                    &ldquo;{activeProblem.query}&rdquo;
+                  </span>
+                  <span className="shrink-0 text-[var(--text-link)] font-sans font-semibold">
+                    Try it ↗
+                  </span>
+                </a>
+              )}
+            </div>
+          </div>
+
+          {/* The one control the film waits on. Present on every objection —
+              a sibling of the list/answer, never re-keyed by activeProblem,
+              so it never replays its entrance when the answer crossfades. */}
+          <div className="hud-action-reveal relative flex shrink-0 mt-1">
+            <ClickPrompt
+              label={showScrollPrompt ? 'Click here to continue' : 'Click to continue'}
+              visible={ctaHint || showScrollPrompt}
+              placement="top"
+              autoPlace
+              urgent={showScrollPrompt}
+            />
+            <button
+              onClick={handleFlyOn}
+              className={`btn btn-primary group w-full btn-lg ${
+                showScrollPrompt ? 'scale-[1.02] outline-2 outline-offset-2 outline-[var(--border-focus)]' : ''
+              }`}
+              aria-label="Take the briefing global"
+            >
+              <span className="whitespace-nowrap">Take it global</span>
+              <span className="transition-transform group-hover:translate-x-1">
+                →
+              </span>
+            </button>
+          </div>
         </div>
       )}
 
+      {composited && (
+        <div
+          id="broker-orb-anchor"
+          /*
+            Pulled in from the margin and up off dead-centre: parked exactly
+            at colInset/50% it read as a parked icon rather than the thing
+            navigating the scene. The extra 64px and the rise to 28% give it
+            real presence without drifting onto the phone or the solution card.
+          */
+          className="pointer-events-none absolute h-[60px] w-[60px]"
+          style={{ right: `${colInset + 64}px`, top: '28%' }}
+          aria-hidden="true"
+        />
+      )}
+
       {/* ===================================================================
-          THE ANSWER COLUMN — on the right of the handset, opposite the
-          objections. On anything narrower than a composited desktop it
-          carries the list too.
+          THE ANSWER COLUMN — tablet landscape and mobile portrait only now.
+          Composited carries its list and answer together in the single
+          left-hand band above; this column is this file's older shared
+          layout, kept verbatim for the two modes this redesign doesn't touch.
          =================================================================== */}
+      {!composited && (
       <div
         ref={hudContentRef}
         id="broker-copy-column"
@@ -1100,26 +1201,6 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
             gone: the scene is now the broker's four objections and what the
             briefing says back to each one, and nothing else.
            =================================================================== */}
-
-        {composited && (
-          <>
-            {/*
-              Where the orb comes to rest in this scene: over the column's top
-              right corner, so its right edge lines up with the copy's. Sized
-              to the orb's visible core. Measured by OrbStage; draws nothing.
-            */}
-            <div
-              id="broker-orb-anchor"
-              className="pointer-events-none absolute right-0 bottom-full mb-3 h-[60px] w-[60px]"
-              aria-hidden="true"
-            />
-            <p
-              className="prompt-pill-reveal eyebrow mb-3 text-[var(--text-brand)]"
-            >
-              With Rechitta
-            </p>
-          </>
-        )}
 
         {/* On tablet landscape, show the buttons list */}
         {!composited && !stacked && (
@@ -1326,6 +1407,7 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
           </button>
         </div>
       </div>
+      )}
 
     </div>
   );
