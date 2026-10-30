@@ -55,18 +55,6 @@ export const STEP_COOLDOWN_MS = 300;
 /** Grace period after transition starts before any mid-flight skip is permitted. */
 export const SKIP_GRACE_MS = 650;
 
-/**
- * Hard-zero window after a step commits, before another step is read.
- *
- * A step's own change (a slide-track tween) is instant, unlike a cross-beat
- * move, which gets a multi-second video transition to let a gesture's
- * momentum tail die before COOLDOWN_MS even has to matter. A step has no
- * such runway, so it needs the same absorption SKIP_GRACE_MS gives a move's
- * tail, not the much shorter STEP_COOLDOWN_MS alone — that only governs the
- * minimum gap between two *separate accepted* steps, not the current one's tail.
- */
-export const STEP_GRACE_MS = SKIP_GRACE_MS;
-
 /** How many refusals a gated beat gives before it lets the viewer through. */
 export const NUDGE_LIMIT = 3;
 
@@ -82,8 +70,17 @@ export type DirectorState = {
   lockedUntil: number;
   nudges: number;
   transitionStartedAt: number;
-  /** When the current step last committed, any axis — shared grace window. */
-  lastStepAt: number;
+  /**
+   * Set when a step just committed, cleared only once a genuine pause (no
+   * input for IDLE_RESET_MS) proves the gesture that produced it has ended.
+   * Shared across axes, like `lockedUntil`, so one physical gesture can
+   * never be read as two separate steps — but because the idle check it
+   * guards reads the axis-specific timestamp that received the last event,
+   * a gesture whose dominant axis flips mid-swipe could release this via
+   * the axis that went quiet, not the one still moving. Pre-existing
+   * imprecision (the two accumulators already don't interact); not fixed here.
+   */
+  stepGuard: boolean;
   /** Horizontal accumulator, kept separate from `intent` so a diagonal
    * gesture's two axes cannot add into the same scalar and cross the
    * threshold from the wrong one's contribution. */
@@ -118,7 +115,7 @@ export function createDirector(index = 0): DirectorState {
     lockedUntil: -Infinity,
     nudges: 0,
     transitionStartedAt: -Infinity,
-    lastStepAt: -Infinity,
+    stepGuard: false,
     hIntent: 0,
     hLastInputAt: -Infinity,
   };
@@ -161,13 +158,23 @@ export function feedInput(
     return { type: 'skip' };
   }
 
-  // The tail of the gesture that started the last move or step is not a new
-  // one. STEP_GRACE_MS hard-zeros intent the way SKIP_GRACE_MS does for a
-  // move's tail, instead of merely locking commits — see STEP_GRACE_MS.
-  if (now < state.lockedUntil || now - state.lastStepAt < STEP_GRACE_MS) {
+  if (now < state.lockedUntil) {
     state.intent = 0;
     state.lastInputAt = now;
     return { type: 'none' };
+  }
+
+  // The tail of the gesture that produced the last step is not a new one.
+  // Rather than trusting a fixed timer, keep hard-zeroing intent until input
+  // actually goes quiet for IDLE_RESET_MS — so a gesture longer than any
+  // fixed window still can't commit a second step while it's still moving.
+  if (state.stepGuard) {
+    if (now - state.lastInputAt <= IDLE_RESET_MS) {
+      state.intent = 0;
+      state.lastInputAt = now;
+      return { type: 'none' };
+    }
+    state.stepGuard = false;
   }
 
   if (now - state.lastInputAt > IDLE_RESET_MS) state.intent = 0;
@@ -187,7 +194,7 @@ export function feedInput(
 /**
  * Advances or retreats the current beat's sub-step, if it has one to give.
  * Shared by vertical and horizontal input so both update `lockedUntil` and
- * `lastStepAt` identically — one physical gesture can never produce a step
+ * `stepGuard` identically — one physical gesture can never produce a step
  * on both axes.
  */
 function tryStep(state: DirectorState, dir: 1 | -1, now: number, beats: Beat[]): Command | null {
@@ -197,13 +204,13 @@ function tryStep(state: DirectorState, dir: 1 | -1, now: number, beats: Beat[]):
   if (dir === 1 && state.step < steps - 1) {
     state.step += 1;
     state.lockedUntil = now + STEP_COOLDOWN_MS;
-    state.lastStepAt = now;
+    state.stepGuard = true;
     return { type: 'step', index: state.index, step: state.step, dir };
   }
   if (dir === -1 && state.step > 0) {
     state.step -= 1;
     state.lockedUntil = now + STEP_COOLDOWN_MS;
-    state.lastStepAt = now;
+    state.stepGuard = true;
     return { type: 'step', index: state.index, step: state.step, dir };
   }
   return null;
@@ -269,10 +276,19 @@ export function feedHorizontalInput(
   const beat = beats[state.index];
   if (!beat?.steps || beat.steps <= 1) return { type: 'none' };
 
-  if (now < state.lockedUntil || now - state.lastStepAt < STEP_GRACE_MS) {
+  if (now < state.lockedUntil) {
     state.hIntent = 0;
     state.hLastInputAt = now;
     return { type: 'none' };
+  }
+
+  if (state.stepGuard) {
+    if (now - state.hLastInputAt <= IDLE_RESET_MS) {
+      state.hIntent = 0;
+      state.hLastInputAt = now;
+      return { type: 'none' };
+    }
+    state.stepGuard = false;
   }
 
   if (now - state.hLastInputAt > IDLE_RESET_MS) state.hIntent = 0;
@@ -305,6 +321,7 @@ export function arrive(
   state.phase = 'idle';
   state.intent = 0;
   state.hIntent = 0;
+  state.stepGuard = false;
   state.lockedUntil = now + COOLDOWN_MS;
   state.nudges = 0;
   // Arriving backwards lands on the far side of the beat, so the next

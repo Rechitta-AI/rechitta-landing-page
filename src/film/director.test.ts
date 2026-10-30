@@ -5,7 +5,6 @@ import {
   MAX_DELTA,
   NUDGE_LIMIT,
   STEP_COOLDOWN_MS,
-  STEP_GRACE_MS,
   THRESHOLD,
   arrive,
   createDirector,
@@ -14,6 +13,9 @@ import {
   nextIndex,
   release,
 } from './director';
+
+/** Comfortably past the step guard's idle window — a gap this size always reads as a genuine pause. */
+const PAST_GUARD_MS = IDLE_RESET_MS + 400;
 import type { Beat } from './score';
 
 const beats: Beat[] = [
@@ -137,11 +139,11 @@ describe('beat steps', () => {
     const s = createDirector();
     arrive(s, 1, 1, 0, beats);
     const t = COOLDOWN_MS + 100;
-    // Gaps exceed STEP_GRACE_MS so each push lands outside the previous
-    // step's hard-zero window and is read as a genuinely new gesture.
+    // Gaps are comfortably past the step guard's idle window, so each push
+    // lands after a genuine pause and is read as a new gesture.
     expect(push(s, MAX_DELTA, t)).toEqual({ type: 'step', index: 1, step: 1, dir: 1 });
-    expect(push(s, MAX_DELTA, t + STEP_GRACE_MS + 50)).toEqual({ type: 'step', index: 1, step: 2, dir: 1 });
-    expect(push(s, MAX_DELTA, t + 2 * (STEP_GRACE_MS + 50))).toEqual({ type: 'move', from: 1, to: 2, dir: 1 });
+    expect(push(s, MAX_DELTA, t + PAST_GUARD_MS)).toEqual({ type: 'step', index: 1, step: 2, dir: 1 });
+    expect(push(s, MAX_DELTA, t + 2 * PAST_GUARD_MS)).toEqual({ type: 'move', from: 1, to: 2, dir: 1 });
   });
 
   it('lands on the last step when arriving backwards', () => {
@@ -155,21 +157,45 @@ describe('beat steps', () => {
     arrive(s, 1, 1, 0, beats);
     const t = COOLDOWN_MS + 100;
     expect(push(s, MAX_DELTA, t)).toEqual({ type: 'step', index: 1, step: 1, dir: 1 });
-    // Decaying momentum: small events every ~25ms, well after
-    // STEP_COOLDOWN_MS (300ms) but still inside STEP_GRACE_MS (650ms) — the
-    // exact window that used to let one flick commit a second slide.
-    for (let dt = STEP_COOLDOWN_MS + 20; dt < STEP_GRACE_MS; dt += 25) {
+    // Decaying momentum: small events every ~25ms, i.e. never a gap bigger
+    // than IDLE_RESET_MS, long after STEP_COOLDOWN_MS (300ms) and well past
+    // the old flat 650ms window this used to leak through.
+    for (let dt = 25; dt < 900; dt += 25) {
       expect(feedInput(s, MAX_DELTA, t + dt, beats)).toEqual({ type: 'none' });
     }
     expect(s.step).toBe(1);
   });
 
-  it('still commits a new step once the grace window has fully passed', () => {
+  it('does not let a single sustained gesture commit twice, however long it lasts (regression)', () => {
+    const s = createDirector();
+    arrive(s, 1, 1, 0, beats);
+    let t = COOLDOWN_MS + 100;
+
+    // The gesture's first event already clears THRESHOLD on its own, so it
+    // commits immediately.
+    expect(feedInput(s, MAX_DELTA, t, beats)).toEqual({ type: 'step', index: 1, step: 1, dir: 1 });
+
+    // The physical gesture keeps going: events every 30ms, well under
+    // IDLE_RESET_MS apart, sustained for 900ms total — comfortably past the
+    // old flat 650ms window this used to leak through. None of these may commit.
+    const end = t + 900;
+    for (t += 30; t <= end; t += 30) {
+      expect(feedInput(s, MAX_DELTA, t, beats)).toEqual({ type: 'none' });
+    }
+    expect(s.step).toBe(1);
+
+    // A genuine pause ends the gesture, so a continued swipe afterward is
+    // read as a new, independent step.
+    t += PAST_GUARD_MS;
+    expect(feedInput(s, MAX_DELTA, t, beats)).toEqual({ type: 'step', index: 1, step: 2, dir: 1 });
+  });
+
+  it('still commits a new step once a genuine pause has passed', () => {
     const s = createDirector();
     arrive(s, 1, 1, 0, beats);
     const t = COOLDOWN_MS + 100;
     expect(push(s, MAX_DELTA, t)).toEqual({ type: 'step', index: 1, step: 1, dir: 1 });
-    expect(push(s, MAX_DELTA, t + STEP_GRACE_MS + 50)).toEqual({ type: 'step', index: 1, step: 2, dir: 1 });
+    expect(push(s, MAX_DELTA, t + PAST_GUARD_MS)).toEqual({ type: 'step', index: 1, step: 2, dir: 1 });
   });
 });
 
@@ -185,7 +211,7 @@ describe('horizontal steps', () => {
     arrive(s, 1, 1, 0, beats);
     const t = COOLDOWN_MS + 100;
     expect(pushH(s, MAX_DELTA, t)).toEqual({ type: 'step', index: 1, step: 1, dir: 1 });
-    expect(pushH(s, -MAX_DELTA, t + STEP_GRACE_MS + 50)).toEqual({ type: 'step', index: 1, step: 0, dir: -1 });
+    expect(pushH(s, -MAX_DELTA, t + PAST_GUARD_MS)).toEqual({ type: 'step', index: 1, step: 0, dir: -1 });
   });
 
   it('does nothing at the last slide rather than advancing the beat', () => {
@@ -193,9 +219,9 @@ describe('horizontal steps', () => {
     arrive(s, 1, 1, 0, beats); // beat 'b' has 3 steps: 0, 1, 2
     let t = COOLDOWN_MS + 100;
     expect(pushH(s, MAX_DELTA, t)).toEqual({ type: 'step', index: 1, step: 1, dir: 1 });
-    t += STEP_GRACE_MS + 50;
+    t += PAST_GUARD_MS;
     expect(pushH(s, MAX_DELTA, t)).toEqual({ type: 'step', index: 1, step: 2, dir: 1 });
-    t += STEP_GRACE_MS + 50;
+    t += PAST_GUARD_MS;
     // Already on the last step: horizontal input must not fall through to a
     // gate check or a cross-beat move the way vertical input does.
     expect(pushH(s, MAX_DELTA, t)).toEqual({ type: 'none' });
@@ -210,13 +236,13 @@ describe('horizontal steps', () => {
     expect(pushH(s, MAX_DELTA, 1000)).toEqual({ type: 'none' });
   });
 
-  it('shares the step grace window with vertical input', () => {
+  it('shares the step guard with vertical input', () => {
     const s = createDirector();
     arrive(s, 1, 1, 0, beats);
     const t = COOLDOWN_MS + 100;
     expect(push(s, MAX_DELTA, t)).toEqual({ type: 'step', index: 1, step: 1, dir: 1 });
     // Horizontal input right after a vertical step, still inside the shared
-    // grace window, must be swallowed the same as more vertical input would be.
+    // guard, must be swallowed the same as more vertical input would be.
     expect(pushH(s, MAX_DELTA, t + 50)).toEqual({ type: 'none' });
     expect(s.step).toBe(1);
   });
@@ -233,6 +259,27 @@ describe('horizontal steps', () => {
     // the horizontal step, leaving the vertical accumulator untouched.
     expect(pushH(s, MAX_DELTA, t + 10)).toEqual({ type: 'step', index: 1, step: 1, dir: 1 });
     expect(s.intent).toBe(half);
+  });
+
+  it('does not let a single sustained horizontal swipe commit twice, however long it lasts (regression)', () => {
+    const s = createDirector();
+    arrive(s, 1, 1, 0, beats);
+    let t = COOLDOWN_MS + 100;
+
+    expect(feedHorizontalInput(s, MAX_DELTA, t, beats)).toEqual({ type: 'step', index: 1, step: 1, dir: 1 });
+
+    // Sustained drag: events every 30ms, well under IDLE_RESET_MS apart, for
+    // 900ms total — comfortably past the old flat 650ms window. None commit.
+    const end = t + 900;
+    for (t += 30; t <= end; t += 30) {
+      expect(feedHorizontalInput(s, MAX_DELTA, t, beats)).toEqual({ type: 'none' });
+    }
+    expect(s.step).toBe(1);
+
+    // A genuine pause ends the gesture, so a continued swipe afterward is
+    // read as a new, independent step.
+    t += PAST_GUARD_MS;
+    expect(feedHorizontalInput(s, MAX_DELTA, t, beats)).toEqual({ type: 'step', index: 1, step: 2, dir: 1 });
   });
 });
 
