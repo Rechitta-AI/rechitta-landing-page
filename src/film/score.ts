@@ -159,6 +159,13 @@ export type Beat = {
    * little of its own.
    */
   enterPush?: number;
+  /**
+   * Responsive counterpart to `enterPush`, portrait/mobile only. Lets a
+   * portrait-only beat hold a persistent zoom through its whole parked/hold
+   * period (nothing resets it until a *different* pooled element is shown),
+   * without touching `enterPush`'s own desktop meaning.
+   */
+  portraitEnterPush?: number;
 };
 
 export function getBeatClip(beat: Beat, isPortrait = false): string | undefined {
@@ -186,8 +193,29 @@ export function getBeatProgressFrom(beat: Beat, isPortrait = false): number | un
     : beat.progressFrom;
 }
 
+export function getBeatEnterPush(beat: Beat, isPortrait = false): number | undefined {
+  return isPortrait && beat.portraitEnterPush !== undefined ? beat.portraitEnterPush : beat.enterPush;
+}
+
 const cityProgress = (i: number) =>
   CITIES_SPAN.start + (i / (CITIES.length - 1)) * (CITIES_SPAN.end - CITIES_SPAN.start);
+
+/**
+ * How far the camera pushes into the boardroom TV on portrait screens.
+ *
+ * The TV only occupies ~25.65% of the 9:16 frame's height (PORTRAIT_HEIGHT in
+ * BoardroomPresentation.tsx / PORTRAIT_TV_HEIGHT in boardroomPortraitTv.ts),
+ * so its on-screen pixel size — and the text inside it — is genuinely small
+ * on a phone without this.
+ *
+ * STARTING POINT ONLY: 1.2 is a reasonable first guess in the 1.15–1.25
+ * range this kind of push-in usually reads well at. It needs a real device
+ * to confirm the TV's text is comfortably legible without the zoom either
+ * clipping past the TV's own bezel or squeezing the controls/strips below it
+ * (see BoardroomPresentation.tsx's containScale / controlsTop / bezelTop /
+ * bezelBottom / stripGapBelow math, which this value also drives).
+ */
+export const PORTRAIT_BOARDROOM_TV_ZOOM = 1.2;
 
 export const BEATS: Beat[] = [
   {
@@ -210,6 +238,7 @@ export const BEATS: Beat[] = [
     portraitPark: 5.0,
     enter: { from: 2.0, to: 11.0, rate: 2.4 },
     portraitEnter: { from: 0.0, to: 5.0, rate: 2.0 },
+    portraitEnterPush: PORTRAIT_BOARDROOM_TV_ZOOM,
     hold: 0,
     steps: 4,
     release: 'rechitta:boardroom-upload',

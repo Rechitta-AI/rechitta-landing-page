@@ -5,6 +5,13 @@ import gsap from 'gsap';
 import { coverRect } from '@/screens/warp';
 import { isPortraitFor, modeFor } from '@/hooks/useDeviceMode';
 import { setHold } from '@/film/holds';
+import {
+  PORTRAIT_TV_TOP as PORTRAIT_TOP,
+  PORTRAIT_TV_WIDTH as PORTRAIT_WIDTH,
+  PORTRAIT_TV_HEIGHT as PORTRAIT_HEIGHT,
+  portraitTvZoom,
+} from '@/film/boardroomPortraitTv';
+import { PORTRAIT_BOARDROOM_TV_ZOOM } from '@/film/score';
 import ClickPrompt from './ClickPrompt';
 import d from './BoardroomDeck.module.css';
 import DeckDock from './DeckDock';
@@ -150,23 +157,17 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
   const BASE_W = isPortrait ? PORTRAIT_BASE.w : LANDSCAPE_BASE.w;
   const BASE_H = isPortrait ? PORTRAIT_BASE.h : LANDSCAPE_BASE.h;
 
-  // Calibrated values for mobile 9:16 video (upscaled-video_first-mobile)
-  // Inner whiteboard face at Frame 120 (5.0s):
-  // Leaves all 4 outer TV bezels (top: 31.33%, bottom: 58.52%, left: 11.67%, right: 88.61%) 100% exposed.
-  const PORTRAIT_TOP = 32.65;
-  const PORTRAIT_WIDTH = 73.5;
-  const PORTRAIT_HEIGHT = 25.65;
-
   // Where the footage actually lands in the viewport.
   // In portrait, the mobile unified footage is 9:16; in landscape, desktop footage is 16:9.
   const rect = isPortrait
     ? coverRect(viewport.width, viewport.height, 9 / 16)
     : coverRect(viewport.width, viewport.height);
 
-  // Guarantee that on ANY portrait screen (including ultra-narrow phones),
-  // the TV display always has at least 14px of side margin from the glass edges.
+  // Folds the TV's portrait zoom into the TV's own margin-safety clamp
+  // (shared with FilmStage.tsx's video-level zoom via boardroomPortraitTv.ts,
+  // so the two can never land on different numbers for the same viewport).
   const containScale = isPortrait
-    ? Math.min(1.0, (viewport.width - 28) / (rect.width * 0.77))
+    ? portraitTvZoom(viewport.width, viewport.height, PORTRAIT_BOARDROOM_TV_ZOOM)
     : 1.0;
 
   /*
@@ -181,8 +182,27 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
   const screenLeft = isPortrait
     ? (viewport.width - screenWidth) / 2
     : rect.x + (LEFT / 100) * rect.width;
+  /*
+   * Portrait: the TV's top edge pins at the nominal (un-zoomed) value only
+   * while zooming IN (containScale >= 1) — that's the fixed pivot the zoom
+   * scales from, so the brand-logo strips stacked above the TV never move or
+   * get crowded (see portraitTvTopYPercent's doc in boardroomPortraitTv.ts).
+   *
+   * Below 1, this isn't the zoom feature at all — it's the older, always-on
+   * 14px-side-margin clamp (portraitTvZoom's sideMarginZoom term), which
+   * legitimately dips under 1.0 on most ordinary phones, not just narrow
+   * ones. The video is floored at 1.0 for this exact case (never shrinks,
+   * see portraitTvVideoPush), so the deck must go back to splitting that
+   * shrink evenly top/bottom here too, same as it always did before this
+   * feature existed — otherwise the whole gap between the (unshrunk) TV
+   * glass and the (still slightly shrunk) deck lands on the bottom edge
+   * alone, showing as a sliver of the TV's bezel instead of being invisibly
+   * split across both edges.
+   */
   const screenTop = isPortrait
-    ? rect.y + (PORTRAIT_TOP / 100) * rect.height + ((PORTRAIT_HEIGHT / 100) * rect.height * (1 - containScale)) / 2
+    ? rect.y +
+      (PORTRAIT_TOP / 100) * rect.height +
+      (containScale < 1 ? ((PORTRAIT_HEIGHT / 100) * rect.height * (1 - containScale)) / 2 : 0)
     : rect.y + (TOP / 100) * rect.height;
 
   /*

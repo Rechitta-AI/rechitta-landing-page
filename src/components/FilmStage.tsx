@@ -9,6 +9,7 @@ import {
   MOBILE_LAZY_CLIPS,
   getBeatPark,
   getBeatEnter,
+  getBeatEnterPush,
   getBeatClip,
   getBeatProgress,
   getBeatProgressFrom,
@@ -17,6 +18,7 @@ import {
 } from '@/film/score';
 import { isPortraitFor } from '@/hooks/useDeviceMode';
 import { coverRect } from '@/screens/warp';
+import { portraitTvTopYPercent, portraitTvVideoPush } from '@/film/boardroomPortraitTv';
 import { preloadCityBlob } from './CityBackdrop';
 import { focusPullDurationMs } from './MacroFocusPullTransition';
 import {
@@ -295,6 +297,24 @@ export default function FilmStage({
         }
         if (!disposed) {
           show(v, FADE_MS);
+          // `show()` above only resets the shared element's transform when
+          // the *shown* element itself changes — a no-op between hero and
+          // boardroom in portrait, since they share one pooled <video>.
+          // Re-assert the arriving beat's own resting transform
+          // unconditionally, instantly, so a stale zoom from a previous
+          // visit never leaks into a beat that doesn't want one.
+          const nominalPush = getBeatEnterPush(beat, isPortrait());
+          const push =
+            isPortrait() && nominalPush
+              ? portraitTvVideoPush(window.innerWidth, window.innerHeight, nominalPush)
+              : nominalPush;
+          v.style.transitionProperty = 'opacity'; // drop `transform` out of any transition show()/playForward left behind
+          void v.offsetWidth;
+          v.style.transformOrigin =
+            push && isPortrait()
+              ? `50% ${portraitTvTopYPercent(window.innerWidth, window.innerHeight)}%`
+              : '50% 50%';
+          v.style.transform = push ? `translateZ(0) scale(${push})` : 'translateZ(0)';
           if (playheadRef) playheadRef.current = { clip, t: targetPark };
         }
       } else if (beat.id === 'city-mumbai' || beat.id === 'city-paris' || beat.id === 'city-riyadh') {
@@ -349,13 +369,24 @@ export default function FilmStage({
 
       const fadeMs = beat.enterFadeMs ?? 180;
       show(v, fadeMs);
-      if (beat.enterPush) {
+      const nominalPush = getBeatEnterPush(beat, portrait);
+      const push =
+        portrait && nominalPush
+          ? portraitTvVideoPush(window.innerWidth, window.innerHeight, nominalPush)
+          : nominalPush;
+      if (push) {
         // The push runs across the dissolve and the whole shot, so the camera
         // is already moving forward as the previous frame gives way.
         const pushMs = fadeMs + ((to - from) / rate) * 1000;
         void v.offsetWidth;
+        // Pivot around the TV's own top edge on portrait, not the element's
+        // (the viewport's) center — the TV sits off-center vertically in the
+        // frame, and anything placed above it (the brand strips) must not move.
+        v.style.transformOrigin = portrait
+          ? `50% ${portraitTvTopYPercent(window.innerWidth, window.innerHeight)}%`
+          : '50% 50%';
         v.style.transition = `opacity ${fadeMs}ms ease, transform ${pushMs}ms cubic-bezier(0.25, 0.1, 0.35, 1)`;
-        v.style.transform = `translateZ(0) scale(${beat.enterPush})`;
+        v.style.transform = `translateZ(0) scale(${push})`;
       }
       await sleep(fadeMs);
       if (disposed) return;

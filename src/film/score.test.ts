@@ -86,4 +86,16 @@ describe('intro responsive sequence 1 & 2', () => {
   });
 });
 
+describe('boardroom portrait TV push', () => {
+  it('only sets enterPush on portrait, leaving desktop unset for future use', async () => {
+    const { BEATS, getBeatEnterPush, PORTRAIT_BOARDROOM_TV_ZOOM } = await import('./score');
+    const boardroom = BEATS.find((b) => b.id === 'boardroom')!;
+    expect(getBeatEnterPush(boardroom, false)).toBeUndefined();
+    expect(getBeatEnterPush(boardroom, true)).toBe(PORTRAIT_BOARDROOM_TV_ZOOM);
+
+    const hero = BEATS.find((b) => b.id === 'hero')!;
+    expect(getBeatEnterPush(hero, true)).toBeUndefined();
+  });
+});
+
 
