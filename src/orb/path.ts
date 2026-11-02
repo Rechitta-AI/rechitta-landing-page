@@ -74,7 +74,7 @@ export const ORB_PATH: Keyframe[] = [
      * below the credenza's top edge, which is both out of the dock's way and
      * what the note here has always claimed: resting on the furniture.
      */
-    x: 50, y: 87, scale: 0.3, opacity: 0.75, blur: 0,
+    x: 50, y: 87, scale: 0.6, opacity: 0.75, blur: 0,
     ease: 'out',
     note: 'K4 — rests on the credenza below the screen. Holds through the whole deck.',
   },

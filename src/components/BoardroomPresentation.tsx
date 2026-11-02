@@ -216,7 +216,7 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
 
   const controlsTop = isPortrait
     ? screenHeight + (compactDock ? 12 : 22)
-    : screenHeight + rect.height * 0.035;
+    : screenHeight + rect.height * 0.015;
 
   /*
    * Portrait: both logo strips stacked above the television, developers on

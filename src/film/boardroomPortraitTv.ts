@@ -72,7 +72,12 @@ export function portraitTvZoom(
   const STRIP_GAP_BELOW = compactDock ? 10 : 14;
   const reservedBelow = CONTROLS_GAP + APPROX_DOCK_HEIGHT + STRIP_GAP_BELOW + APPROX_STRIP_HEIGHT;
   const ORB_Y_PERCENT = 90; // src/orb/path.ts K4 — never changed by this fix
-  const ORB_CLEARANCE = 16;
+  // Sized off the orb's own rendered footprint, not guessed: coreSizeFor()
+  // in OrbStage.tsx returns an 85px-diameter core at this viewport class
+  // (>= TABLET_MIN, 810px) and K4's portrait scale is 0.24 — ~10px of solid
+  // core radius, plus its glow halo (visibly larger than the core itself),
+  // plus real breathing room beyond that.
+  const ORB_CLEARANCE = 40;
   const maxHeight = viewportHeight * (ORB_Y_PERCENT / 100) - ORB_CLEARANCE - screenTop - reservedBelow;
   // Never shrinks below today's un-zoomed baseline — this clamp only caps
   // how much *extra* zoom is allowed, it never retroactively shrinks a

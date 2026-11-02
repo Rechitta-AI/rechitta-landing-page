@@ -51,6 +51,18 @@ describe('portrait TV geometry', () => {
     expect(z).toBeLessThan(1.0);
     expect(z).toBeGreaterThan(0.95);
   });
+
+  it('clamps down further at 1024x860 to protect the orb\'s real rendered footprint, not just its anchor point', () => {
+    // Regression test: this exact viewport (a desktop window resized
+    // narrow-and-short, classified portrait since 1024/860 < 1.25) reported
+    // the fallen brand strip overlapping the orb when ORB_CLEARANCE was only
+    // a gap to the orb's anchor *point* (16px) rather than its actual
+    // rendered edge (core + glow). The fix tightens this clamp below its
+    // previous ~1.11 value.
+    const z = portraitTvZoom(1024, 860, 1.2);
+    expect(z).toBeLessThan(1.1);
+    expect(z).toBeGreaterThan(1.0);
+  });
 });
 
 describe('portraitTvVideoPush', () => {
