@@ -93,6 +93,23 @@
   text-transform: uppercase;
 }
 
+/*
+ * Mobile-only variant — same gap as .label/.bodySmallBold: this was never
+ * given a mobile size, so it kept the deck's near-illegible ~0.42-0.52x
+ * real-device render size. Also bumped weight (500 → 700) on top of size —
+ * this one carries color on top of a video backdrop behind the deck (not
+ * just a flat white card), so it needs more boldness than a same-size label
+ * sitting on a plain surface to read clearly.
+ */
+.chromeLabelMobile {
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 16px;
+  line-height: 20px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
 /* Code/Small */
 .chromeCode {
   font-family: var(--font-code);
@@ -140,12 +157,48 @@
   text-wrap: balance;
 }
 
+/*
+ * Mobile-only variant: the deck renders at roughly 0.42-0.52x of its canvas
+ * size on a phone (screenWidth/820), so even .headline's generous size reads
+ * small there — but the real reason this exists is to free vertical room for
+ * slide 1's calendar (see .slotTextMobile), not because the headline itself
+ * was hard to read. Tablet/desktop keep .headline unchanged; their scale
+ * factor is close to or above 1, so this never applied to them.
+ *
+ * Bumped from 36px/44px after a real-device pass: shrinking .dayColumn back
+ * down to match the (also re-tuned) slot font freed real vertical room, used
+ * here rather than left idle.
+ */
+.headlineMobile {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 40px;
+  line-height: 50px;
+  letter-spacing: -0.8px;
+  color: var(--text-primary);
+  text-wrap: balance;
+}
+
 /* Body/Large */
 .body {
   font-family: var(--font-body);
   font-weight: 400;
   font-size: 18px;
   line-height: 28px;
+  color: var(--text-secondary);
+  text-wrap: pretty;
+}
+
+/*
+ * Mobile-only variant — see .headlineMobile; same reasoning, same
+ * real-device bump. Weight bumped 400 → 600 on a follow-up real-device
+ * pass: bold reads more clearly at small sizes than size alone fixes.
+ */
+.bodyMobile {
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 16px;
+  line-height: 24px;
   color: var(--text-secondary);
   text-wrap: pretty;
 }
@@ -172,6 +225,25 @@
   color: var(--text-tertiary);
 }
 
+/*
+ * Mobile-only variant — same deck-scale legibility problem as
+ * .slotTextMobile: at .label's 11px, the real rendered size on a phone
+ * (deck scale ~0.42-0.52x) works out to ~4.6-5.7px, just as illegible as
+ * .slotText was before its own fix. Deliberately smaller than
+ * .slotTextMobile's 22px (not matched 1:1) — this is header/caption text
+ * (day-of-week headers, card titles, slide 2/3 captions), conventionally
+ * smaller than the content it describes. 18px lands at ~7.6-9.4px real-world.
+ */
+.labelMobile {
+  font-family: var(--font-body);
+  font-weight: 500;
+  font-size: 18px;
+  line-height: 22px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
 .labelBrand {
   color: var(--text-brand);
 }
@@ -182,6 +254,22 @@
   font-weight: 600;
   font-size: 14px;
   line-height: 20px;
+}
+
+/*
+ * Mobile-only variant — slide 1's "9 agencies booked / 1,191 still waiting"
+ * summary line, same ~0.42-0.52x deck-scale problem (14px renders at
+ * ~5.9-7.3px real-world). Sits between .labelMobile (18px, a header) and
+ * .slotTextMobile (22px, the calendar's own content) — more prominent than
+ * a caption, still secondary to the calendar itself. Already rendered
+ * outside the centered content flow (absolutely positioned at the slide's
+ * bottom), so growing it doesn't affect slide 1's vertical budget.
+ */
+.bodySmallBoldMobile {
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 20px;
+  line-height: 26px;
 }
 
 .textPrimary {
@@ -236,6 +324,31 @@
   font-weight: 600;
   font-size: 10px;
   line-height: 14px;
+}
+
+/*
+ * Mobile-only variant: this is the actual readability fix.
+ *
+ * First pass used 28px, sized purely for vertical legibility — but the
+ * calendar card's width was never grown to match, so at 28px in a ~66px-wide
+ * slot, agency names truncated after ~2 characters (a real-device report).
+ * The card now widens to max-w-[42rem] on mobile (see the JSX), giving each
+ * slot ~82px of text room; 22px fits roughly 6-7 characters there — short
+ * names in full, longer ones legibly truncated instead of almost nothing.
+ * Real-world rendered size: ~9.2-11.4px (deck scale ~0.42-0.52x), up from
+ * .slotText's original ~4.2-5.2px — a genuine improvement, balanced against
+ * the slot's actual width rather than maximizing size in isolation.
+ *
+ * .dayColumn's mobile height was brought back down to h-[136px] to match
+ * this line-height (gap-1/p-1 unchanged) — the taller 168px from the first
+ * pass was sized for 28px text and, left in place, was pushing the card tall
+ * enough to overlap the bottom-anchored summary line.
+ */
+.slotTextMobile {
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 22px;
+  line-height: 27px;
 }
 
 /* ── Slide 2 · the relay ─────────────────────────────────────────────── */

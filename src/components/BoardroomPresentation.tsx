@@ -154,6 +154,16 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
    */
   const PORTRAIT_BASE = { w: 820, h: 510 };
   const isPortrait = isPortraitFor(viewport.width, viewport.height);
+  /*
+   * Slide 1's briefing calendar is unreadable on a phone even after the TV
+   * zoom (Addendum 5) — the deck is scaled by screenWidth/820, which lands
+   * around 0.42-0.52 on a typical phone, so canvas-unit text renders far
+   * smaller than it looks in this file. Tablet/desktop never had this
+   * problem (their scale factor is close to or above 1), so every slide-1
+   * layout change this gates is mobile-only; tablet/desktop take the
+   * existing, unmodified branch everywhere below.
+   */
+  const isMobile = modeFor(viewport.width) === 'mobile';
   const BASE_W = isPortrait ? PORTRAIT_BASE.w : LANDSCAPE_BASE.w;
   const BASE_H = isPortrait ? PORTRAIT_BASE.h : LANDSCAPE_BASE.h;
 
@@ -737,7 +747,7 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
 
         {/* Top Header Chrome */}
         <div
-          className={`${d.chromeRule} ${d.chromeLabel} absolute top-4 z-20 flex items-center justify-between gap-3 border-b pb-2 pointer-events-none left-8 right-8`}
+          className={`${d.chromeRule} ${isMobile ? d.chromeLabelMobile : d.chromeLabel} absolute top-4 z-20 flex items-center justify-between gap-3 border-b pb-2 pointer-events-none left-8 right-8`}
         >
           {/*
             One label, carried across the whole deck: this is the internal
@@ -756,16 +766,40 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
               {isSolutionSlide ? 'The solution' : "Today's briefing problems"}
             </span>
           </div>
+          {/*
+            Mobile only: the per-slide tag ("01 / SCHEDULING") moves up into
+            this already-two-slot row instead of its own row below — see the
+            eyebrow block, which skips rendering it on mobile for exactly this
+            reason. Frees a whole row of vertical space for the calendar.
+
+            Color now mirrors the left-hand label's own isSolutionSlide check
+            (it didn't before — always rendered gold, even on slide 4, where
+            the left label turns blue). "04 / THE SOLUTION" should read the
+            same color as "The solution" sitting right next to it.
+          */}
+          {isMobile && (
+            <span
+              className={`shrink-0 ${isSolutionSlide ? d.textBrand : ''}`}
+              style={isSolutionSlide ? undefined : { color: 'var(--text-accent)' }}
+            >
+              {SLIDES[activeSlide]?.tag}
+            </span>
+          )}
         </div>
 
-        {/* Bottom Footer Chrome */}
-        <div
-          className={`${d.chromeRule} ${d.chromeCode} absolute bottom-3 z-20 flex items-center justify-between gap-3 border-t pt-2 pointer-events-none uppercase left-8 right-8`}
-          style={{ color: 'var(--text-tertiary)' }}
-        >
-          <span className="truncate">{isPortrait ? 'CONFIDENTIAL' : 'CONFIDENTIAL DEVELOPER DOSSIER'}</span>
-          <span className="shrink-0" style={{ color: 'var(--text-secondary)' }}>0{activeSlide + 1} / 04</span>
-        </div>
+        {/*
+          Bottom Footer Chrome — hidden on mobile only (redundant with the
+          external slide-navigator there; tablet/desktop keep it unchanged).
+        */}
+        {!isMobile && (
+          <div
+            className={`${d.chromeRule} ${d.chromeCode} absolute bottom-3 z-20 flex items-center justify-between gap-3 border-t pt-2 pointer-events-none uppercase left-8 right-8`}
+            style={{ color: 'var(--text-tertiary)' }}
+          >
+            <span className="truncate">{isPortrait ? 'CONFIDENTIAL' : 'CONFIDENTIAL DEVELOPER DOSSIER'}</span>
+            <span className="shrink-0" style={{ color: 'var(--text-secondary)' }}>0{activeSlide + 1} / 04</span>
+          </div>
+        )}
 
         {/*
           The Sliding Track (4x width for 4 slides).
@@ -803,17 +837,24 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
                 data-deck-live={SLIDES[activeSlide]?.id === slide.id}
                 className="w-full max-w-[46rem] flex flex-col items-center justify-center relative z-10"
               >
-                {/* Section eyebrow, on the shared editorial tier. */}
-                <div className="deck-tier mb-4 flex flex-col items-center gap-2" style={{ '--tier': 0 } as React.CSSProperties}>
-                  <span className={`${d.eyebrow} ${slide.isInteractive ? d.eyebrowBrand : ''}`}>
-                    {slide.tag}
-                  </span>
-                  <span className={d.eyebrowRule} aria-hidden="true" />
-                </div>
+                {/*
+                  Section eyebrow, on the shared editorial tier. Skipped on
+                  mobile — its tag text moved up into the top header bar
+                  instead (see "Top Header Chrome" above), freeing this whole
+                  row for the calendar on slide 1.
+                */}
+                {!isMobile && (
+                  <div className="deck-tier mb-4 flex flex-col items-center gap-2" style={{ '--tier': 0 } as React.CSSProperties}>
+                    <span className={`${d.eyebrow} ${slide.isInteractive ? d.eyebrowBrand : ''}`}>
+                      {slide.tag}
+                    </span>
+                    <span className={d.eyebrowRule} aria-hidden="true" />
+                  </div>
+                )}
 
                 {/* The headline: Display/L, in the design system's display face. */}
                 <h2
-                  className={`deck-tier ${d.headline}`}
+                  className={`deck-tier ${isMobile ? d.headlineMobile : d.headline}`}
                   style={{ '--tier': 1 } as React.CSSProperties}
                 >
                   {slide.headline}
@@ -822,7 +863,7 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
                 {/* Body/Large, on a measure wide enough to read at a distance. */}
                 {slide.body && (
                   <p
-                    className={`deck-tier ${d.body} mt-3 max-w-[44ch]`}
+                    className={`deck-tier ${isMobile ? d.bodyMobile : d.body} mt-3 max-w-[44ch]`}
                     style={{ '--tier': 2 } as React.CSSProperties}
                   >
                     {slide.body}
@@ -838,23 +879,37 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
                 */}
                 {slide.id === 1 && (
                   <div
-                    className="deck-tier mt-4 w-full max-w-[31rem] flex flex-col items-center"
+                    /*
+                      Mobile widens the card too — 28px slot text at the
+                      original 31rem truncated after ~2 characters. 42rem
+                      gives each day column real room (still under the 46rem
+                      ceiling the headline/body use); tablet/desktop keep the
+                      original width unchanged.
+                    */
+                    className={`deck-tier mt-4 w-full ${isMobile ? 'max-w-[42rem]' : 'max-w-[31rem]'} flex flex-col items-center`}
                     style={{ '--tier': 3 } as React.CSSProperties}
                   >
                     <div className={`${d.card} w-full`}>
                       <div className="mb-3 flex items-center justify-between">
-                        <span className={d.label}>Briefing calendar</span>
-                        <span className={d.label}>Weeks 1-5 of 26</span>
+                        <span className={isMobile ? d.labelMobile : d.label}>Briefing calendar</span>
+                        <span className={isMobile ? d.labelMobile : d.label}>Weeks 1-5 of 26</span>
                       </div>
 
                       <div className="grid grid-cols-5 gap-2">
                         {[1, 2, 3, 4, 5].map((day) => (
                           <div key={day} className="flex flex-col gap-1.5">
-                            <span className={`${d.label} text-center`}>
+                            <span className={`${isMobile ? d.labelMobile : d.label} text-center`}>
                               {['Mon', 'Tue', 'Wed', 'Thu', 'Fri'][day - 1]}
                             </span>
-                            {/* Four slots a day. Most of them taken. */}
-                            <div className={`${d.dayColumn} flex h-[72px] flex-col gap-1 p-1`}>
+                            {/*
+                              Four slots a day. Most of them taken. On mobile
+                              the row grows from 72px to 136px — sized to
+                              slotTextMobile's 27px line-height (4 slots +
+                              gap-1/p-1, unchanged), not the taller value an
+                              earlier pass used before the card itself also
+                              got wider.
+                            */}
+                            <div className={`${d.dayColumn} flex ${isMobile ? 'h-[136px]' : 'h-[72px]'} flex-col gap-1 p-1`}>
                               {[0, 1, 2, 3].map((slot) => {
                                 const booking = CALENDAR_AGENCIES.find(
                                   (a) => a.day === day && a.slot === slot,
@@ -878,7 +933,7 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
                                       transform: `rotate(${((booking.slot % 2 ? 1 : -1) * (0.7 + (booking.day % 3) * 0.3)).toFixed(2)}deg)`,
                                     }}
                                   >
-                                    <span className={`${d.slotText} truncate`}>
+                                    <span className={`${isMobile ? d.slotTextMobile : d.slotText} truncate`}>
                                       {booking.name}
                                     </span>
                                   </div>
@@ -890,11 +945,24 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
                       </div>
                     </div>
 
-                    <div className={`${d.bodySmallBold} mt-3 flex items-center gap-3`}>
-                      <span className={d.textPrimary}>9 agencies booked</span>
-                      <span className={`${d.divider} h-4 w-px`} />
-                      <span className={d.textBrand}>1,191 still waiting</span>
-                    </div>
+                    {/*
+                      Tablet/desktop only here — stays exactly where it always
+                      was. Mobile renders this same line elsewhere, as a
+                      sibling of the centered content block rather than a
+                      descendant of it (see below): that block is itself
+                      `position: relative`, so an `absolute bottom-*` inside
+                      it anchors to *its* bottom edge — which ends right at
+                      the card — not the slide's, which is what caused the
+                      line to render stuck behind/under the card on a real
+                      device instead of down at the slide's own bottom.
+                    */}
+                    {!isMobile && (
+                      <div className={`${d.bodySmallBold} mt-3 flex items-center gap-3`}>
+                        <span className={d.textPrimary}>9 agencies booked</span>
+                        <span className={`${d.divider} h-4 w-px`} />
+                        <span className={d.textBrand}>1,191 still waiting</span>
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -936,8 +1004,20 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
                                 {stage.label}
                               </span>
                             </div>
+                            {/*
+                              Constrained to the longest single word across
+                              these three captions ("Confidence"/"Language"),
+                              not left unconstrained — a flex item (this span
+                              included) is blockified and respects max-width
+                              for wrapping. Without it the longest caption
+                              ("Speaks one language") rendered as one
+                              unwrapped line far wider than its 88px circle,
+                              and since it sits under the first stage, that
+                              column alone grew enough to push the whole
+                              justify-between row's balance to the right.
+                            */}
                             <span
-                              className={`${d.label} ${stage.solid ? d.labelBrand : ''}`}
+                              className={`${isMobile ? d.labelMobile : d.label} ${stage.solid ? d.labelBrand : ''} max-w-[128px] text-center`}
                               style={{ opacity: stage.solid ? 1 : 1 - i * 0.2 }}
                             >
                               {stage.loses}
@@ -962,7 +1042,7 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
                   >
                     <div className="flex-1 py-1 text-center">
                       <div className={`${d.figure} ${d.textPrimary}`}>30,000</div>
-                      <div className={`${d.label} mt-2`}>
+                      <div className={`${isMobile ? d.labelMobile : d.label} mt-2`}>
                         Brochures sent
                       </div>
                     </div>
@@ -971,7 +1051,7 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
 
                     <div className="flex-1 py-1 text-center">
                       <div className={`${d.figure} ${d.textBrand}`}>0</div>
-                      <div className={`${d.label} ${d.labelBrand} mt-2`}>
+                      <div className={`${isMobile ? d.labelMobile : d.label} ${d.labelBrand} mt-2`}>
                         Questions captured
                       </div>
                     </div>
@@ -1042,6 +1122,24 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
                   </div>
                 )}
               </div>
+
+              {/*
+                Mobile only, slide 1 only: the calendar's summary line,
+                rendered as a sibling of the centered content block above
+                (not nested inside it — see the comment where this used to
+                live) so `absolute bottom-4` anchors to *this* div's own
+                `relative` box — the whole slide — landing at the slide's
+                actual bottom edge instead of the content block's.
+              */}
+              {isMobile && slide.id === 1 && (
+                <div
+                  className={`${d.bodySmallBoldMobile} absolute bottom-4 inset-x-0 flex items-center justify-center gap-3 z-10`}
+                >
+                  <span className={d.textPrimary}>9 agencies booked</span>
+                  <span className={`${d.divider} h-4 w-px`} />
+                  <span className={d.textBrand}>1,191 still waiting</span>
+                </div>
+              )}
             </div>
           ))}
         </div>
