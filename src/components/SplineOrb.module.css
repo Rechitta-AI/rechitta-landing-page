@@ -33,6 +33,17 @@
   height: 150%;
   border: none;
   pointer-events: none;
+  /* Spline's viewer page now draws a "Built with Spline" badge, 137x36 at
+     20px from the bottom-right (.spline-watermark), which we can't style
+     across origins. Fade out just that corner, feathered so no hard notch
+     shows when the glow fills the frame. Iframe px are unscaled layout px,
+     so these offsets track the badge at every orb size. */
+  -webkit-mask-image:
+    linear-gradient(to right, #000 calc(100% - 190px), transparent calc(100% - 162px)),
+    linear-gradient(to bottom, #000 calc(100% - 90px), transparent calc(100% - 62px));
+  mask-image:
+    linear-gradient(to right, #000 calc(100% - 190px), transparent calc(100% - 162px)),
+    linear-gradient(to bottom, #000 calc(100% - 90px), transparent calc(100% - 62px));
 }
 
 @keyframes orbDrift {

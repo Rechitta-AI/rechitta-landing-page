@@ -20,6 +20,10 @@
 # production
 /build
 
+# Leftover Nuxt build output from the old Vue site
+/.output/
+/.nuxt/
+
 # misc
 .DS_Store
 *.pem
