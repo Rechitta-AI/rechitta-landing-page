@@ -268,7 +268,32 @@ export const BEATS: Beat[] = [
      */
     steps: 4,
     gate: true,
+    /*
+     * 0.42 sits inside a stretch the orb does not move across.
+     *
+     * Its two brokerDock beats resolve to 0.4075 (K7) and 0.500 (K9) and carry
+     * the same pose, so parking between them means the focus pull out to the
+     * cities spends 80% of its tween distance moving the orb not at all, then
+     * crams the whole flight into the rest. That is deliberate here: the beat
+     * holds on the dock while the curtain comes up and the orb leaves late,
+     * which is how the forward hand-off is meant to read.
+     *
+     * Deleting this so the park fell through to
+     * progressForClipTime('transit-b', 16.9) = 0.500 spread that flight evenly
+     * and also removed a hidden 0.08 snap at the end of every portrait
+     * arrival — but it changed the forward motion, which was not the thing
+     * being fixed. The backward symptom it was reached for (the orb arriving
+     * at the answer column before the column does) is handled by the orb's
+     * dock gate instead; see src/orb/dockGate.ts. The gate does not depend on
+     * this value: it holds at 0.50175, above the dead zone either way, and its
+     * GATE_ABANDON spans the 0.08 back to this park.
+     */
     portraitProgress: 0.42,
+    /*
+     * Dead for this beat — playForward only reads it in its `!inTiming`
+     * branch, and transit-b is in CLIP_SEQUENCE so that branch is unreachable.
+     * Kept so this file reads the same as its siblings.
+     */
     portraitProgressFrom: 0.12,
   },
   /*

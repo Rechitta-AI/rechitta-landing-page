@@ -587,7 +587,13 @@ export default function FilmStage({
     const runFocusPullTransition = (
       dir: 1 | -1,
       swap: () => Promise<void>,
-      meta: { title: string; subtitle: string; igniteWorldMap: boolean },
+      meta: {
+        title: string;
+        subtitle: string;
+        igniteWorldMap: boolean;
+        targetId: string;
+        targetProgress: number;
+      },
     ): Promise<void> =>
       new Promise<void>((resolve) => {
         let swapped: Promise<void> | null = null;
@@ -666,6 +672,8 @@ export default function FilmStage({
           title: dir === 1 ? 'SYNCING GLOBAL HUBS //' : 'RETURNING TO HUBS //',
           subtitle: dir === 1 ? 'DUBAI HQ BOARDROOM' : 'MULTILINGUAL CITIES',
           igniteWorldMap: dir === 1,
+          targetId: target.id,
+          targetProgress: beatProgress(target),
         };
       }
       const introCities =
@@ -676,6 +684,11 @@ export default function FilmStage({
           title: dir === 1 ? 'DISPATCHING BRIEFING //' : 'RETURNING TO BROKER //',
           subtitle: dir === 1 ? '6 GLOBAL HUBS' : 'LIVE BRIEFING',
           igniteWorldMap: false,
+          // The orb's dock gate arms off these: only a backward pull into the
+          // broker holds the orb short of a column that is not on screen yet,
+          // and the gate needs the beat's park to tell arriving from leaving.
+          targetId: target.id,
+          targetProgress: beatProgress(target),
         };
       }
       return null;

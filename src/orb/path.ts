@@ -35,6 +35,27 @@ const HERO_SCALE = 1.2;
  */
 export const MIN_SCALE_FRACTION = 0.6;
 
+/**
+ * How far short of the broker dock the orb waits, as a fraction of the way
+ * toward the beat after it (K11).
+ *
+ * The dock is measured off the answer column, and coming back from the
+ * multilingual chapter that column only cascades in after the focus pull has
+ * already swapped the stage over — so the orb used to park on the edge of a
+ * card that was not on screen yet. OrbStage holds it here until the panel
+ * reports itself settled, then eases it the rest of the way (src/orb/dockGate.ts).
+ *
+ * 0.9 lands all but the last breath of the way to K11, which is to say centre
+ * frame — where the focus pull already means the orb to be, and far enough off
+ * the dock that the wait reads as a wait. At 0.35 it waited a single orb-width
+ * short of the column, which on a phone was indistinguishable from not waiting.
+ *
+ * The pose is not authored: it falls out of the path's own K9 to K11 approach.
+ * A hold keyframe in the list instead would also be traversed on the way out,
+ * and would put a dip into the forward exit.
+ */
+export const BROKER_HOLD_LEAD = 0.9;
+
 export const ORB_PATH: Keyframe[] = [
   // ── Act I — the dive ────────────────────────────────────────────────
   {
@@ -100,8 +121,10 @@ export const ORB_PATH: Keyframe[] = [
    * dock at the very end of the shot. Now it glides there directly, arrives
    * with a few seconds of footage to spare, and waits for the flare.
    *
-   * 11.0s resolves to 0.41 of the film, just short of the 0.42 a portrait
-   * screen parks the broker beat at, so a phone settles onto the dock too.
+   * 11.0s resolves to 0.4075. K9 below, at the shot's last frame, resolves to
+   * 0.500, and the beat parks there in both orientations — so the stretch
+   * between the two is the orb's authored wait on the dock, and nothing in a
+   * chapter tween starts partway inside it.
    */
   {
     anchor: { clip: 'transit-b', t: 11.0 },
@@ -125,6 +148,8 @@ export const ORB_PATH: Keyframe[] = [
      */
     x: 23, y: 25, scale: 0.6, opacity: 1, blur: 0,
     ease: 'out',
+    // The last brokerDock beat in the list, so it is the one the dock gate
+    // holds short of (BROKER_HOLD_LEAD above).
     note: 'K9 — slides clear of the phone and flares. The app mockup lights.',
   },
 

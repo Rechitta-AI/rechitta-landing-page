@@ -5,9 +5,12 @@ import gsap from 'gsap';
 import SplineOrb from './SplineOrb';
 import styles from './OrbStage.module.css';
 import { createClock, advanceClock } from '@/utils/filmClock';
-import { ORB_PATH, EXCLUSION_ZONES, MIN_SCALE_FRACTION } from '@/orb/path';
+import { ORB_PATH, EXCLUSION_ZONES, MIN_SCALE_FRACTION, BROKER_HOLD_LEAD } from '@/orb/path';
 import { findExclusionViolations, poseAt, resolvePath } from '@/orb/flight';
+import { armDockGate, dockHoldFor, releaseDockGate, stepDockGate, SETTLE_GRACE_MS } from '@/orb/dockGate';
+import { focusPullDurationMs } from './MacroFocusPullTransition';
 import { isPortraitFor, TABLET_MIN } from '@/hooks/useDeviceMode';
+import type { DockGate } from '@/orb/dockGate';
 import type { FilmTiming, Keyframe, ResolvedKeyframe } from '@/orb/types';
 
 /** How many past positions the trail replays. */
@@ -38,6 +41,10 @@ const BREATH_AMPLITUDE = 0.02;
 const BREATH_PERIOD_MS = 5200;
 
 type Sample = { x: number; y: number; scale: number };
+
+const prefersReducedMotion = () =>
+  typeof window !== 'undefined' &&
+  window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 export default function OrbStage({
   scrollData,
@@ -79,6 +86,12 @@ export default function OrbStage({
   const lastProgressRef = useRef<number>(0);
   const snappedIndexRef = useRef<number>(-1);
   const snappedAtRef = useRef<number>(-Infinity);
+
+  /**
+   * Holds the orb short of the broker dock until the broker panel is up. Only
+   * ever armed by a backward focus pull into that beat; see src/orb/dockGate.ts.
+   */
+  const gateRef = useRef<DockGate | null>(null);
 
   /**
    * The hero pose: centred on the headline, not on its first letter.
@@ -146,17 +159,28 @@ export default function OrbStage({
    * above its panel, so it keeps the authored height and takes only the right
    * edge from `#broker-copy-column`. The x is resolved later, once the beat's
    * scale is known.
+   *
+   * A landscape tablet gets the column treatment too. `#broker-orb-anchor`
+   * renders only in the composited layout, which is desktop-width and
+   * landscape — so between 810 and 1199px wide there was no anchor at all,
+   * the measurement returned null, and the orb fell back to the authored
+   * `x: 23`. That is the far side of the frame from where the answer column
+   * actually sits in that layout, so the orb parked opposite the thing it is
+   * supposed to be docked to. Falling back to the column fixes the side; the
+   * authored height is kept, as portrait does, because the column is centred
+   * there and docking to its middle would land on the answer card.
    */
   const measureBrokerPose = (portrait: boolean): { right: number; y: number | null } | null => {
     if (typeof window === 'undefined') return null;
-    const target = document.getElementById(portrait ? 'broker-copy-column' : 'broker-orb-anchor');
+    const anchor = portrait ? null : document.getElementById('broker-orb-anchor');
+    const target = anchor ?? document.getElementById('broker-copy-column');
     if (!target) return null;
     const rect = target.getBoundingClientRect();
     if (rect.width === 0 && rect.height === 0) return null;
     return {
       right: rect.right,
       // Kept clear of the header along the top.
-      y: portrait ? null : Math.max(14, ((rect.top + rect.height / 2) / window.innerHeight) * 100),
+      y: anchor ? Math.max(14, ((rect.top + rect.height / 2) / window.innerHeight) * 100) : null,
     };
   };
 
@@ -199,7 +223,13 @@ export default function OrbStage({
             if (portrait) {
               next = { ...next, portrait: { ...next.portrait, x } };
             } else {
-              next = { ...next, x, y: +brokerDock.y!.toFixed(2) };
+              // `y` is null when the pose came from the copy column rather
+              // than the anchor — a landscape tablet — and then the authored
+              // height stands, the same way it does on portrait.
+              next =
+                brokerDock.y === null
+                  ? { ...next, x }
+                  : { ...next, x, y: +brokerDock.y.toFixed(2) };
             }
           }
           if (finaleDock && k.finaleDock) {
@@ -233,6 +263,7 @@ export default function OrbStage({
         hero,
         timing,
         resolved: resolved.map((k) => ({ progress: +k.progress.toFixed(4), x: k.x, y: k.y, note: k.note })),
+        brokerHold: dockHoldFor(resolved, BROKER_HOLD_LEAD),
       };
 
       const dropped = path.length - resolved.length;
@@ -303,20 +334,65 @@ export default function OrbStage({
       dockPoseRef.current = dock;
       rebuildPath();
     }
+
+    /*
+     * Arming the dock gate.
+     *
+     * It has to happen at the top of the focus pull, not when the broker
+     * overlay learns it is entering: the overlay only finds that out at the
+     * curtain's DOM swap, by which time the orb has been parked for over a
+     * second. Arming then would mean lifting it back off the dock.
+     */
+    const onFocusPull = (e: Event) => {
+      const detail = (e as CustomEvent<{ dir?: number; targetId?: string; targetProgress?: number }>)
+        .detail;
+      /*
+       * Portrait only. The column the orb docks to is the one the stacked
+       * layout cascades in late; on a landscape screen it is laid out before
+       * the curtain lifts, so holding there would be a change to a hand-off
+       * that already reads correctly.
+       */
+      const returningToBroker =
+        detail?.dir === -1 &&
+        detail?.targetId === 'broker' &&
+        typeof detail?.targetProgress === 'number' &&
+        isPortraitFor(window.innerWidth, window.innerHeight);
+      if (!returningToBroker || prefersReducedMotion()) {
+        gateRef.current = null;
+        return;
+      }
+      gateRef.current = armDockGate(
+        resolvedRef.current,
+        performance.now(),
+        focusPullDurationMs(window.innerWidth) + SETTLE_GRACE_MS,
+        BROKER_HOLD_LEAD,
+        detail.targetProgress!,
+      );
+    };
+
+    // The panel is up and at its final rect: re-measure the column, then let
+    // the orb down onto it. Ordered in one handler so the two cannot race.
+    const onBrokerSettled = () => {
+      rebuildPath();
+      if (gateRef.current) gateRef.current = releaseDockGate(gateRef.current, performance.now());
+    };
+
     window.addEventListener('resize', onResize);
     window.addEventListener('rechitta:remeasure-dock', onRemeasure);
+    window.addEventListener('rechitta:macro-focus-pull-transition', onFocusPull);
+    window.addEventListener('rechitta:broker-settled', onBrokerSettled);
     return () => {
       window.removeEventListener('resize', onResize);
       window.removeEventListener('rechitta:remeasure-dock', onRemeasure);
+      window.removeEventListener('rechitta:macro-focus-pull-transition', onFocusPull);
+      window.removeEventListener('rechitta:broker-settled', onBrokerSettled);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ── The flight ────────────────────────────────────────────────────────
   useEffect(() => {
-    const reduceMotion =
-      typeof window !== 'undefined' &&
-      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const reduceMotion = prefersReducedMotion();
 
     const clock = createClock(scrollData.current?.progress ?? 0);
     const history: Sample[] = [];
@@ -336,7 +412,20 @@ export default function OrbStage({
       if ((timingRef?.current ?? null) !== lastTimingRef.current) rebuildPath();
 
       const target = scrollData.current?.progress ?? 0;
-      const progress = advanceClock(clock, target, dt);
+      let progress = advanceClock(clock, target, dt);
+
+      /*
+       * The dock gate raises the progress the orb reads — it never touches the
+       * clock's own state, so `advanceClock`'s teleport handling and everything
+       * downstream of `scrollData` are unaffected. Applied here, before the
+       * pose is taken, so the pulse crossings, the trail's speed and the
+       * z-index threshold all see one consistent number.
+       */
+      if (gateRef.current) {
+        const stepped = stepDockGate(gateRef.current, progress, now);
+        gateRef.current = stepped.gate;
+        if (stepped.floor !== null) progress = Math.max(progress, stepped.floor);
+      }
 
       // Lazy-measure finale dock as the playhead approaches the finale scene
       if (progress >= 0.92 && !finaleDockPoseRef.current) {
@@ -483,11 +572,17 @@ export default function OrbStage({
        */
       if (filamentRef.current) filamentRef.current.style.opacity = '0';
 
-      // Above the drifted-orb threshold the orb should sit over the film,
-      // below it the film's own overlays win.
-      // Above the chapter rail at the foot of the screen — the orb is the
-      // only thing that may cross it — and above the film's own overlays once
-      // it has drifted past the halfway mark.
+      /*
+       * Above the chapter rail at the foot of the screen — the orb is the only
+       * thing that may cross it.
+       *
+       * The second half of this used to read "and above the film's own
+       * overlays once it has drifted past the halfway mark", which has not
+       * been true since those overlays moved to z-index 100 and below. The
+       * only thing in the 130-134 band is the orb's own trail layer at 131
+       * (OrbStage.module.css), so all this threshold decides is whether the
+       * trail paints over the orb or under it.
+       */
       if (stageRef.current) stageRef.current.style.zIndex = progress >= 0.5 ? '132' : '130';
 
       frame = requestAnimationFrame(tick);

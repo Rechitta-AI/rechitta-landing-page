@@ -490,7 +490,8 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
         duration: 0.4,
         ease: 'power2.inOut',
         onComplete: () => {
-          if (containerRef.current) gsap.set(containerRef.current, { autoAlpha: 0 });
+          // scale: 1 — see the exit watcher's onComplete for why.
+          if (containerRef.current) gsap.set(containerRef.current, { autoAlpha: 0, scale: 1 });
           isExitingRef.current = false;
         },
       });
@@ -535,7 +536,8 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
                 duration: 0.35,
                 ease: 'power2.inOut',
                 onComplete: () => {
-                  if (containerRef.current) gsap.set(containerRef.current, { autoAlpha: 0 });
+                  // scale: 1 — see the exit watcher's onComplete for why.
+                  if (containerRef.current) gsap.set(containerRef.current, { autoAlpha: 0, scale: 1 });
                   isExitingRef.current = false;
                 },
               });
@@ -746,6 +748,23 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
             0.72
           );
         }
+
+        /*
+         * The panel is in place and at its final rect.
+         *
+         * The orb docks to the answer column's right edge, and coming back
+         * from the multilingual chapter it used to get there well before the
+         * column did — the curtain swaps the stage over and only then does any
+         * of this start. This is what lets it down onto the column (OrbStage
+         * holds it short until it arrives), and it re-measures the edge too,
+         * which matters because the stacked stage has just finished resizing.
+         *
+         * Appended with no position, so it runs after the last tween above.
+         */
+        tl.call(() => {
+          if (!isVisibleRef.current) return;
+          window.dispatchEvent(new CustomEvent('rechitta:broker-settled'));
+        });
       }
       // Detect Exit (when scrolling away into next chapter)
       else if (!isNowVisible && isVisibleRef.current) {
@@ -784,7 +803,20 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
           ease: 'power2.inOut',
           onComplete: () => {
             if (containerRef.current) {
-              gsap.set(containerRef.current, { autoAlpha: 0 });
+              /*
+                `scale: 1` undoes the 0.96 the forward focus pull leaves on the
+                container.
+
+                The next entrance resets it too, so this is not the only
+                reset — it is the one that matters for anything measuring the
+                overlay while it is off screen. OrbStage reads
+                #broker-copy-column through this element, and a 0.96 about the
+                viewport's centre pulls the column's right edge ~2vw inward,
+                so a `resize` or `rechitta:remeasure-dock` rebuild landing
+                between the two would bake a dock the orb then flies to.
+                Invisible to do here: the fade has already hidden it.
+              */
+              gsap.set(containerRef.current, { autoAlpha: 0, scale: 1 });
               containerRef.current.style.pointerEvents = 'none';
             }
             // Only once the fade has hidden it, so the phone never blanks
