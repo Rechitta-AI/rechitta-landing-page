@@ -11,6 +11,8 @@ import DeckDock from './DeckDock';
 import { FONT_BODY, FONT_CODE } from '@/design/fonts';
 import { BRAND_BLUE, BRAND_GOLD, NEUTRAL, SUCCESS_400, light } from '@/design/tokens';
 import { DEFAULT_CALIBRATION, sanitizeCalibration, type CalibrationCoords } from './MonitorCalibrator';
+import FinaleHubPanel from './FinaleHubPanel';
+import { GLOBAL_HUBS, STREAM_ARCS, PORTRAIT_CHIP, HEADER_BAND_BOTTOM } from './finaleHubs';
 
 /**
  * 4-Corner 3D Calibrated Coordinates on mobile portrait (% of video cover rect)
@@ -22,117 +24,6 @@ export const MOBILE_MONITOR_CORNERS = {
   br: [59.00, 43.18] as [number, number],
   bl: [38.67, 42.97] as [number, number],
 };
-
-/**
- * Global Hub Data matching the 6 Multilingual Cities + Dubai Headquarters.
- * Re-anchored to the 1.73:1 (2000 x 1156) reference canvas to eliminate compression.
- * All derived to read THE SAME MOMENT: 04:11 UTC.
- */
-interface GlobalHub {
-  key: string;
-  name: string;
-  x: number;
-  y: number;
-  time: string;
-  lang: string;
-  status: string;
-  isHQ?: boolean;
-  labelOffset: { x: number; y: number };
-}
-
-const GLOBAL_HUBS: GlobalHub[] = [
-  {
-    key: 'london',
-    name: 'LONDON',
-    x: 980,
-    y: 310,
-    time: '05:11',
-    lang: 'EN',
-    status: 'DELIVERED',
-    labelOffset: { x: -68, y: -34 },
-  },
-  {
-    key: 'paris',
-    name: 'PARIS',
-    x: 995,
-    y: 345,
-    time: '05:11',
-    lang: 'FR',
-    status: 'DELIVERED',
-    labelOffset: { x: 68, y: 34 },
-  },
-  {
-    key: 'moscow',
-    name: 'MOSCOW',
-    x: 1185,
-    y: 305,
-    time: '07:11',
-    lang: 'RU',
-    status: 'DELIVERED',
-    labelOffset: { x: 0, y: -34 },
-  },
-  {
-    key: 'riyadh',
-    name: 'RIYADH',
-    x: 1245,
-    y: 480,
-    time: '07:11',
-    lang: 'AR',
-    status: 'DELIVERED',
-    labelOffset: { x: -85, y: -28 },
-  },
-  {
-    key: 'dubai',
-    name: 'DUBAI HQ',
-    x: 1292,
-    y: 485,
-    time: '08:11',
-    lang: 'HQ',
-    status: 'GLOBAL ENGINE',
-    isHQ: true,
-    labelOffset: { x: 0, y: 40 },
-  },
-  {
-    key: 'mumbai',
-    name: 'MUMBAI',
-    x: 1385,
-    y: 505,
-    time: '09:41',
-    lang: 'HI',
-    status: 'DELIVERED',
-    /*
-     * Positioned southeast to guarantee zero overlap with Dubai HQ.
-     * With Dubai HQ badge at width 250 (x: -125..+125), Dubai's right edge reaches x = 1417.
-     * Mumbai at offset x: +152 places its left edge at x = 1421, ensuring complete clearance.
-     */
-    labelOffset: { x: 152, y: 56 },
-  },
-  {
-    key: 'shanghai',
-    name: 'SHANGHAI',
-    x: 1625,
-    y: 455,
-    time: '12:11',
-    lang: 'ZH',
-    status: 'DELIVERED',
-    labelOffset: { x: 0, y: -34 },
-  },
-];
-
-/** Geodesic arc generator from hub to Dubai HQ */
-function makeArcPath(fromX: number, fromY: number, toX: number, toY: number): string {
-  const midX = (fromX + toX) / 2;
-  const dist = Math.hypot(toX - fromX, toY - fromY);
-  const midY = (fromY + toY) / 2 - dist * 0.22;
-  return `M ${fromX} ${fromY} Q ${midX} ${midY} ${toX} ${toY}`;
-}
-
-const DUBAI_HQ = GLOBAL_HUBS.find((h) => h.isHQ)!;
-const STREAM_ARCS = GLOBAL_HUBS.filter((h) => !h.isHQ).map((h) => ({
-  key: `${h.key}-dubai`,
-  path: makeArcPath(h.x, h.y, DUBAI_HQ.x, DUBAI_HQ.y),
-  hub: h,
-}));
 
 /** The closing monitor's deck: the map, the numbers, the questions. */
 const FINALE_SLIDES = 3;
@@ -521,12 +412,21 @@ export default function FinaleWorldMapPresentation({
       /*
        * Open on the map, and say so.
        *
-       * The exit fade resets the deck to slide 0, but the film's own step
-       * counter does not follow it: arriving backwards from the horizon lands
-       * that counter on the last slide. The sync goes out unconditionally
-       * because there is no state change to ride on — the deck is already on
-       * slide 0 — and the track is set rather than tweened so a fast
-       * re-entry cannot catch it mid-travel.
+       * `setActiveSlide(0)` here rather than relying on the exit's — the exit
+       * resets the deck from inside its fade's `onComplete`, and the
+       * `killTweensOf(panels)` two lines above kills that very tween. A
+       * re-entry inside the 250ms fade therefore used to leave `activeSlide`
+       * on 1 or 2 while the track below snapped to the map, so the map slide
+       * rendered with the hub panel unmounted — and on portrait the panel is
+       * the only thing naming the cities, since the pill, the ticker and the
+       * latency readout are all hidden there. Resetting it here makes the
+       * entrance independent of a callback it cancels.
+       *
+       * The film's own step counter does not follow either: arriving backwards
+       * from the horizon lands it on the last slide. The sync goes out
+       * unconditionally because there may be no state change to ride on, and
+       * the track is set rather than tweened so a fast re-entry cannot catch
+       * it mid-travel.
        */
       if (slidesRef.current) gsap.set(slidesRef.current, { xPercent: 0 });
       window.dispatchEvent(
@@ -555,26 +455,46 @@ export default function FinaleWorldMapPresentation({
       // Option 1: The Cinematic Match-Cut & Staggered Reveal for texts, buttons & pills
       const marqueeEl = marqueeRef.current;
       if (marqueeEl) {
-        gsap.killTweensOf(marqueeEl.querySelectorAll('.finale-stagger-item'));
-        // Clean out any lingering filter blur or opacity styles to guarantee 100% sharp rendering
-        gsap.set(marqueeEl.querySelectorAll('.finale-stagger-item'), {
-          clearProps: 'filter',
-        });
+        const staggerItems = marqueeEl.querySelectorAll('.finale-stagger-item');
+        gsap.killTweensOf(staggerItems);
+        /*
+          Clear the opacity and transform the exit left behind, not just the
+          filter.
+
+          The exit below drops `opacity: 0, y: -8` onto every
+          `.finale-stagger-item`, but this used to restore only
+          one class that only the slide dock carried, since removed. Anything
+          else in the stack therefore came back invisible
+          from the second visit on, which is how the hub panel ended up
+          appearing only when the viewer happened to leave the beat from a
+          slide that had unmounted it. Clearing the properties the exit
+          actually set makes the entrance independent of what left.
+        */
+        gsap.set(staggerItems, { clearProps: 'filter,opacity,transform' });
         gsap.set(marqueeEl, { opacity: 1 });
 
         const tl = gsap.timeline({ delay: 0.06 });
 
-        // 1. Developer partner marquee softly rises into place
+        // Everything in the stack rises together — the dock and, on the map
+        // slide, the hub panel under it.
         tl.fromTo(
-          marqueeEl.querySelectorAll('.finale-marquee-wrap'),
+          staggerItems,
           { opacity: 0, y: 12 },
-          { opacity: 1, y: 0, duration: 0.42, ease: 'power3.out' },
+          { opacity: 1, y: 0, duration: 0.42, stagger: 0.05, ease: 'power3.out' },
           0
         );
       }
 
       triggerIgnition();
       requestAnimationFrame(() => {
+        /*
+         * Deferred out of the effect body, not an afterthought: a synchronous
+         * setState here is a cascading render (react-hooks/set-state-in-effect).
+         * One frame behind the track above is imperceptible — the stack is
+         * still fading up — and it is what guarantees `activeSlide` agrees
+         * with the slide actually on screen.
+         */
+        setActiveSlide(0);
         window.dispatchEvent(new CustomEvent('rechitta:remeasure-dock'));
       });
     } else {
@@ -696,7 +616,7 @@ export default function FinaleWorldMapPresentation({
           }}
         >
           <div className="max-w-sm mx-auto w-full flex flex-col gap-2 sm:gap-2.5">
-            <div className="finale-stagger-item finale-marquee-wrap flex justify-center">
+            <div className="finale-stagger-item flex justify-center">
               <DeckDock
             count={FINALE_SLIDES}
             active={activeSlide}
@@ -708,6 +628,23 @@ export default function FinaleWorldMapPresentation({
           />
             </div>
 
+            {/*
+              The hub list, under the set, on the map slide only.
+
+              It reads the names and local times the map itself cannot carry on
+              a phone — see FinaleHubPanel for the arithmetic. It goes inside
+              this stack rather than beside it so it inherits the stack's
+              position under the television and its entrance. The orb anchor
+              below is pushed down by the list's height, though that turns out
+              not to matter either way: measureFinaleDockPose clamps the dock
+              to 88-95% of the viewport, and the anchor lands outside that with
+              or without the panel, so it clamps to 88 regardless.
+            */}
+            {activeSlide === 0 && (
+              <div className="finale-stagger-item w-full">
+                <FinaleHubPanel twoColumn={viewport.height < 700} />
+              </div>
+            )}
 
             {/* Where the orb comes to rest. Measured by OrbStage; draws nothing. */}
             <div className="relative w-full h-10 pointer-events-none" aria-hidden="true">
@@ -785,25 +722,59 @@ export default function FinaleWorldMapPresentation({
 
         {/* 1. Top Header (y = 68) with generous margin above northern landmasses */}
         {/* Label/Default, gold, at the canvas's 1.69 scale — the deck's section-label convention. */}
-        <g transform="translate(60, 68)">
-          <circle cx="0" cy="0" r="5" fill={light.bgAccent} />
-          <circle cx="0" cy="0" r="10" fill="none" stroke={light.borderAccent} strokeWidth="1.2" opacity="0.45" />
+        {/*
+          On a phone this canvas is painted at about 0.155, so the authored
+          20.3 units arrived at 3.1 CSS px and the line could not be read at
+          all. Portrait takes it to 60 units (~9.3 px) and swaps the gold for
+          neutral ink, because gold on the map's pale blue is the weakest pair
+          on the slide. The plate behind it stops the map's own coastlines
+          reading through the letterforms at that size, and HEADER_BAND_BOTTOM
+          keeps the hub chips from drifting up onto it (finaleHubs.ts).
+        */}
+        {/*
+          Portrait hangs the line off HEADER_BAND_BOTTOM rather than a literal,
+          so the plate and the zone the hub chips are kept out of cannot drift
+          apart: the plate is 88 units tall centred 58 above the band's floor,
+          which leaves it 14 units of air before the nearest chip may begin.
+        */}
+        <g transform={flat ? `translate(44, ${HEADER_BAND_BOTTOM - 58})` : 'translate(60, 68)'}>
+          {flat && (
+            <rect
+              x="-30"
+              y="-44"
+              width="1500"
+              height="88"
+              rx="16"
+              fill="rgba(232, 237, 240, 0.82)"
+            />
+          )}
+          <circle cx="0" cy="0" r={flat ? 14 : 5} fill={light.bgAccent} />
+          {!flat && (
+            <circle cx="0" cy="0" r="10" fill="none" stroke={light.borderAccent} strokeWidth="1.2" opacity="0.45" />
+          )}
 
           <text
-            x="22"
+            x={flat ? 36 : 22}
             y="2"
             dominantBaseline="central"
-            fill={light.textAccent}
-            fontSize="20.3"
-            fontWeight="500"
-            letterSpacing="2"
+            fill={flat ? NEUTRAL[700] : light.textAccent}
+            fontSize={flat ? 60 : 20.3}
+            fontWeight={flat ? 700 : 500}
+            letterSpacing={flat ? 3 : 2}
             style={{ fontFamily: FONT_BODY }}
           >
             RECHITTA // GLOBAL DISTRIBUTION ENGINE
           </text>
         </g>
 
-        {/* Top Right Status Badge - Obsidian Micro-Pill */}
+        {/*
+          Top Right Status Badge - Obsidian Micro-Pill
+
+          Portrait drops it: at 0.155 the line was 2.9 CSS px, and the enlarged
+          header now needs the top band to itself. FinaleHubPanel reads the
+          same "6/6 HUBS SYNCHRONIZED · 04:11 UTC" in real pixels under the set.
+        */}
+        {!flat && (
         <g transform="translate(1940, 68)">
           {/* Label/Small on neutral/950, radius/full. */}
           <rect x="-470" y="-17" width="470" height="40" rx="20" fill="rgba(0, 0, 0, 0.22)" />
@@ -831,6 +802,7 @@ export default function FinaleWorldMapPresentation({
             6/6 HUBS SYNCHRONIZED · 04:11 UTC
           </text>
         </g>
+        )}
 
         {/* 2. User's world.svg Map Vector Layer (y = 145, 100% uncompressed native 2000x857) */}
         <image
@@ -843,7 +815,19 @@ export default function FinaleWorldMapPresentation({
           style={{ opacity: 0.94 }}
         />
 
-        {/* 3. Streaming Data Arcs Connecting All 6 Hubs to Dubai HQ */}
+        {/*
+          3. Streaming Data Arcs Connecting All 6 Hubs to Dubai HQ
+
+          Portrait thickens every stroke here and lifts the rail's opacity.
+          The authored widths are 1.8 / 10 / 3.2 units, which at the ~0.155 a
+          phone paints this canvas at come out as 0.28 / 1.55 / 0.50 CSS px —
+          the whole animation was rendering as nothing, so the map read as
+          seven unrelated dots rather than six briefings arriving in Dubai.
+          The static rail's dash scales with it. The two animated paths keep
+          the authored `48 180`: `dashPureStream2k` sweeps stroke-dashoffset by
+          220, which only loops seamlessly against that 228-unit period, so a
+          longer portrait dash would make the pulse jump every cycle.
+        */}
         <g>
           {STREAM_ARCS.map((arc) => (
             <g key={arc.key} className="laser-stream-arc">
@@ -851,16 +835,16 @@ export default function FinaleWorldMapPresentation({
               <path
                 d={arc.path}
                 fill="none"
-                stroke="rgba(61, 111, 245, 0.26)"
-                strokeWidth="1.8"
-                strokeDasharray="4 4"
+                stroke={flat ? 'rgba(61, 111, 245, 0.42)' : 'rgba(61, 111, 245, 0.26)'}
+                strokeWidth={flat ? 7 : 1.8}
+                strokeDasharray={flat ? '16 16' : '4 4'}
               />
               {/* The glow: the same stream, wider and faint, riding under it. */}
               <path
                 d={arc.path}
                 fill="none"
                 stroke="rgba(61, 111, 245, 0.28)"
-                strokeWidth="10"
+                strokeWidth={flat ? 34 : 10}
                 strokeLinecap="round"
                 strokeDasharray="48 180"
                 style={{
@@ -872,7 +856,7 @@ export default function FinaleWorldMapPresentation({
                 d={arc.path}
                 fill="none"
                 stroke="#3D6FF5"
-                strokeWidth="3.2"
+                strokeWidth={flat ? 13 : 3.2}
                 strokeLinecap="round"
                 strokeDasharray="48 180"
                 style={{
@@ -903,30 +887,85 @@ export default function FinaleWorldMapPresentation({
               transform={`translate(${hub.x}, ${hub.y})`}
               style={{ transformBox: 'fill-box', transformOrigin: 'center' }}
             >
-              {/* Radar Ping Ripple */}
+              {/*
+                Radar Ping Ripple. Portrait thickens the stroke: 1.8 units is
+                0.28 CSS px there, which a phone renders as nothing at all.
+              */}
               <circle
                 r="6"
                 fill="none"
                 stroke={isHQ ? BRAND_GOLD[500] : BRAND_BLUE[500]}
-                strokeWidth="1.8"
+                strokeWidth={flat ? 7 : 1.8}
               >
                 <animate attributeName="r" from="6" to={isHQ ? '38' : '26'} dur="2.4s" repeatCount="indefinite" />
                 <animate attributeName="opacity" from="0.85" to="0" dur="2.4s" repeatCount="indefinite" />
               </circle>
 
               {/* The HQ's bloom, as a soft disc rather than a blur filter. */}
-              {isHQ && <circle r="17" fill="rgba(197, 165, 114, 0.3)" />}
+              {isHQ && <circle r={flat ? 30 : 17} fill="rgba(197, 165, 114, 0.3)" />}
 
-              {/* Node Center Dot */}
+              {/*
+                Node Center Dot. The authored 5.5 units is a 0.85 px dot on a
+                phone — the markers had effectively vanished, which is half of
+                "not visible at all the places". Portrait carries the dot at a
+                size that survives, because on portrait the chip is the label
+                and this is the only thing saying where the place actually is.
+              */}
               <circle
-                r={isHQ ? 8.5 : 5.5}
+                r={flat ? (isHQ ? 20 : 14) : isHQ ? 8.5 : 5.5}
                 fill={isHQ ? BRAND_GOLD[500] : BRAND_BLUE[500]}
                 stroke="#FFFFFF"
-                strokeWidth="2"
+                strokeWidth={flat ? 5 : 2}
               />
 
-              {/* Floating Anti-Collision City Badge */}
-              <g transform={`translate(${hub.labelOffset.x}, ${hub.labelOffset.y}) scale(${flat ? 1.12 : 1})`}>
+              {/*
+                The label.
+
+                Portrait gets a two-letter chip, landscape the full pill.
+
+                A phone paints this canvas at about 0.155, which put the city
+                name at 2.9 CSS px and the 232-unit pill at 36 px wide — the
+                labels were there but unreadable, and that is the complaint
+                this answers. Nothing fits "LONDON · 05:11" inside that
+                television at a readable size, so portrait says "EN" on the map
+                and FinaleHubPanel reads the names and times underneath it in
+                real pixels. The chip keeps the *where* on the map; the panel
+                carries the *what*.
+
+                The 1.12 the badges used to take on portrait is gone with them:
+                it was the only mobile concession this slide ever had, and a
+                12% bump on 2.9 px is 3.3 px.
+              */}
+              {flat ? (
+                <g
+                  transform={`translate(${hub.portraitChipOffset.x}, ${hub.portraitChipOffset.y})`}
+                >
+                  <rect
+                    x={-PORTRAIT_CHIP.halfW}
+                    y={-PORTRAIT_CHIP.halfH}
+                    width={PORTRAIT_CHIP.width}
+                    height={PORTRAIT_CHIP.height}
+                    rx={PORTRAIT_CHIP.rx}
+                    fill={isHQ ? 'rgba(10, 10, 9, 0.94)' : 'rgba(10, 10, 9, 0.92)'}
+                    stroke={isHQ ? BRAND_GOLD[500] : BRAND_BLUE[500]}
+                    strokeWidth={PORTRAIT_CHIP.stroke}
+                  />
+                  <text
+                    x="0"
+                    y="3"
+                    textAnchor="middle"
+                    dominantBaseline="central"
+                    fill={isHQ ? BRAND_GOLD[300] : NEUTRAL[50]}
+                    fontSize={PORTRAIT_CHIP.text}
+                    fontWeight="700"
+                    letterSpacing="3"
+                    style={{ fontFamily: FONT_BODY }}
+                  >
+                    {hub.lang}
+                  </text>
+                </g>
+              ) : (
+              <g transform={`translate(${hub.labelOffset.x}, ${hub.labelOffset.y})`}>
                 {isHQ ? (
                   /* Dubai HQ Luxury Obsidian Badge */
                   <g>
@@ -1029,11 +1068,21 @@ export default function FinaleWorldMapPresentation({
                   </g>
                 )}
               </g>
+              )}
             </g>
           );
         })}
 
-        {/* 5. Bottom Telemetry Ticker (y = 1090) */}
+        {/*
+          5. Bottom Telemetry Ticker (y = 1090)
+
+          Portrait drops this whole footer row — ticker, latency and counter.
+          All three land at 3.1 CSS px there, and DeckDock under the set
+          already says which slide you are on, so the counter is redundant
+          rather than merely small. Same "delete chrome to buy room" move the
+          opening deck made for its own mobile pass.
+        */}
+        {!flat && (<>
         <g transform="translate(60, 1090)">
           {/* Code/Small at the canvas's scale, like the other two slides' footers. */}
           <circle cx="0" cy="0" r="5" fill={SUCCESS_400} />
@@ -1083,6 +1132,7 @@ export default function FinaleWorldMapPresentation({
             01 / 03
           </text>
         </g>
+        </>)}
       </svg>
       </div>
 
