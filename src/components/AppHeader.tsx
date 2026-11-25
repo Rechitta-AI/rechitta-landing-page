@@ -66,7 +66,20 @@ export default function AppHeader() {
   }, [pathname]);
 
   return (
-    <header className={`fixed top-0 left-0 right-0 ${open ? 'z-[300]' : 'z-[150]'} flex items-center justify-between px-4 sm:px-6 md:px-12 py-3 sm:py-4 md:py-6 pt-[max(0.85rem,env(safe-area-inset-top))] pointer-events-auto transition-all duration-300`}>
+    /*
+      `short:` forces the compact step back on a phone held in landscape, where
+      the header was taking the tablet padding and eating 92px of a 333px
+      viewport. 8 + 36 (the menu button's touch-target floor) + 8 = 52px.
+      #multilingual-chapter's --ml-top in globals.css is measured off that
+      number, so the two move together.
+
+      `short:pt-` is restated because the unprefixed `pt-[max(0.85rem,…)]` is
+      dead above 810px: `md:py-6` is emitted after it and wins, so the header's
+      safe-area inset has never applied on tablet or desktop. Left as-is there
+      rather than fixed in passing — it is a visible change on six other pages
+      that share this header.
+    */
+    <header className={`fixed top-0 left-0 right-0 ${open ? 'z-[300]' : 'z-[150]'} flex items-center justify-between px-4 sm:px-6 md:px-12 short:px-4 py-3 sm:py-4 md:py-6 short:py-2 pt-[max(0.85rem,env(safe-area-inset-top))] short:pt-[max(0.5rem,env(safe-area-inset-top))] pointer-events-auto transition-all duration-300`}>
       {/* Subtle backdrop blur only behind the header to keep it readable */}
       <div className="absolute inset-0 bg-black/10 backdrop-blur-md border-b border-white/5 pointer-events-none -z-10 [mask-image:linear-gradient(to_bottom,black,transparent)]" />
 
@@ -76,7 +89,7 @@ export default function AppHeader() {
           alt="Rechitta"
           width={146}
           height={22}
-          className="w-auto h-4.5 sm:h-5 md:h-6 drop-shadow-md"
+          className="w-auto h-4.5 sm:h-5 md:h-6 short:h-4.5 drop-shadow-md"
           priority
         />
       </Link>
@@ -86,7 +99,7 @@ export default function AppHeader() {
           onClick={openModal}
           type="button"
           /* The site's call to action: design.md's primary button. */
-          className="hidden sm:inline-flex btn btn-primary btn-sm md:btn-md"
+          className="hidden sm:inline-flex btn btn-primary btn-sm md:btn-md short:btn-sm"
         >
           Try the Platform
         </button>
@@ -98,7 +111,7 @@ export default function AppHeader() {
             aria-expanded={open}
             aria-haspopup="menu"
             aria-label={open ? 'Close menu' : 'Open menu'}
-            className="relative flex h-9 w-9 sm:h-9 sm:w-9 md:h-10 md:w-10 min-w-[36px] min-h-[36px] flex-col items-center justify-center gap-[4px] sm:gap-[5px] rounded-full border btn-secondary transition-all duration-300 cursor-pointer shrink-0 touch-manipulation before:absolute before:-inset-2 before:content-['']"
+            className="relative flex h-9 w-9 sm:h-9 sm:w-9 md:h-10 md:w-10 short:h-9 short:w-9 min-w-[36px] min-h-[36px] flex-col items-center justify-center gap-[4px] sm:gap-[5px] rounded-full border btn-secondary transition-all duration-300 cursor-pointer shrink-0 touch-manipulation before:absolute before:-inset-2 before:content-['']"
           >
             {[0, 1, 2].map((i) => (
               <span

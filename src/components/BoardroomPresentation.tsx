@@ -162,8 +162,14 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
    * problem (their scale factor is close to or above 1), so every slide-1
    * layout change this gates is mobile-only; tablet/desktop take the
    * existing, unmodified branch everywhere below.
+   *
+   * The viewport's height is passed because the same phone held in landscape
+   * is 844 wide and so came back as a tablet, which took the desktop type at
+   * a scale factor of 0.439 — all but identical to portrait's 0.421, and
+   * squarely inside the range `.slotTextMobile` was written to escape. The
+   * calendar rendered at 4.4px there.
    */
-  const isMobile = modeFor(viewport.width) === 'mobile';
+  const isMobile = modeFor(viewport.width, viewport.height) === 'mobile';
   const BASE_W = isPortrait ? PORTRAIT_BASE.w : LANDSCAPE_BASE.w;
   const BASE_H = isPortrait ? PORTRAIT_BASE.h : LANDSCAPE_BASE.h;
 
@@ -222,7 +228,12 @@ export default function BoardroomPresentation({ holdData }: BoardroomPresentatio
    * On shorter phones the logo block has to clear the orb, which rests at a
    * fixed 90% down the screen, so everything under the display packs tighter.
    */
-  const compactDock = isPortrait && viewport.height < 760;
+  /*
+   * The dock's tight spacing is a question about vertical room, not about
+   * orientation, so the portrait gate came off: a 390px-tall landscape phone
+   * needs it more than a 759px-tall portrait one does.
+   */
+  const compactDock = viewport.height < 760;
 
   const controlsTop = isPortrait
     ? screenHeight + (compactDock ? 12 : 22)

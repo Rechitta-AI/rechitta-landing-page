@@ -67,6 +67,7 @@ export function resolvePath(
   timing: FilmTiming | null,
   portrait = false,
   minScale = 0,
+  short = false,
 ): ResolvedKeyframe[] {
   const resolved: ResolvedKeyframe[] = [];
   for (const keyframe of path) {
@@ -75,7 +76,16 @@ export function resolvePath(
     // On a portrait screen the overlays lay themselves out flat rather than
     // tracking the footage, so a beat that clears a mockup on a wide screen
     // can land straight on it. Those beats carry a second pose.
-    const pose = portrait && keyframe.portrait ? { ...keyframe, ...keyframe.portrait } : keyframe;
+    let pose = portrait && keyframe.portrait ? { ...keyframe, ...keyframe.portrait } : keyframe;
+    /*
+     * And a third, for a frame with no vertical room. A landscape phone is
+     * neither portrait nor roomy: the authored heights put the orb under the
+     * header, on the city handset and on the finale's own slide controls.
+     *
+     * Spread after `portrait`, so a viewport that is both takes the more
+     * specific pose for whichever fields `short` names.
+     */
+    if (short && keyframe.short) pose = { ...pose, ...keyframe.short };
     resolved.push({ ...pose, progress, scale: Math.max(pose.scale, minScale) });
   }
   return resolved.sort((a, b) => a.progress - b.progress);

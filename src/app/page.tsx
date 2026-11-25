@@ -265,7 +265,8 @@ export default function ExperiencePage() {
               className="absolute pointer-events-none
                          left-1/2 -translate-x-1/2 top-[var(--ml-phone-top)] translate-y-0
                          h-[var(--ml-phone-h)]
-                         md:left-[40%] md:top-1/2 md:-translate-y-1/2 md:h-[min(78vh,780px)]"
+                         md:left-[40%] md:top-1/2 md:-translate-y-1/2 md:h-[min(78vh,780px)]
+                         short:h-[var(--ml-phone-h)] short:top-[var(--ml-phone-top)] short:-translate-y-0"
             >
               <div className="relative h-full aspect-[388/800]">
                 {/*

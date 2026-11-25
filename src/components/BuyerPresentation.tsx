@@ -221,7 +221,8 @@ export default function BuyerPresentation({ holdData }: BuyerPresentationProps) 
   // Prevents HUD panel from overflowing vertically or colliding with bottom dock and phone
   const hudScale = Math.min(
     1,
-    Math.max(0.72, Math.min((viewport.height - 120) / 570, (viewport.width - 520) / 470))
+    // 0.55, not 0.72 — see BrokerPresentation's hudScale for the arithmetic.
+    Math.max(0.55, Math.min((viewport.height - 120) / 570, (viewport.width - 520) / 470))
   );
 
   /*

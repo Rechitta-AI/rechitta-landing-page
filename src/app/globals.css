@@ -223,6 +223,19 @@
   --color-accent: var(--accent);
 }
 
+/*
+ * No vertical room — a phone held in landscape, ~390px tall and 844 wide.
+ *
+ * Tailwind's breakpoints are width-only, so `md:` fires at 844 and a landscape
+ * phone took every tablet height. Keep 499px in step with SHORT_MAX in
+ * src/hooks/useDeviceMode.ts and with SplineOrb.module.css, which are the JS
+ * and module-stylesheet halves of the same threshold.
+ *
+ * Declared after @theme so it sorts after md:/lg: in the emitted sheet —
+ * these are all single-class selectors, so source order is what decides.
+ */
+@custom-variant short (@media (max-height: 499px));
+
 html,
 body {
   margin: 0;
@@ -883,4 +896,25 @@ p {
   --ml-avail: calc(100dvh - var(--ml-top) - var(--ml-bottom));
   --ml-phone-h: min(490px, max(220px, var(--ml-avail)));
   --ml-phone-top: calc(var(--ml-top) + max(0px, var(--ml-avail) - var(--ml-phone-h)) / 2);
+}
+
+/*
+ * The same chapter with no vertical room.
+ *
+ * The bands above reserve 138px and 160px, which on a 333px-tall landscape
+ * phone leaves 35px — and then the 220px floor overrode that by 185px, so the
+ * handset ran 55px under the header and 123px into the band holding the clock
+ * and the button. Landscape has width instead of height, so the name and clock
+ * sit beside the handset rather than above and below it (page.tsx's `md:`
+ * branch already does that); the bands here only have to clear the header and
+ * the chapter rail, and the floor has to be small enough to fit between them.
+ */
+@media (max-height: 499px) {
+  #multilingual-chapter {
+    /* The compacted header (AppHeader's `short:` step: 8 + 36 + 8), plus a breath. */
+    --ml-top: calc(max(0.5rem, env(safe-area-inset-top)) + 36px + 8px + 10px);
+    /* Just the chapter rail. */
+    --ml-bottom: calc(max(0.5rem, env(safe-area-inset-bottom)) + 34px + 8px);
+    --ml-phone-h: min(260px, max(132px, var(--ml-avail)));
+  }
 }

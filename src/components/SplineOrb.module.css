@@ -61,7 +61,17 @@
   animation: orbDriftIcon 7s ease-in-out infinite;
 }
 
-@media (max-width: 809px) {
+/*
+ * The phone's orb, in either orientation.
+ *
+ * `max-width: 809px` alone missed a phone held in landscape, which is 844-932
+ * wide: it took the tablet scale and the desktop-proportioned mark, so the orb
+ * came out 73% larger there than in portrait on the same handset — 26% of the
+ * screen's height against 7%. The height query catches it. Keep 499px in step
+ * with SHORT_MAX in src/hooks/useDeviceMode.ts, which is what the JS side of
+ * the orb's sizing reads.
+ */
+@media (max-width: 809px), (max-height: 499px) {
   .orb {
     transform: scale(0.30);
   }

@@ -9,7 +9,7 @@ import { ORB_PATH, EXCLUSION_ZONES, MIN_SCALE_FRACTION, BROKER_HOLD_LEAD } from 
 import { findExclusionViolations, poseAt, resolvePath } from '@/orb/flight';
 import { armDockGate, dockHoldFor, releaseDockGate, stepDockGate, SETTLE_GRACE_MS } from '@/orb/dockGate';
 import { focusPullDurationMs } from './MacroFocusPullTransition';
-import { isPortraitFor, TABLET_MIN } from '@/hooks/useDeviceMode';
+import { isPortraitFor, isShortFor, TABLET_MIN } from '@/hooks/useDeviceMode';
 import type { DockGate } from '@/orb/dockGate';
 import type { FilmTiming, Keyframe, ResolvedKeyframe } from '@/orb/types';
 
@@ -28,11 +28,39 @@ const TRAIL_MAX_SPEED = 1.1;
  */
 const ORB_CORE_PX = 68;
 
-/** Tablet and desktop draw the orb a quarter larger than phones (SplineOrb.module.css). */
-const coreSizeFor = (width: number) => (width >= TABLET_MIN ? ORB_CORE_PX * 1.25 : ORB_CORE_PX);
+/**
+ * Tablet and desktop draw the orb a quarter larger than phones
+ * (SplineOrb.module.css).
+ *
+ * Height matters as much as width: a phone in landscape is 844-932 wide and
+ * was taking the tablet size. The two queries here mirror that stylesheet's
+ * `(max-width: 809px), (max-height: 499px)` exactly — if one moves, move both.
+ *
+ * 1.25 is measured, not derived. It cannot be read off the stylesheet's two
+ * scale values (0.3125 and 0.30): the box they scale is
+ * `clamp(260px, 32vw, 420px)`, which is 420 on a desktop and 260 on a phone,
+ * so the rendered ratio is nearer 1.68 — and ORB_CORE_PX is the sphere inside
+ * the bloom, which is not the box at all. Deriving it from the scales alone
+ * gave 1.0417 and moved the broker dock off the answer column's edge, because
+ * this feeds that x. Leave the number where it was calibrated.
+ */
+const coreSizeFor = (width: number, height: number) =>
+  width >= TABLET_MIN && !isShortFor(height) ? ORB_CORE_PX * 1.25 : ORB_CORE_PX;
 
 /** What the chapter rail reserves along the bottom, badge included. */
 const RAIL_BAND_PX = 78;
+
+/**
+ * The rail's reserve as a fraction of the viewport, so a fixed 78px cannot
+ * become a fifth of the screen.
+ *
+ * `yCeiling` divides the band by the viewport height, so on a 390px-tall
+ * landscape phone 78px forbade the orb the bottom third of the frame and
+ * yanked two parked keyframes 44-53px up into the content — onto the boardroom
+ * deck, onto the city handset, onto the finale monitor. Capping the band at
+ * 12% keeps it a rail reserve rather than a layout force.
+ */
+const RAIL_BAND_MAX_FRACTION = 0.12;
 
 const PULSE_MS = 520;
 
@@ -113,7 +141,13 @@ export default function OrbStage({
     return {
       x: ((rect.left + rect.width / 2) / window.innerWidth) * 100,
       y: ((rect.top + rect.height / 2) / window.innerHeight) * 100,
-      scale: portrait ? 0.75 : 1.2,
+      /*
+       * Short viewports take the phone's scale too. A landscape phone is not
+       * portrait, so it was taking 1.2 — with the larger CSS box that made the
+       * hero orb 101px across on a 390px-tall screen, a quarter of the height,
+       * clipped by the top edge. The same handset in portrait draws it at 58px.
+       */
+      scale: portrait || isShortFor(window.innerHeight) ? 0.75 : 1.2,
     };
   };
 
@@ -192,10 +226,24 @@ export default function OrbStage({
     const timing = timingRef?.current ?? null;
     const hero = heroPoseRef.current;
     const portrait = typeof window !== 'undefined' ? isPortraitFor(window.innerWidth, window.innerHeight) : false;
-    const dock = portrait ? (dockPoseRef.current ?? measureDockPose()) : null;
+    /*
+     * Measured in either orientation now.
+     *
+     * K13/K14 say "settles onto the foot of the phone", and portrait got that
+     * from `#multilingual-dock-anchor` while landscape fell back to the
+     * authored `x: 40`. But the handset is centred on 40% of the viewport
+     * (`md:left-[40%]` with the base `-translate-x-1/2`), so x:40 is the
+     * phone's centre-line, not its foot — on a short landscape frame the orb
+     * sat in the middle of the briefing it is supposed to be delivering. The
+     * anchor is rendered and measurable in both orientations, so there is no
+     * reason for the fallback to exist, and using it means the pose tracks the
+     * handset at any height rather than at one.
+     */
+    const dock = dockPoseRef.current ?? measureDockPose();
     const finaleDock = finaleDockPoseRef.current ?? measureFinaleDockPose();
     const brokerDock = measureBrokerPose(portrait);
-    const heroScale = hero?.scale ?? (portrait ? 0.75 : 1.2);
+    const short = typeof window !== 'undefined' && isShortFor(window.innerHeight);
+    const heroScale = hero?.scale ?? (portrait || short ? 0.75 : 1.2);
     const minScale = heroScale * MIN_SCALE_FRACTION;
 
     const path: Keyframe[] = hero || dock || finaleDock || brokerDock
@@ -205,20 +253,18 @@ export default function OrbStage({
             next = { ...next, x: hero.x, y: hero.y, scale: hero.scale };
           }
           if (dock && k.dock) {
-            next = {
-              ...next,
-              portrait: {
-                ...next.portrait,
-                x: +dock.x.toFixed(2),
-                y: +dock.y.toFixed(2),
-              },
-            };
+            // Into whichever slot this viewport actually reads, the same way
+            // the broker dock below picks its target.
+            const measured = { x: +dock.x.toFixed(2), y: +dock.y.toFixed(2) };
+            next = portrait
+              ? { ...next, portrait: { ...next.portrait, ...measured } }
+              : { ...next, ...measured };
           }
           if (brokerDock && k.brokerDock) {
             // Right-aligned: the core's right edge on the column's, at the
             // scale this beat actually resolves to.
             const scale = Math.max(portrait ? (next.portrait?.scale ?? next.scale) : next.scale, minScale);
-            const radius = (coreSizeFor(window.innerWidth) / 2) * scale;
+            const radius = (coreSizeFor(window.innerWidth, window.innerHeight) / 2) * scale;
             const x = +(((brokerDock.right - radius) / window.innerWidth) * 100).toFixed(2);
             if (portrait) {
               next = { ...next, portrait: { ...next.portrait, x } };
@@ -252,7 +298,7 @@ export default function OrbStage({
       `#hero-o-anchor`, so on a portrait screen it is a different size and the
       floor has to follow it.
     */
-    const resolved = resolvePath(path, timing, portrait, minScale);
+    const resolved = resolvePath(path, timing, portrait, minScale, short);
     resolvedRef.current = resolved;
     lastTimingRef.current = timing;
 
@@ -298,7 +344,11 @@ export default function OrbStage({
     if (dock) dockPoseRef.current = dock;
     rebuildPath();
 
-    const landingScale = heroPoseRef.current?.scale ?? (isPortraitFor(window.innerWidth, window.innerHeight) ? 0.75 : 1.2);
+    const landingScale =
+      heroPoseRef.current?.scale ??
+      (isPortraitFor(window.innerWidth, window.innerHeight) || isShortFor(window.innerHeight)
+        ? 0.75
+        : 1.2);
 
     gsap.to(holderRef.current, {
       x: deltaX,
@@ -505,8 +555,17 @@ export default function OrbStage({
        * against the band the rail reserves, which is the one place that knows
        * both the pose and the viewport.
        */
-      const coreRadius = (coreSizeFor(vw) / 2) * scale;
-      const yCeiling = ((vh - RAIL_BAND_PX - coreRadius) / vh) * 100;
+      const coreRadius = (coreSizeFor(vw, vh) / 2) * scale;
+      /*
+       * Only on a short viewport. `min(78, vh * 0.12)` is inert above 650px
+       * tall, but between 500 and 650 it loosens the clamp by a few pixels and
+       * moves any pose that was being clamped — a change to a calibrated
+       * position on viewports that never had the problem this cap exists for.
+       */
+      const railBand = isShortFor(vh)
+        ? Math.min(RAIL_BAND_PX, vh * RAIL_BAND_MAX_FRACTION)
+        : RAIL_BAND_PX;
+      const yCeiling = ((vh - railBand - coreRadius) / vh) * 100;
       const poseY = Math.min(pose.y, yCeiling);
 
       const px = vw * (pose.x / 100 - 0.5);
@@ -518,7 +577,10 @@ export default function OrbStage({
         // No depth blur on a phone: a filter over the orb's WebGL iframe is
         // re-rasterised every frame it moves, and switching it on and off
         // mid-shot is a visible hitch on iOS.
-        holderRef.current.style.filter = pose.blur > 0.05 && !portrait ? `blur(${pose.blur}px)` : '';
+        // `!portrait` alone let the depth blur through on a landscape iPhone —
+        // precisely the device the note above is about.
+        holderRef.current.style.filter =
+          pose.blur > 0.05 && !portrait && !isShortFor(vh) ? `blur(${pose.blur}px)` : '';
       }
 
 

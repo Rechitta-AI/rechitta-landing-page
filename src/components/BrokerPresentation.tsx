@@ -3,7 +3,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import gsap from 'gsap';
 import { coverRect, toViewport, matrix3dFor } from '@/screens/warp';
-import { isPortraitFor, modeFor } from '@/hooks/useDeviceMode';
+import { isPortraitFor, isShortFor, modeFor } from '@/hooks/useDeviceMode';
 import type { Quad } from '@/screens/types';
 import ClickPrompt from './ClickPrompt';
 
@@ -272,11 +272,25 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Proportional scale-to-fit on compact, short, or zoomed viewports
-  // Prevents HUD panel from overflowing vertically or colliding with bottom dock and phone
+  /*
+   * Proportional scale-to-fit on compact, short, or zoomed viewports, so the
+   * HUD panel does not overflow vertically or collide with the dock and phone.
+   *
+   * The floor was 0.72 and that is what made it collide anyway on a phone held
+   * in landscape. There the height term resolves to (390-120)/570 = 0.47 — the
+   * formula had the right answer — and the floor threw it away, leaving the
+   * panel rendered about half again larger than the room it had, overrunning
+   * the header above and the chapter rail below. 0.55 is the smallest the
+   * panel can be and still fit a 390px-tall viewport: roughly 262px of usable
+   * height against content that measures ~455px at the tight type step.
+   *
+   * It only ever binds on a short screen. Desktop at 1440x900 resolves to 1.0,
+   * tablet at 1024x768 to 0.93, tablet landscape at 1055x710 to 0.99 — none of
+   * them come near either floor.
+   */
   const hudScale = Math.min(
     1,
-    Math.max(0.72, Math.min((viewport.height - 120) / 570, (viewport.width - 520) / 540))
+    Math.max(0.55, Math.min((viewport.height - 120) / 570, (viewport.width - 520) / 540))
   );
 
   /*
@@ -287,11 +301,33 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
    * instead of clamping it: at the larger step, a 390x844 handset has the
    * panel almost exactly full, with nothing spare for the button. Only a
    * genuinely tall screen gets the big type.
+   *
+   * `short` rather than `stacked` alone: this asks whether there is vertical
+   * room, and a 390px-tall landscape phone is not stacked but has less room
+   * than anything this was written for. Gated behind `stacked` it was the
+   * step-down for short viewports that never fired on the shortest viewport
+   * there is.
    */
-  const tight = stacked && viewport.height < 860;
+  const short = isShortFor(viewport.height);
+  const tight = (stacked || short) && viewport.height < 860;
 
   const flatPhoneHeight = Math.min(viewport.height * 0.80, 660);
   const flatPhoneWidth = flatPhoneHeight * (PHONE_WIDTH / PHONE_HEIGHT);
+  /*
+   * The flat chassis is scaled, not resized — the same move BuyerPresentation
+   * makes, and for a stronger reason here.
+   *
+   * What fills it is a cross-origin iframe, so the only thing it is ever told
+   * about its viewport is the width of this box. Shrinking the box to
+   * flatPhoneWidth handed the remote app a 144px layout viewport on a
+   * landscape phone — narrower than any real device and below every mobile
+   * breakpoint it has — so it laid itself out at its authored pixel sizes
+   * inside a frame a third the width, which is what read as "the presentation
+   * has big elements". Keeping the box at a true 390x844 and scaling the whole
+   * thing means the app renders the same iPhone layout in every branch, the
+   * way it already does in the composited and stacked ones.
+   */
+  const flatPhoneScale = flatPhoneHeight / PHONE_HEIGHT;
 
   /*
    * The band beside the handset, and the orb's mirror distance on the other side.
@@ -858,10 +894,14 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
           Mobile Portrait: precision 3D homography matrix3d matched to video handset.
          =================================================================== */}
       {(() => {
-        const phoneRadius =
-          composited || stacked
-            ? `${BROKER_PHONE_RADIUS}px`
-            : `${Math.round(flatPhoneHeight * 0.055)}px`;
+        /*
+         * One radius for all three branches now that the flat chassis is a
+         * native 390x844 box too. The flat branch used to compute
+         * `flatPhoneHeight * 0.055` against its shrunken box, which on the
+         * native box is `844 * 0.055` = 46px — the same corner as
+         * BROKER_PHONE_RADIUS, so the two had always agreed proportionally.
+         */
+        const phoneRadius = `${BROKER_PHONE_RADIUS}px`;
 
         return (
           <div
@@ -935,11 +975,12 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
                       }
                     : {
                         position: 'absolute',
-                        width: `${flatPhoneWidth}px`,
-                        height: `${flatPhoneHeight}px`,
+                        width: PHONE_WIDTH,
+                        height: PHONE_HEIGHT,
                         left: '6%',
                         top: '50%',
-                        transform: 'translateY(-50%)',
+                        transformOrigin: 'left center',
+                        transform: `translateY(-50%) scale(${flatPhoneScale})`,
                         borderRadius: phoneRadius,
                         overflow: 'hidden',
                         clipPath: `inset(0 round ${phoneRadius})`,
@@ -1307,7 +1348,9 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
             button keeps its row, rather than being pushed off the panel.
           */
           className={`prompt-pill-reveal flex flex-col rounded-2xl border border-white/15 bg-neutral-900/80 backdrop-blur-xl shadow-[0_14px_40px_rgba(0,0,0,0.5)] ${
-            stacked ? `${tight ? 'p-2.5' : 'p-3'} min-h-0 overflow-hidden` : 'p-5'
+            // `short` takes the compact padding too: p-5 on a 390px-tall
+            // landscape phone is 40px of the ~262px the panel has.
+            stacked || short ? `${tight ? 'p-2.5' : 'p-3'} min-h-0 overflow-hidden` : 'p-5'
           }`}
         >
           {/* Card Header: Category — skipped on the waitlist slide in stacked
@@ -1407,7 +1450,7 @@ export default function BrokerPresentation({ holdData }: BrokerPresentationProps
         </div>
 
         {/* The one control the film waits on. Present on every objection. */}
-        <div className={`hud-action-reveal relative flex shrink-0 ${stacked ? (tight ? 'mt-1.5' : 'mt-2') : 'mt-4'}`}>
+        <div className={`hud-action-reveal relative flex shrink-0 ${stacked || short ? (tight ? 'mt-1.5' : 'mt-2') : 'mt-4'}`}>
           {/*
             Auto-placed: on desktop, show the floating prompt tooltip.
             On mobile, we integrate the hint directly into the button to prevent rail overlap.

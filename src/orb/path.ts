@@ -130,6 +130,9 @@ export const ORB_PATH: Keyframe[] = [
     anchor: { clip: 'transit-b', t: 11.0 },
     brokerDock: true,
     portrait: { x: 84, y: 20, scale: 0.5 },
+    // Only the height: x still comes from the measured column edge. y:25 is
+    // 83px on a 333px frame, under a header that ends at 92.
+    short: { y: 42, scale: 0.45 },
     x: 23, y: 25, scale: 0.6, opacity: 1, blur: 0,
     ease: 'inOut',
     note: 'K7 — glides up and right, clear of the phone, onto the answer column.',
@@ -142,6 +145,7 @@ export const ORB_PATH: Keyframe[] = [
     // Measured off the answer column's right edge (OrbStage), portrait too.
     brokerDock: true,
     portrait: { x: 84, y: 20, scale: 0.5 },
+    short: { y: 42, scale: 0.45 },
     /*
      * Raised from 33. The objections now run down this side of the frame, and
      * at the floored size the orb was sitting on the first card's top corner.
@@ -234,6 +238,16 @@ export const ORB_PATH: Keyframe[] = [
     dock: true,
     // Portrait centers the handset and docks the orb cleanly at its bottom center.
     portrait: { x: 50, y: 72.4, scale: 0.7 },
+    /*
+     * Scale only — the position comes from `#multilingual-dock-anchor`, which
+     * OrbStage measures in both orientations.
+     *
+     * The handset shrinks with the viewport's height but this scale does not,
+     * so on a 393px-tall landscape frame the orb's core was 59px against a
+     * 126px-wide phone: 47% of the handset, where portrait sits at 12%. It was
+     * on its dock and still swamped the briefing.
+     */
+    short: { scale: 0.42 },
     x: 40, y: 82, scale: 0.85, opacity: 1, blur: 0,
     ease: 'out',
     note: 'K13 — settles onto the foot of the phone as the chapter opens.',
@@ -242,6 +256,7 @@ export const ORB_PATH: Keyframe[] = [
     anchor: { progress: 0.93 },
     dock: true,
     portrait: { x: 50, y: 72.4, scale: 0.7 },
+    short: { scale: 0.42 },
     x: 40, y: 82, scale: 0.85, opacity: 1, blur: 0,
     ease: 'linear',
     note: 'K14 — holds on the dock, pulsing as each city takes over.',
@@ -252,6 +267,13 @@ export const ORB_PATH: Keyframe[] = [
     anchor: { progress: 0.96 },
     finaleDock: true,
     portrait: { x: 50, y: 90, scale: 0.52 },
+    /*
+     * Landscape keeps the slide dock under the map rather than below the set,
+     * centred on x:50 — exactly where this used to land, and the orb's bloom
+     * is wide enough to wash the whole control out even when its core clears.
+     * Off to the left of the dock's run.
+     */
+    short: { x: 12, y: 64, scale: 0.45 },
     /*
      * On the screen rather than under it. At 86 the orb sat across the deck's
      * own control dock, which is the one thing on this beat that has to be

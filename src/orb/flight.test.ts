@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { resolveAnchor, resolvePath, poseAt, findExclusionViolations } from './flight';
 import { buildTiming } from '@/film/timing';
+import { ORB_PATH } from './path';
 import type { ExclusionZone, FilmTiming, Keyframe, ResolvedKeyframe } from './types';
 
 /**
@@ -202,6 +203,77 @@ describe('the authored path', () => {
     expect(finaleDocks[0].portrait?.x).toBe(50);
     expect(finaleDocks[0].portrait?.y).toBeGreaterThan(75);
     expect(finaleDocks[0].ease).toBe('out');
+  });
+});
+
+describe('the short-viewport override', () => {
+  const t: FilmTiming = {
+    clips: [{ key: 'a', trimIn: 0, trimOut: 10, duration: 10, holdWeight: 0, offsetUnits: 0 }],
+    totalUnits: 10,
+    startProgress: 0,
+    endProgress: 1,
+  };
+  const k = (over: Partial<Keyframe>): Keyframe => ({
+    anchor: { clip: 'a', t: 5 },
+    x: 10, y: 20, scale: 1, opacity: 1, blur: 0,
+    ease: 'linear', note: 'k',
+    ...over,
+  });
+
+  it('is ignored on a roomy viewport', () => {
+    const [r] = resolvePath([k({ short: { y: 60 } })], t, false, 0, false);
+    expect(r.y).toBe(20);
+  });
+
+  it('replaces only the fields it names', () => {
+    const [r] = resolvePath([k({ short: { y: 60 } })], t, false, 0, true);
+    expect(r.y).toBe(60);
+    expect(r.x).toBe(10);
+    expect(r.scale).toBe(1);
+  });
+
+  it('wins over portrait where both are given, for those fields only', () => {
+    // A small square is both. `short` is the more specific answer.
+    const [r] = resolvePath(
+      [k({ portrait: { x: 84, y: 20, scale: 0.5 }, short: { y: 42 } })],
+      t, true, 0, true,
+    );
+    expect(r.y).toBe(42);   // short
+    expect(r.x).toBe(84);   // portrait still applies where short is silent
+    expect(r.scale).toBe(0.5);
+  });
+
+  it('leaves a keyframe without a short block alone', () => {
+    const [r] = resolvePath([k({})], t, false, 0, true);
+    expect(r.y).toBe(20);
+  });
+
+  it('is still clamped by the scale floor', () => {
+    const [r] = resolvePath([k({ short: { scale: 0.1 } })], t, false, 0.45, true);
+    expect(r.scale).toBe(0.45);
+  });
+
+  it('carries a short pose only where no anchor can be measured instead', () => {
+    /*
+     * A short pose is the fallback, not the first answer. Where the scene
+     * renders an anchor the orb can measure in landscape, the measurement
+     * wins and tracks the layout at any height — which is why the city docks
+     * carry no short pose: `#multilingual-dock-anchor` is in the DOM in both
+     * orientations, so OrbStage reads it directly.
+     */
+    // Every short pose belongs to a dock beat — those are the ones that park,
+    // and a parked orb is the only one that can sit on something.
+    const withShort = ORB_PATH.filter((kf) => kf.short);
+    expect(withShort.length).toBeGreaterThan(0);
+    withShort.forEach((kf) => {
+      expect(Boolean(kf.brokerDock || kf.dock || kf.finaleDock), kf.note).toBe(true);
+    });
+    // The city docks are measured, so they must not carry a short *position*
+    // — only a scale, which the measurement says nothing about.
+    ORB_PATH.filter((kf) => kf.dock).forEach((kf) => {
+      expect(kf.short?.x, kf.note).toBeUndefined();
+      expect(kf.short?.y, kf.note).toBeUndefined();
+    });
   });
 });
 

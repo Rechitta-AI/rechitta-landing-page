@@ -66,6 +66,15 @@ export type Keyframe = Pose & {
    */
   portrait?: Partial<Pick<Pose, 'x' | 'y' | 'scale'>>;
   /**
+   * Where the orb sits when there is no vertical room — a phone held in
+   * landscape, roughly 390px tall and 844 wide.
+   *
+   * Applied over `portrait` rather than instead of it, so a viewport that is
+   * both (a small square) gets the more specific answer. Only the fields given
+   * are replaced, same as `portrait`.
+   */
+  short?: Partial<Pick<Pose, 'x' | 'y' | 'scale'>>;
+  /**
    * Pose is taken from the measured `#hero-o-anchor` instead of x/y/scale
    * above. The hero and the finale share it, which is what hides the loop.
    */

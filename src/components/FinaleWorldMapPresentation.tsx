@@ -245,10 +245,24 @@ export default function FinaleWorldMapPresentation({
   const DOCK_H = 30;
   const bezelBottom = rect.y + TV_BOTTOM * rect.height;
   const railTop = viewport.height - RAIL_BAND;
-  const dockTop = Math.min(
-    Math.max(bezelBottom + (railTop - bezelBottom - DOCK_H) / 2, bezelBottom + 8),
-    railTop - DOCK_H,
-  );
+  /*
+   * Centred in the wall between the set and the rail, but never *on* the set.
+   *
+   * On a short landscape viewport the television runs past the rail — at
+   * 880x277 the bezel lands at 345 and the rail starts at 213, so the "wall"
+   * is -132px — and the `railTop - DOCK_H` clamp resolved that by parking the
+   * dock 42px up inside the lit screen. When there is no wall, the dock goes
+   * above the bezel instead, where it reads as sitting in front of the set
+   * rather than printed on it.
+   */
+  const wall = railTop - bezelBottom;
+  const dockTop =
+    wall >= DOCK_H + 8
+      ? Math.min(
+          Math.max(bezelBottom + (wall - DOCK_H) / 2, bezelBottom + 8),
+          railTop - DOCK_H,
+        )
+      : Math.max(8, Math.min(bezelBottom, railTop) - DOCK_H - 8);
   const dockLeft = (bledBl[0] + bledBr[0]) / 2;
 
   /*
@@ -262,6 +276,18 @@ export default function FinaleWorldMapPresentation({
    */
   const deckScale = (monitorR - monitorL) / 2000;
   const deckCompact = deckScale < 0.34;
+
+  /*
+   * Whether the map's own labels have to be the compact kind.
+   *
+   * This used to ride on `flat`, i.e. on portrait, but the question it is
+   * really asking is whether the canvas is painted small enough that authored
+   * type stops being readable — which is exactly what `deckCompact` already
+   * measures, and which slides 2 and 3 have always keyed off. A phone held in
+   * landscape paints at 0.269, so it was drawing the full 232-unit pill with a
+   * 4.6px name inside it; the two-letter chip renders at 16.7px there.
+   */
+  const compactLabels = flat || deckCompact;
 
   /*
    * On screen while the film is parked on the presentation, and held through
@@ -404,7 +430,15 @@ export default function FinaleWorldMapPresentation({
 
     if (isVisible) {
       gsap.killTweensOf(panels);
-      gsap.set(others, { display: 'block' });
+      /*
+        `opacity: 1` as well as `display`, or the slide dock never comes back.
+        The exit below fades every panel to 0, and this used to restore only
+        `display` — the reels get their opacity from the `fromTo`s further
+        down and the portrait marquee from its own `set`, but the landscape
+        dock had nothing, so it was laid out, hit-testable and completely
+        invisible on every visit. The `fromTo`s still override this.
+      */
+      gsap.set(others, { display: 'block', opacity: 1 });
       gsap.set(el, { visibility: 'visible' });
       el.removeAttribute('data-idle');
       svg?.unpauseAnimations();
@@ -723,9 +757,12 @@ export default function FinaleWorldMapPresentation({
         {/* 1. Top Header (y = 68) with generous margin above northern landmasses */}
         {/* Label/Default, gold, at the canvas's 1.69 scale — the deck's section-label convention. */}
         {/*
-          On a phone this canvas is painted at about 0.155, so the authored
-          20.3 units arrived at 3.1 CSS px and the line could not be read at
-          all. Portrait takes it to 60 units (~9.3 px) and swaps the gold for
+          On a phone this canvas is painted at 0.155 portrait and 0.269
+          landscape, so the authored 20.3 units arrived at 3.1 and 5.5 CSS px
+          and the line could not be read either way up. `compactLabels` rather
+          than `flat`: the first pass gated this on portrait alone and left a
+          landscape phone with a 5.5px header, which is the same bug one gate
+          along. It goes to 60 units and swaps the gold for
           neutral ink, because gold on the map's pale blue is the weakest pair
           on the slide. The plate behind it stops the map's own coastlines
           reading through the letterforms at that size, and HEADER_BAND_BOTTOM
@@ -737,8 +774,8 @@ export default function FinaleWorldMapPresentation({
           apart: the plate is 88 units tall centred 58 above the band's floor,
           which leaves it 14 units of air before the nearest chip may begin.
         */}
-        <g transform={flat ? `translate(44, ${HEADER_BAND_BOTTOM - 58})` : 'translate(60, 68)'}>
-          {flat && (
+        <g transform={compactLabels ? `translate(44, ${HEADER_BAND_BOTTOM - 58})` : 'translate(60, 68)'}>
+          {compactLabels && (
             <rect
               x="-30"
               y="-44"
@@ -748,19 +785,19 @@ export default function FinaleWorldMapPresentation({
               fill="rgba(232, 237, 240, 0.82)"
             />
           )}
-          <circle cx="0" cy="0" r={flat ? 14 : 5} fill={light.bgAccent} />
-          {!flat && (
+          <circle cx="0" cy="0" r={compactLabels ? 14 : 5} fill={light.bgAccent} />
+          {!compactLabels && (
             <circle cx="0" cy="0" r="10" fill="none" stroke={light.borderAccent} strokeWidth="1.2" opacity="0.45" />
           )}
 
           <text
-            x={flat ? 36 : 22}
+            x={compactLabels ? 36 : 22}
             y="2"
             dominantBaseline="central"
-            fill={flat ? NEUTRAL[700] : light.textAccent}
-            fontSize={flat ? 60 : 20.3}
-            fontWeight={flat ? 700 : 500}
-            letterSpacing={flat ? 3 : 2}
+            fill={compactLabels ? NEUTRAL[700] : light.textAccent}
+            fontSize={compactLabels ? 60 : 20.3}
+            fontWeight={compactLabels ? 700 : 500}
+            letterSpacing={compactLabels ? 3 : 2}
             style={{ fontFamily: FONT_BODY }}
           >
             RECHITTA // GLOBAL DISTRIBUTION ENGINE
@@ -835,16 +872,16 @@ export default function FinaleWorldMapPresentation({
               <path
                 d={arc.path}
                 fill="none"
-                stroke={flat ? 'rgba(61, 111, 245, 0.42)' : 'rgba(61, 111, 245, 0.26)'}
-                strokeWidth={flat ? 7 : 1.8}
-                strokeDasharray={flat ? '16 16' : '4 4'}
+                stroke={compactLabels ? 'rgba(61, 111, 245, 0.42)' : 'rgba(61, 111, 245, 0.26)'}
+                strokeWidth={compactLabels ? 7 : 1.8}
+                strokeDasharray={compactLabels ? '16 16' : '4 4'}
               />
               {/* The glow: the same stream, wider and faint, riding under it. */}
               <path
                 d={arc.path}
                 fill="none"
                 stroke="rgba(61, 111, 245, 0.28)"
-                strokeWidth={flat ? 34 : 10}
+                strokeWidth={compactLabels ? 34 : 10}
                 strokeLinecap="round"
                 strokeDasharray="48 180"
                 style={{
@@ -856,7 +893,7 @@ export default function FinaleWorldMapPresentation({
                 d={arc.path}
                 fill="none"
                 stroke="#3D6FF5"
-                strokeWidth={flat ? 13 : 3.2}
+                strokeWidth={compactLabels ? 13 : 3.2}
                 strokeLinecap="round"
                 strokeDasharray="48 180"
                 style={{
@@ -895,14 +932,14 @@ export default function FinaleWorldMapPresentation({
                 r="6"
                 fill="none"
                 stroke={isHQ ? BRAND_GOLD[500] : BRAND_BLUE[500]}
-                strokeWidth={flat ? 7 : 1.8}
+                strokeWidth={compactLabels ? 7 : 1.8}
               >
                 <animate attributeName="r" from="6" to={isHQ ? '38' : '26'} dur="2.4s" repeatCount="indefinite" />
                 <animate attributeName="opacity" from="0.85" to="0" dur="2.4s" repeatCount="indefinite" />
               </circle>
 
               {/* The HQ's bloom, as a soft disc rather than a blur filter. */}
-              {isHQ && <circle r={flat ? 30 : 17} fill="rgba(197, 165, 114, 0.3)" />}
+              {isHQ && <circle r={compactLabels ? 30 : 17} fill="rgba(197, 165, 114, 0.3)" />}
 
               {/*
                 Node Center Dot. The authored 5.5 units is a 0.85 px dot on a
@@ -912,10 +949,10 @@ export default function FinaleWorldMapPresentation({
                 and this is the only thing saying where the place actually is.
               */}
               <circle
-                r={flat ? (isHQ ? 20 : 14) : isHQ ? 8.5 : 5.5}
+                r={compactLabels ? (isHQ ? 20 : 14) : isHQ ? 8.5 : 5.5}
                 fill={isHQ ? BRAND_GOLD[500] : BRAND_BLUE[500]}
                 stroke="#FFFFFF"
-                strokeWidth={flat ? 5 : 2}
+                strokeWidth={compactLabels ? 5 : 2}
               />
 
               {/*
@@ -936,7 +973,7 @@ export default function FinaleWorldMapPresentation({
                 it was the only mobile concession this slide ever had, and a
                 12% bump on 2.9 px is 3.3 px.
               */}
-              {flat ? (
+              {compactLabels ? (
                 <g
                   transform={`translate(${hub.portraitChipOffset.x}, ${hub.portraitChipOffset.y})`}
                 >
